@@ -1,140 +1,184 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { getOpenRouterApiBaseUrl } from '@/lib/server/openrouter';
-
-const client = new OpenAI({
-  baseURL: getOpenRouterApiBaseUrl(),
-  apiKey: process.env.ROUTER_API_KEY || process.env.OPENROUTER_API_KEY,
-  defaultHeaders: {
-    'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://dassahs-prism.vercel.app',
-    'X-Title': process.env.APP_NAME || "Dassah's Prism",
-  },
-});
+import { recordUsage, refundCredits, reserveCredits, type QuotaReservation } from '@/lib/ai-quota';
+import {
+  evaluateSafetyBoundary,
+  mapLaneOutputToSimplifyResponse,
+  type FocusCoreOutput,
+  type LensOutput,
+  type PlayCardOutput,
+  type PrismLane,
+  type StructuredPrismLane,
+} from '@/lib/server/prism-contracts';
+import {
+  classifyComplexity,
+  isFourTierEnabled,
+  LOCAL_FALLBACK_LABEL,
+  LOCAL_FALLBACK_MODEL,
+  routeFourTier,
+} from '@/lib/server/prism-router';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-async function classifyComplexity(content: string): Promise<'light' | 'standard' | 'complex'> {
-  const wordCount = content.split(/\s+/).length;
-  const sentenceCount = Math.max(1, content.split(/[.!?]+/).length);
-  const avgSentenceLength = wordCount / sentenceCount;
-
-  const isHighDensity = avgSentenceLength > 20;
-  const isTechnical = /algorithm|framework|infrastructure|constitutional|regulatory/i.test(content);
-
-  if (wordCount < 500 && !isHighDensity && !isTechnical) return 'light';
-  if (wordCount < 2000 && !isHighDensity) return 'standard';
-  return 'complex';
-}
-
 function computeLocalMetrics(content: string) {
-  const wordCount = content.split(/\s+/).length;
-  const sentenceCount = Math.max(1, content.split(/[.!?]+/).length);
+  const trimmed = (content || '').trim();
+  const words = trimmed ? trimmed.split(/\s+/).filter(Boolean) : [];
+  const wordCount = words.length;
+  const sentenceCount = Math.max(1, trimmed ? trimmed.split(/[.!?]+/).filter(Boolean).length : 1);
   return {
     wordCount,
     readabilityEstimate: wordCount / sentenceCount > 20 ? 'High' : 'Moderate',
-    keywords: content.split(/\s+/).slice(0, 5),
-    error: 'API unavailable, showing local structural metrics.',
+    keywords: words.slice(0, 5),
+    model: LOCAL_FALLBACK_MODEL,
+    label: LOCAL_FALLBACK_LABEL,
   };
 }
 
 export async function POST(req: Request) {
+  let reservation: QuotaReservation | null = null;
+  let guestUses: number | null = null;
   try {
-    const { content } = await req.json();
+    const body = await req.json();
+    const rawText = typeof body?.content === 'string'
+      ? body.content
+      : typeof body?.text === 'string'
+        ? body.text
+        : '';
 
-    if (!content || typeof content !== 'string') {
+    if (!rawText.trim()) {
       return NextResponse.json({ error: 'No content provided' }, { status: 400 });
     }
 
-    const complexity = await classifyComplexity(content);
-    return await routeToTier(content, complexity);
-  } catch (error: any) {
-    console.error('Orchestrator Error:', error);
-    return NextResponse.json(computeLocalMetrics(''), { status: 200 });
-  }
-}
-
-async function routeToTier(content: string, complexity: 'light' | 'standard' | 'complex') {
-  let primaryModel = 'anthropic/claude-3.5-sonnet';
-  let tierName = 'Focus';
-  let promptText = content;
-  let fallbackModels: string[] = [];
-
-  switch (complexity) {
-    case 'light':
-      tierName = 'Scout';
-      primaryModel = 'meta-llama/llama-3.3-70b-instruct';
-      promptText = `Analyze the following text. Extract key anchors, executive summary, and sentiment:\n\n${content}`;
-      fallbackModels = [
-        'meta-llama/llama-3.3-70b-instruct',
-        'google/gemini-2.0-flash-001',
-        'apodex/apodex-1.1-mini:free',
-        'inclusionai/ling-3.0-flash-sante:free',
-        'openrouter/free',
-        'meta-llama/llama-3.3-70b-instruct:free',
-      ];
-      break;
-
-    case 'standard':
-      tierName = 'Analyst';
-      primaryModel = 'google/gemini-2.0-flash-001';
-      fallbackModels = [
-        'google/gemini-2.0-flash-001',
-        'anthropic/claude-3.5-sonnet',
-        'apodex/apodex-1.1-mini:free',
-        'inclusionai/ling-3.0-flash-sante:free',
-        'openrouter/free',
-        'meta-llama/llama-3.3-70b-instruct:free',
-      ];
-      break;
-
-    case 'complex':
-    default:
-      tierName = 'Focus';
-      primaryModel = 'anthropic/claude-3.5-sonnet';
-      fallbackModels = [
-        'anthropic/claude-3.5-sonnet',
-        'openai/gpt-4o',
-        'google/gemini-2.0-flash-001',
-        'apodex/apodex-1.1-mini:free',
-        'inclusionai/ling-3.0-flash-sante:free',
-        'openrouter/free',
-        'meta-llama/llama-3.3-70b-instruct:free',
-      ];
-      break;
-  }
-
-  // Type-cast with 'as any' so TypeScript accepts OpenRouter's fallback models parameter
-  const completion = (await client.chat.completions.create({
-    model: primaryModel,
-    messages: [
-      {
-        role: 'system',
-        content:
-          "You are the Focus Guide in Dassah's Prism. Provide high-fidelity cognitive refractions, concise anchors, and structural analysis.",
-      },
-      {
-        role: 'user',
-        content: promptText,
-      },
-    ],
-    ...({
-      models: fallbackModels,
-    } as any),
-  } as any)) as any;
-
-  const responseText = completion.choices?.[0]?.message?.content || '';
-
-  return NextResponse.json({
-    tier: tierName,
-    response: responseText,
-    choices: [
-      {
-        message: {
-          content: responseText,
+    const absoluteMaxChars = 150_000;
+    if (rawText.length > absoluteMaxChars) {
+      return NextResponse.json(
+        {
+          error:
+            'Neural Link Overload: Document exceeds maximum document limit (150k chars). Please split your noise into smaller volumes.',
         },
+        { status: 413 },
+      );
+    }
+
+    const quota = await reserveCredits(req);
+    if (!quota.ok) {
+      return NextResponse.json({ error: quota.error, code: quota.code }, { status: quota.status });
+    }
+    reservation = quota.reservation;
+    guestUses = quota.reservation.guestUses ?? null;
+
+    const respond = (payload: unknown, init?: ResponseInit) => {
+      const response = NextResponse.json(payload, init);
+      if (guestUses !== null) {
+        response.cookies.set('prism-guest-uses', String(guestUses), {
+          httpOnly: true,
+          maxAge: 60 * 60 * 24 * 30,
+          path: '/',
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        });
+      }
+      return response;
+    };
+
+    const lane: PrismLane =
+      body?.lane === 'play' || body?.lane === 'lens' || body?.lane === 'chat'
+        ? body.lane
+        : 'focus';
+
+    const safety = evaluateSafetyBoundary({
+      text: rawText,
+      missionGoal: typeof body?.missionGoal === 'string' ? body.missionGoal : undefined,
+    });
+
+    const routed = await routeFourTier({
+      lane,
+      text: rawText,
+      missionGoal: typeof body?.missionGoal === 'string' ? body.missionGoal : undefined,
+      cognitiveMode: typeof body?.cognitiveMode === 'string' ? body.cognitiveMode : 'adhd',
+      simplicityLevel: typeof body?.simplicityLevel === 'string' ? body.simplicityLevel : 'standard',
+    });
+
+    if (routed.isLocalFallback || routed.shouldRefundCredits || !safety.safe) {
+      await refundCredits(reservation);
+    } else {
+      await recordUsage(reservation, routed.usage);
+    }
+
+    const complexity = classifyComplexity(rawText);
+    const tierName =
+      routed.tier === 'tier1'
+        ? 'Scout'
+        : routed.tier === 'tier2'
+          ? 'Focus'
+          : routed.tier === 'tier3'
+            ? 'Analyst'
+            : LOCAL_FALLBACK_LABEL;
+
+    const structuredLane: StructuredPrismLane =
+      lane === 'play' || lane === 'lens' ? lane : 'focus';
+    const mapped =
+      lane === 'chat'
+        ? null
+        : mapLaneOutputToSimplifyResponse({
+            lane: structuredLane,
+            data: routed.data as FocusCoreOutput | PlayCardOutput | LensOutput,
+            originalText: rawText,
+            usage: routed.usage,
+            isLocalFallback: routed.isLocalFallback,
+            routeMeta: {
+              tier: routed.tier,
+              label: routed.label,
+              lane: structuredLane,
+              fourTierEnabled: isFourTierEnabled(),
+              isLocalFallback: routed.isLocalFallback,
+              failureClass: routed.failureClass,
+              safetySignal: routed.safety.safetySignal,
+            },
+          });
+
+    const responseText =
+      lane === 'chat'
+        ? (routed.data as { text: string }).text
+        : mapped?.chunks?.[0]?.summary || JSON.stringify(routed.data);
+
+    return respond({
+      tier: tierName,
+      tierId: routed.tier,
+      label: routed.label,
+      lane,
+      complexity: complexity.level,
+      fourTierEnabled: isFourTierEnabled(),
+      isLocalFallback: routed.isLocalFallback,
+      whyCare: routed.whyCare,
+      response: responseText,
+      choices: [
+        {
+          message: {
+            content: responseText,
+          },
+        },
+      ],
+      resolvedModel: routed.model,
+      usage: routed.usage,
+      data: routed.data,
+      ...(mapped ? { refraction: mapped } : {}),
+      metrics: computeLocalMetrics(rawText),
+    });
+  } catch (error) {
+    await refundCredits(reservation);
+    console.error('[Orchestrator] request_failed:', error);
+    return NextResponse.json(
+      {
+        ...computeLocalMetrics(''),
+        tier: LOCAL_FALLBACK_LABEL,
+        tierId: 'tier4',
+        resolvedModel: LOCAL_FALLBACK_MODEL,
+        isLocalFallback: true,
+        whyCare: 'Local structural refraction fallback; verify key points and next steps against the original source.',
+        error: 'API unavailable, showing local structural metrics.',
       },
-    ],
-    resolvedModel: completion.model,
-  });
+      { status: 200 },
+    );
+  }
 }

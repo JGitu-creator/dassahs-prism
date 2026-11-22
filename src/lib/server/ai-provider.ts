@@ -1,20 +1,15 @@
-import OpenAI from 'openai';
-import { getOpenRouterApiBaseUrl } from '@/lib/server/openrouter';
+import {
+  DEFAULT_GROQ_TIER1_MODEL,
+  DEFAULT_GROQ_TIER2_MODEL,
+  DEFAULT_TIER3_GEMINI_MODEL,
+  LOCAL_FALLBACK_MODEL,
+} from '@/lib/server/prism-router';
 
-export type Provider = 'openrouter';
-
-export function getAIClient(provider: Provider): OpenAI {
-  // Default: OpenRouter (falls back to the legacy ROUTER_API_KEY so existing deployments keep working)
-  return new OpenAI({
-    apiKey: process.env.OPENROUTER_API_KEY ?? process.env.ROUTER_API_KEY ?? '',
-    baseURL: getOpenRouterApiBaseUrl(),
-    defaultHeaders: {
-      'HTTP-Referer': 'https://dassahs-prism.vercel.app',
-      'X-Title': "Dassah's Prism",
-    },
-  });
-}
+export type Provider = 'groq' | 'gemini' | 'openrouter' | 'local';
 
 export function getModelForProvider(provider: Provider): string {
-  return 'meta-llama/llama-3.3-70b-instruct:free';
+  if (provider === 'groq') return DEFAULT_GROQ_TIER1_MODEL;
+  if (provider === 'gemini') return DEFAULT_TIER3_GEMINI_MODEL;
+  if (provider === 'local') return LOCAL_FALLBACK_MODEL;
+  return DEFAULT_GROQ_TIER2_MODEL;
 }

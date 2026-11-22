@@ -633,10 +633,10 @@ export default function PrismEnginePortalPage() {
             </span>
             <div>
               <p className="text-xs font-black uppercase tracking-wider text-amber-400">
-                4-Tier Unbreakable Fallback Engine
+                4-Tier Capability-Matrix Engine
               </p>
               <p className={`text-xs sm:text-sm ${muted}`}>
-                Powered by <strong>Groq LPU</strong> → <strong>OpenRouter Free Cascade</strong> → <strong>Gemini</strong> → <strong>Unlimited Local Prism</strong> (0 tokens, never locks you out).
+                <strong>Tier 1:</strong> Groq <code>openai/gpt-oss-20b</code> → <strong>Tier 2:</strong> Groq <code>openai/gpt-oss-120b</code> → <strong>Tier 3:</strong> Gemini 2.0 Flash → <strong>Tier 4:</strong> Honest <strong>Local Structural Refraction</strong> (0 tokens, never locks you out).
               </p>
             </div>
           </div>

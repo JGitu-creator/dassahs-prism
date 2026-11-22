@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Database update failed' }, { status: 500 });
       }
       
-      console.log(`Neural Sovereignty Unlocked for user ${userId}`);
+      console.log(`Focus Master plan unlocked for user ${userId}`);
     }
   }
 

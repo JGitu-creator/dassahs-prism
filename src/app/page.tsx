@@ -467,14 +467,14 @@ const RefractiveNeuralCore = ({ loading, inputLength, isVictorious, user, mouseP
   </div>
 );
 };
-const DIVINE_INSIGHTS = [
+const SCRIPTURE_INSIGHTS = [
   "Commit your work to the Lord, and your plans will be established. - Proverbs 16:3",
   "For I know the plans I have for you, declares the Lord. - Jeremiah 29:11",
   "I can do all things through Christ who strengthens me. - Philippians 4:13",
   "He gives power to the faint, and to him who has no might he increases strength. - Isaiah 40:29"
 ];
 const getIsSunday = () => new Date().getDay() === 0;
-const getDailyInsight = () => DIVINE_INSIGHTS[new Date().getDate() % DIVINE_INSIGHTS.length];
+const getDailyInsight = () => SCRIPTURE_INSIGHTS[new Date().getDate() % SCRIPTURE_INSIGHTS.length];
 const CerebralRecap = ({ data, onFinish }: { data: any, onFinish: () => void }) => {
   if (!data) return null;
   const computedWordCount = data.chunks.reduce((acc: number, chunk: any) => acc + (chunk.original?.trim().split(/\s+/).filter(Boolean).length || 0), 0);
@@ -1382,7 +1382,7 @@ export default function Home() {
     const sensitiveKeyword = /password|secret|api key|access token|bank account|medical record|患者|diagnosis/i;
 
     if (!pendingImage && (ssnPattern.test(textToSimplify) || privateKeyPattern.test(textToSimplify) || (textToSimplify.length < 120 && sensitiveKeyword.test(textToSimplify)))) {
-      if (!confirm("SOVEREIGN PRIVACY WARNING: This text may contain a password, API key, identity number, financial detail, or medical information. It will be sent to the configured AI provider for refraction. Remove secrets first, or choose Cancel.")) {
+      if (!confirm("PRIVACY WARNING: This text may contain a password, API key, identity number, financial detail, or medical information. It will be sent to the configured AI provider for refraction. Remove secrets first, or choose Cancel.")) {
         return;
       }
     }
@@ -1751,7 +1751,13 @@ export default function Home() {
       }
       if (result.usage) {
         setAiUsage(prev => {
-          const next = { totalTokens: prev.totalTokens + Number(result.usage.totalTokens || 0), provider: result.usage.provider || prev.provider, model: result.usage.model || prev.model };
+          const next = {
+            totalTokens: prev.totalTokens + Number(result.usage.totalTokens || 0),
+            provider: result.usage.provider || prev.provider,
+            model: result.usage.model || prev.model,
+            tier: result.usage.tier || result.routeMeta?.tier,
+            label: result.usage.label || result.routeMeta?.label,
+          };
           localStorage.setItem('dassahs_ai_tokens', next.totalTokens.toString());
           localStorage.setItem('dassahs_ai_provider', next.provider);
           localStorage.setItem('dassahs_ai_model', next.model);
@@ -2086,7 +2092,7 @@ export default function Home() {
             <motion.div whileHover={{ scale: 1.2, rotate: -10 }}><Clock size={18} className="md:w-5 md:h-5 transition-transform" /></motion.div>
           </button>
           <div className="w-[1px] h-6 bg-[var(--bg)]/10 mx-0.5 md:mx-1" />
-          <button onClick={() => { setFocusMode(f => f === "dastastic" ? "sovereign" : "dastastic"); }} title={focusMode === 'sovereign' ? 'Focus (Sovereign) mode active — click to switch to Dastastic mode' : 'Dastastic mode active — click to switch to Focus (Sovereign) mode'} className={`px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 ${focusMode === 'sovereign' ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'border border-[var(--color-border)] bg-[var(--bg)]/5 text-[var(--fg)]/85 hover:text-[var(--fg)]'}`}>
+          <button onClick={() => { setFocusMode(f => f === "dastastic" ? "sovereign" : "dastastic"); }} title={focusMode === 'sovereign' ? 'Focus mode active — click to switch to Dastastic mode' : 'Dastastic mode active — click to switch to Focus mode'} className={`px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 ${focusMode === 'sovereign' ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'border border-[var(--color-border)] bg-[var(--bg)]/5 text-[var(--fg)]/85 hover:text-[var(--fg)]'}`}>
             {focusMode === 'sovereign' ? <Crown size={13} className="md:w-3.5 md:h-3.5 shrink-0" /> : <Zap size={13} className="md:w-3.5 md:h-3.5 shrink-0" />}
             <span>{focusMode === 'sovereign' ? 'Focus' : 'Dastastic'}</span>
           </button>

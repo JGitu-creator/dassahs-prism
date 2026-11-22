@@ -7,7 +7,14 @@ import {
   usageFromOpenRouter,
   type AiUsage,
   type ProviderPreference,
-} from '../ai-usage';
+} from '../ai-usage.ts';
+import {
+  isFourTierEnabled,
+  routeFourTier,
+  type FourTierRequest,
+  type FourTierResult,
+  type RouterDependencies,
+} from './prism-router.ts';
 
 export type ProviderResult = { text: string; usage: AiUsage };
 export type ImageInput = { data: string; mimeType: string };
@@ -131,6 +138,28 @@ async function runOpenRouterChat(
   throw lastError;
 }
 
+const GEMINI_TIMEOUT_MS = 25000;
+
+export async function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const timeoutError = new Error(message);
+          timeoutError.name = 'TimeoutError';
+          reject(timeoutError);
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 async function runGeminiSingle(prompt: string, image?: ImageInput): Promise<ProviderResult> {
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   if (!geminiKey) throw new Error('gemini_key_missing');
@@ -138,10 +167,11 @@ async function runGeminiSingle(prompt: string, image?: ImageInput): Promise<Prov
   const content = image
     ? [{ text: prompt }, { inlineData: { data: image.data, mimeType: image.mimeType } }]
     : prompt;
-  const result = await Promise.race([
+  const result = await withTimeout(
     new GoogleGenerativeAI(geminiKey).getGenerativeModel({ model }).generateContent(content),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Gemini request timed out')), 25000)),
-  ]);
+    GEMINI_TIMEOUT_MS,
+    'Gemini request timed out',
+  );
   const metadata = result.response.usageMetadata as {
     promptTokenCount?: number;
     candidatesTokenCount?: number;
@@ -183,7 +213,16 @@ async function runGeminiChat(
     })),
     systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
   });
-  const response = await (await chat.sendMessage(message)).response;
+  const sendResult = await withTimeout(
+    chat.sendMessage(message),
+    GEMINI_TIMEOUT_MS,
+    'Gemini chat request timed out',
+  );
+  const response = await withTimeout(
+    Promise.resolve(sendResult.response),
+    GEMINI_TIMEOUT_MS,
+    'Gemini chat response timed out',
+  );
   const metadata = response.usageMetadata as {
     promptTokenCount?: number;
     candidatesTokenCount?: number;
@@ -277,6 +316,22 @@ export async function callPrismCompletion(
 }
 
 /**
+ * Clean 4-tier orchestrator entrypoint for M2 routes (/api/simplify, /api/chat, /api/orchestrator).
+ */
+export async function callPrismFourTierLane(
+  request: FourTierRequest,
+  deps?: RouterDependencies,
+): Promise<FourTierResult> {
+  const result = await routeFourTier(request, deps);
+  if (!result.isLocalFallback && result.usage.totalTokens > 0) {
+    tokenLogger(result.usage.model, result.usage.totalTokens);
+  }
+  return result;
+}
+
+export { isFourTierEnabled, routeFourTier };
+
+/**
  * Unified 4-Tier Prism Engine Cascade for Ask DJ conversational chat.
  */
 export async function callPrismChat(
@@ -285,6 +340,27 @@ export async function callPrismChat(
   systemInstruction: string,
   preferredProvider: ProviderPreference = 'auto',
 ): Promise<ProviderResult> {
+  if (isFourTierEnabled()) {
+    const result = await routeFourTier({
+      lane: 'chat',
+      text: message,
+      question: message,
+      history,
+      systemInstruction,
+      preferredProvider,
+    });
+    if (result.isLocalFallback) {
+      return { text: '', usage: result.usage };
+    }
+    const chatText = typeof (result.data as { text?: unknown }).text === 'string'
+      ? (result.data as { text: string }).text
+      : '';
+    if (chatText && result.usage.totalTokens > 0) {
+      tokenLogger(result.usage.model, result.usage.totalTokens);
+    }
+    return { text: chatText, usage: result.usage };
+  }
+
   const openAiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
     { role: 'system', content: systemInstruction },
     ...history.map((item) => ({

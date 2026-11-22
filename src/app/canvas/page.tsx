@@ -733,6 +733,7 @@ export default function CanvasPrismPlayPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          lane: 'play',
           text: `${currentCard.heading}\n\n${currentCard.text}`,
           missionGoal: 'Turn this short study card into a tiny plain-language idea, a memorable metaphor, a dopamine boost, and one tiny next move.',
           simplicityLevel: 'concise',
@@ -748,20 +749,33 @@ export default function CanvasPrismPlayPage() {
         setRefractions((prev) => ({ ...prev, [currentCardKey]: local }));
         setShowPrismForCard((prev) => ({ ...prev, [currentCardKey]: true }));
         if (chimesOn) playRefractPulse();
-        setRefractNotice('Using Instant Local Prism (unlimited, zero token limit).');
+        setRefractNotice('Local Structural Refraction — verify against your source material (0 tokens).');
         return;
       }
 
       const firstChunk = payload.chunks[0];
       const fallback = createInstantLocalPrism(currentCard.text, currentCard.heading);
+      const isLocalSource =
+        payload.usage?.provider === 'local'
+        || payload.mode === 'local'
+        || payload.routeMeta?.isLocalFallback === true;
       const refracted: PrismCardRefraction = {
-        tinyIdea: payload.tldr?.[0] || firstChunk.summary || fallback.tinyIdea,
-        metaphor: firstChunk.metaphor || fallback.metaphor,
-        dopamineBoost: firstChunk.dopamineHook || fallback.dopamineBoost,
-        oneSmallMove: payload.actions?.[0]?.task || fallback.oneSmallMove,
-        keyTerms: Array.isArray(firstChunk.keyTerms) && firstChunk.keyTerms.length > 0 ? firstChunk.keyTerms : fallback.keyTerms,
-        source: payload.usage?.provider === 'local' || payload.mode === 'local' ? 'local' : 'ai',
+        tinyIdea: payload.playCard?.tinyIdea || payload.tldr?.[0] || firstChunk.summary || fallback.tinyIdea,
+        metaphor: payload.playCard?.metaphor || firstChunk.metaphor || fallback.metaphor,
+        dopamineBoost: payload.playCard?.dopamineBoost || firstChunk.dopamineHook || fallback.dopamineBoost,
+        oneSmallMove: payload.playCard?.oneSmallMove || payload.actions?.[0]?.task || fallback.oneSmallMove,
+        keyTerms:
+          Array.isArray(payload.playCard?.keyTerms) && payload.playCard.keyTerms.length > 0
+            ? payload.playCard.keyTerms
+            : Array.isArray(firstChunk.keyTerms) && firstChunk.keyTerms.length > 0
+              ? firstChunk.keyTerms
+              : fallback.keyTerms,
+        source: isLocalSource ? 'local' : 'ai',
       };
+
+      if (isLocalSource) {
+        setRefractNotice('Local Structural Refraction — verify against your source material (0 tokens).');
+      }
 
       setRefractions((prev) => ({ ...prev, [currentCardKey]: refracted }));
       setShowPrismForCard((prev) => ({ ...prev, [currentCardKey]: true }));
@@ -771,7 +785,7 @@ export default function CanvasPrismPlayPage() {
       setRefractions((prev) => ({ ...prev, [currentCardKey]: local }));
       setShowPrismForCard((prev) => ({ ...prev, [currentCardKey]: true }));
       if (chimesOn) playRefractPulse();
-      setRefractNotice('Using Instant Local Prism (unlimited, works offline too).');
+      setRefractNotice('Local Structural Refraction — verify against your source material (offline fallback).');
     } finally {
       setRefracting(false);
     }

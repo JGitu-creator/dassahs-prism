@@ -65,8 +65,8 @@ test('ContextAnchor and Ask DJ do not share identical bottom-right coordinates',
   const page = await readFile(pagePath, 'utf8');
   const contextAnchor = await readFile(contextAnchorPath, 'utf8');
 
-  const anchorMatch = contextAnchor.match(/fixed\s+(bottom-\d+\s+right-\d+)/);
-  const askDjMatch = page.match(/data && !isZenLocked && \(<div className="fixed\s+(bottom-\d+\s+right-\d+)/);
+  const anchorMatch = contextAnchor.match(/fixed\s+(bottom-\S+\s+right-\S+)/);
+  const askDjMatch = page.match(/data && !isZenLocked && \(<div className="fixed\s+(bottom-\S+\s+right-\S+)/);
 
   assert.ok(anchorMatch, 'ContextAnchor must have fixed bottom-* right-* positioning');
   assert.ok(askDjMatch, 'Ask DJ container must have fixed bottom-* right-* positioning');
@@ -154,7 +154,7 @@ test('Light Mode brand-prism stays visible and ContextAnchor + uiNotice + Prism 
   );
 });
 
-test('AI route select and all <select>/<option> elements have explicit Light and Dark contrast', async () => {
+test('AI route pill and all <select>/<option> elements have explicit Light and Dark contrast', async () => {
   const globals = await readFile(globalsPath, 'utf8');
   const aiUsage = await readFile(aiUsagePath, 'utf8');
 
@@ -170,8 +170,8 @@ test('AI route select and all <select>/<option> elements have explicit Light and
   );
   assert.match(
     aiUsage,
-    /<option[^>]*className="[^"]*bg-\[var\(--bg\)\][^"]*text-\[var\(--fg\)\]/,
-    'AIUsageControl <option> tags must explicitly set bg-[var(--bg)] text-[var(--fg)]'
+    /bg-\[var\(--color-glass\)\][^"]*text-\[var\(--fg\)\]/,
+    'AIUsageControl status pill must explicitly set bg-[var(--color-glass)] text-[var(--fg)]'
   );
 });
 

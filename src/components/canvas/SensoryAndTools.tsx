@@ -749,14 +749,16 @@ export function PrismLensPopup({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          lane: 'lens',
           mode: 'chat',
+          text: word,
           context: cardContext,
           question: `In 2 short, super simple ADHD-friendly sentences, what does "${word}" mean in this reading?`,
         }),
       });
       const data = await res.json().catch(() => null);
-      if (res.ok && data?.answer) {
-        setAnswer(data.answer);
+      if (res.ok && (data?.answer || data?.chunks?.[0]?.summary)) {
+        setAnswer(data.answer || data.chunks[0].summary);
       } else {
         setAnswer(`"${word}" is a key term in this card. Re-read the sentence around it or tap Google definition below for an instant lookup!`);
       }
