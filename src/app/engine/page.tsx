@@ -22,6 +22,7 @@ import {
   Video,
   Zap,
 } from 'lucide-react';
+import { PrismPromoShowcase } from '@/components/prism/PrismPromoShowcase';
 
 const FUTURE_EXPANSIONS = [
   {
@@ -472,6 +473,9 @@ export default function PrismEnginePortalPage() {
             </Link>
           </motion.div>
         </section>
+
+        {/* 75-second promo video (muted autoplay preview + full narrated cut + chapters) */}
+        <PrismPromoShowcase darkMode={darkMode} />
 
         {/* In Orbit · The Prism Roadmap (Classified Prototype Constellation) */}
         <section aria-label="In Orbit · The Prism Roadmap" className="space-y-5 pt-3">
