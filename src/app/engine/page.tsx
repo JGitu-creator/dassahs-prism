@@ -251,21 +251,6 @@ export default function PrismEnginePortalPage() {
                     : 'linear-gradient(90deg, transparent, rgba(245,158,11,0.16), rgba(236,72,153,0.20), rgba(59,130,246,0.18), transparent)',
                 }}
               />
-
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
-                className={`absolute top-20 right-12 h-56 w-56 rounded-[3.25rem] border ${
-                  darkMode ? 'border-cyan-400/35 bg-cyan-400/[0.05] shadow-[0_0_30px_rgba(34,211,238,0.15)]' : 'border-blue-500/30 bg-blue-500/[0.05]'
-                }`}
-              />
-              <motion.div
-                animate={{ rotate: [360, 0] }}
-                transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
-                className={`absolute bottom-20 left-12 h-48 w-48 rounded-full border ${
-                  darkMode ? 'border-purple-400/35 bg-purple-400/[0.05] shadow-[0_0_30px_rgba(168,85,247,0.15)]' : 'border-emerald-500/30 bg-emerald-500/[0.05]'
-                }`}
-              />
             </>
           )}
         </div>
@@ -961,30 +946,7 @@ export default function PrismEnginePortalPage() {
             </div>
 
             {/* Stage 3: Staggered Telemetry Reveal After the Infinity Loop Finishes Drawing */}
-            <div className="space-y-2">
-              {/* Thinking Status Indicator Bar (0.15s -> 1.8s) */}
-              <div className="flex flex-wrap items-center gap-2">
-                {[
-                  { label: '1 · Ignition Spark', delay: 0.15, color: 'text-sky-300 border-sky-400/35 bg-sky-500/15' },
-                  { label: '2 · Neural Loop Syncing', delay: 0.95, color: 'text-violet-300 border-violet-400/35 bg-violet-500/15' },
-                  { label: '3 · Infinite Loop Locked ∞', delay: 1.85, color: 'text-emerald-300 border-emerald-400/40 bg-emerald-500/20' },
-                ].map((step) => (
-                  <motion.span
-                    key={`${step.label}-${engineCycleKey}`}
-                    initial={reducedMotion ? false : { opacity: 0, y: 6, scale: 0.92 }}
-                    animate={
-                      engineIgnited || reducedMotion
-                        ? { opacity: 1, y: 0, scale: 1 }
-                        : { opacity: 0, y: 6, scale: 0.92 }
-                    }
-                    transition={{ duration: 0.45, delay: step.delay }}
-                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${step.color}`}
-                  >
-                    {step.label}
-                  </motion.span>
-                ))}
-              </div>
-
+            <div className="space-y-1.5">
               <motion.p
                 key={`engine-title-${engineCycleKey}`}
                 initial={reducedMotion ? false : { opacity: 0, y: 10, filter: 'blur(6px)' }}
@@ -993,7 +955,7 @@ export default function PrismEnginePortalPage() {
                     ? { opacity: 1, y: 0, filter: 'blur(0px)' }
                     : { opacity: 0, y: 10, filter: 'blur(6px)' }
                 }
-                transition={{ duration: 0.65, delay: 2.05 }}
+                transition={{ duration: 0.65, delay: 1.4 }}
                 className="text-xs sm:text-sm font-black uppercase tracking-[0.16em] bg-gradient-to-r from-sky-300 via-violet-300 to-emerald-300 bg-clip-text text-transparent"
               >
                 The Prism Engine ∞ · Autonomous Self-Healing Intelligence
@@ -1007,7 +969,7 @@ export default function PrismEnginePortalPage() {
                     ? { opacity: 1, y: 0, filter: 'blur(0px)' }
                     : { opacity: 0, y: 8, filter: 'blur(4px)' }
                 }
-                transition={{ duration: 0.65, delay: 2.45 }}
+                transition={{ duration: 0.65, delay: 1.85 }}
                 className={`text-xs sm:text-sm leading-relaxed ${muted}`}
               >
                 Proprietary Infinite-Loop Orchestration with guaranteed <strong>Local Structural Refraction</strong> continuity. Adapts in real time so your flow never breaks.
