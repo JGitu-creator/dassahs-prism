@@ -17,6 +17,7 @@
     "test:e2e": "node --experimental-strip-types scripts/test-e2e-four-tier.mjs"
   },
   "dependencies": {
+    "@google/genai": "^3.6.1",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@supabase/supabase-js": "^2.45.0",

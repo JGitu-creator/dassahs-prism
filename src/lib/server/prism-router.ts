@@ -489,7 +489,7 @@ async function callMistralCandidate(args: {
 
   try {
     let response = await sendMistral(payload);
-    if (response.status === 400 && args.lane !== 'chat') {
+    if ((response.status === 400 || response.status === 422) && args.lane !== 'chat') {
       response = await sendMistral({
         ...payload,
         response_format: { type: 'json_object' },
@@ -801,12 +801,12 @@ function getDefaultTierBudget(lane: PrismLane, tier: RemotePrismTier, hasImage: 
   }
   if (lane === 'focus_plus') {
     if (tier === 'tier1') {
-      return { maxOutputTokens: 1400, maxTotalTokens: 24000, timeoutMs: 15000, maxRetries: 1, retryDelaysMs: [0, 1000] };
+      return { maxOutputTokens: 2200, maxTotalTokens: 28000, timeoutMs: 18000, maxRetries: 1, retryDelaysMs: [0, 1000] };
     }
     if (tier === 'tier2') {
-      return { maxOutputTokens: 1800, maxTotalTokens: 32000, timeoutMs: 18000, maxRetries: 1, retryDelaysMs: [0, 1500] };
+      return { maxOutputTokens: 2600, maxTotalTokens: 36000, timeoutMs: 20000, maxRetries: 1, retryDelaysMs: [0, 1500] };
     }
-    return { maxOutputTokens: 1800, maxTotalTokens: 32000, timeoutMs: 20000, maxRetries: 1, retryDelaysMs: [0, 1500] };
+    return { maxOutputTokens: 2600, maxTotalTokens: 36000, timeoutMs: 22000, maxRetries: 1, retryDelaysMs: [0, 1500] };
   }
   // focus lane
   if (tier === 'tier1') {

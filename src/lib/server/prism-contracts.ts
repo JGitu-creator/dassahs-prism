@@ -17,9 +17,19 @@ export type FocusCoreOutput = {
   confidenceNote: string;
 };
 
+export type FocusPlusSegment = {
+  heading: string;
+  summary: string;
+  content: string;
+  metaphor: string;
+  dopamineHook: string;
+  keyTerms: string[];
+};
+
 export type FocusPlusOutput = FocusCoreOutput & {
   metaphor: string;
   dopamineHook: string;
+  segments?: FocusPlusSegment[];
 };
 
 export type PlayCardOutput = {
@@ -149,7 +159,7 @@ export const FOCUS_CORE_SCHEMA = {
 export const FOCUS_PLUS_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['summary', 'keyPoints', 'metaphor', 'dopamineHook', 'nextAction', 'confidenceNote'],
+  required: ['summary', 'keyPoints', 'metaphor', 'dopamineHook', 'segments', 'nextAction', 'confidenceNote'],
   properties: {
     summary: { type: 'string' },
     keyPoints: {
@@ -158,6 +168,25 @@ export const FOCUS_PLUS_SCHEMA = {
     },
     metaphor: { type: 'string' },
     dopamineHook: { type: 'string' },
+    segments: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['heading', 'summary', 'content', 'metaphor', 'dopamineHook', 'keyTerms'],
+        properties: {
+          heading: { type: 'string' },
+          summary: { type: 'string' },
+          content: { type: 'string' },
+          metaphor: { type: 'string' },
+          dopamineHook: { type: 'string' },
+          keyTerms: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+      },
+    },
     nextAction: {
       type: 'object',
       additionalProperties: false,
@@ -478,13 +507,53 @@ export function validateFocusPlus(data: unknown): ValidationResult<FocusPlusOutp
   }
 
   const errors: string[] = [];
-  validateExactKeys(data, FOCUS_PLUS_SCHEMA.required, '', errors);
+  const allowedKeys = new Set<string>(FOCUS_PLUS_SCHEMA.required);
+  for (const key of Object.keys(data)) {
+    if (!allowedKeys.has(key)) {
+      errors.push(`Unexpected property "${key}"`);
+    }
+  }
+  for (const reqKey of ['summary', 'keyPoints', 'metaphor', 'dopamineHook', 'nextAction', 'confidenceNote']) {
+    if (!Object.prototype.hasOwnProperty.call(data, reqKey)) {
+      errors.push(`Missing required property "${reqKey}"`);
+    }
+  }
 
   const summary = validateNonEmptyString(data.summary, 'summary', 2000, errors);
   const keyPoints = validateStringArray(data.keyPoints, 'keyPoints', 1, 12, 500, errors);
-  const metaphor = validateNonEmptyString(data.metaphor, 'metaphor', 600, errors);
-  const dopamineHook = validateNonEmptyString(data.dopamineHook, 'dopamineHook', 500, errors);
+  const metaphor = validateNonEmptyString(data.metaphor, 'metaphor', 800, errors);
+  const dopamineHook = validateNonEmptyString(data.dopamineHook, 'dopamineHook', 600, errors);
   const confidenceNote = validateNonEmptyString(data.confidenceNote, 'confidenceNote', 800, errors);
+
+  let segments: FocusPlusSegment[] | undefined;
+  if (Array.isArray(data.segments) && data.segments.length > 0) {
+    const parsedSegments: FocusPlusSegment[] = [];
+    for (let i = 0; i < Math.min(data.segments.length, 6); i += 1) {
+      const seg = data.segments[i];
+      if (!isPlainObject(seg)) continue;
+      const heading = typeof seg.heading === 'string' && seg.heading.trim() ? seg.heading.trim().slice(0, 160) : '';
+      const segSummary = typeof seg.summary === 'string' && seg.summary.trim() ? seg.summary.trim().slice(0, 800) : '';
+      const content = typeof seg.content === 'string' && seg.content.trim() ? seg.content.trim().slice(0, 2000) : '';
+      const segMetaphor = typeof seg.metaphor === 'string' && seg.metaphor.trim() ? seg.metaphor.trim().slice(0, 800) : metaphor;
+      const segHook = typeof seg.dopamineHook === 'string' && seg.dopamineHook.trim() ? seg.dopamineHook.trim().slice(0, 600) : dopamineHook;
+      const keyTerms = Array.isArray(seg.keyTerms)
+        ? seg.keyTerms.filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map((t) => t.trim().slice(0, 120)).slice(0, 8)
+        : [];
+      if (heading && (content || segSummary)) {
+        parsedSegments.push({
+          heading,
+          summary: segSummary || heading,
+          content: content || segSummary,
+          metaphor: segMetaphor || metaphor,
+          dopamineHook: segHook || dopamineHook,
+          keyTerms: keyTerms.length > 0 ? keyTerms : keyPoints.slice(0, 4),
+        });
+      }
+    }
+    if (parsedSegments.length > 0) {
+      segments = parsedSegments;
+    }
+  }
 
   let nextAction: FocusNextAction = { task: '', priority: 'medium', estimatedMinutes: 5 };
   if (!isPlainObject(data.nextAction)) {
@@ -504,6 +573,7 @@ export function validateFocusPlus(data: unknown): ValidationResult<FocusPlusOutp
     const rawMinutes = data.nextAction.estimatedMinutes;
     if (
       typeof rawMinutes !== 'number'
+      || !Number.isFinite(rawMinutes)
       || !Number.isInteger(rawMinutes)
       || rawMinutes < 1
       || rawMinutes > 120
@@ -527,6 +597,7 @@ export function validateFocusPlus(data: unknown): ValidationResult<FocusPlusOutp
       keyPoints,
       metaphor,
       dopamineHook,
+      ...(segments ? { segments } : {}),
       nextAction,
       confidenceNote,
     },
@@ -1027,11 +1098,24 @@ export function buildFocusPlusPrompt(input: {
 }): string {
   const modeNote = input.cognitiveMode ? `Reading lens: ${input.cognitiveMode}.` : '';
   const depthNote = input.simplicityLevel ? `Detail level: ${input.simplicityLevel}.` : '';
-  const storyNote = input.isStory ? 'Frame the metaphor as a vivid short-story analogy.' : '';
+  const storyNote = input.isStory ? 'Frame every metaphor as a vivid mini-story analogy.' : '';
   const goalNote = input.missionGoal ? `User goal: ${input.missionGoal}.` : '';
   return [
-    'Transform the untrusted source document into the Prism Focus Plus JSON contract for ADHD-friendly clarity and high-retention study.',
-    'Return ONLY valid JSON matching the strict schema with exact keys: summary (clear, punchy overview), keyPoints (3-5 concise factual bullets), metaphor (a vivid everyday mental model or analogy grounded in the source), dopamineHook (a short, energizing 1-sentence spark that makes the reader feel momentum and want to keep going), nextAction ({ task, priority: low|medium|high, estimatedMinutes: integer 1..120 }), confidenceNote.',
+    'Transform the untrusted source document into the Prism Focus Plus JSON contract for ADHD-friendly clarity, fast comprehension, and high retention.',
+    'Return ONLY valid JSON matching the strict schema with exact keys:',
+    '- summary: crisp 1-2 sentence big-picture takeaway.',
+    '- keyPoints: 3-5 concrete, factual bullet takeaways.',
+    '- metaphor: ONE vivid, concrete everyday analogy (e.g., video game inventory, kitchen prep, highway lanes, Lego bricks, smartphone RAM) that makes the core idea click instantly. NEVER use cliché filler like "Think of this like a blueprint".',
+    '- dopamineHook: ONE punchy, curiosity-sparking, encouraging sentence that rewards the reader and creates an immediate "aha!" momentum hit.',
+    '- segments: Break the passage into 2 to 4 bite-sized study cards (even if the source is 1 dense paragraph, split it into logical concept cards!). Each segment MUST have:',
+    '  * heading: a catchy, concept-specific title (3-6 words, NEVER generic "Segment 1" or "Prism Focus").',
+    '  * summary: a sharp 1-sentence Segment Snap.',
+    '  * content: clear, scannable plain-English rewrite of that concept (2-4 short sentences, zero wall of text).',
+    '  * metaphor: a fresh, concrete, relatable analogy tailored specifically to THIS segment.',
+    '  * dopamineHook: a sharp, rewarding 1-sentence momentum spark tailored specifically to THIS segment.',
+    '  * keyTerms: 2-5 important vocabulary terms from THIS segment.',
+    '- nextAction: { task, priority: low|medium|high, estimatedMinutes: integer 1..120 }.',
+    '- confidenceNote: brief accuracy note grounded in the source text.',
     'Do not include markdown wrappers or extra keys. Remain faithful to the source text.',
     modeNote,
     depthNote,
@@ -1435,64 +1519,80 @@ export function mapLaneOutputToSimplifyResponse(args: {
     };
   }
 
-  const focus = data as FocusCoreOutput & Partial<Pick<FocusPlusOutput, 'metaphor' | 'dopamineHook'>>;
+  const focus = data as FocusCoreOutput & Partial<Pick<FocusPlusOutput, 'metaphor' | 'dopamineHook' | 'segments'>>;
   const tldr = [focus.summary, ...focus.keyPoints].filter((item) => item.trim().length > 0).slice(0, 6);
   const whyCare = focus.confidenceNote.trim() || LOCAL_FALLBACK_CONFIDENCE_NOTE;
   const aiMetaphor = typeof focus.metaphor === 'string' ? focus.metaphor.trim() : '';
   const aiDopamineHook = typeof focus.dopamineHook === 'string' ? focus.dopamineHook.trim() : '';
+  const aiSegments = Array.isArray(focus.segments) && focus.segments.length > 0 ? focus.segments : null;
 
-  // Split long study text into clean, digestible reading segments instead of a single wall
-  const rawParagraphs = (originalText || '')
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
-  const segments: string[] = [];
-  if (rawParagraphs.length > 1) {
-    let buffer = '';
-    for (const para of rawParagraphs) {
-      if (buffer && (buffer.length + para.length) > 700) {
-        segments.push(buffer.trim());
-        buffer = para;
-      } else {
-        buffer = buffer ? `${buffer}\n\n${para}` : para;
-      }
-      if (segments.length >= 5) break;
-    }
-    if (buffer.trim() && segments.length < 6) {
-      segments.push(buffer.trim());
-    }
-  }
-  if (segments.length === 0) {
-    segments.push(contentPreview);
-  }
+  let focusChunks: SimplifyChunk[];
 
-  const focusChunks: SimplifyChunk[] = segments.map((segmentText, index) => {
-    const keyPoint = focus.keyPoints[index] || focus.keyPoints[0] || focus.summary;
-    const nextTask = focus.nextAction.task;
-    const isFirst = index === 0;
-    const segmentSummary = isFirst ? focus.summary : keyPoint;
-    const segmentHook = isFirst
-      ? (aiDopamineHook || `Quick win locked in: ${nextTask}`)
-      : `Momentum check (${index + 1}/${segments.length}): ${keyPoint}`;
-    const segmentMetaphor = isFirst
-      ? (aiMetaphor || `Think of this like a blueprint where "${focus.summary.slice(0, 140)}" is the load-bearing beam holding every detail together.`)
-      : `Picture this step as locking piece ${index + 1} into place: ${keyPoint.slice(0, 150)}`;
-
-    return {
-      heading: isLocalFallback
-        ? (segments.length > 1 ? `Local Structural Refraction · Part ${index + 1}` : 'Local Structural Refraction')
-        : (segments.length > 1 ? `Prism Focus · Segment ${index + 1}` : 'Prism Focus'),
-      content: segmentText.slice(0, 1200),
-      summary: segmentSummary,
-      keyTerms: focus.keyPoints.slice(0, 5),
-      metaphor: segmentMetaphor,
-      dopamineHook: segmentHook,
+  if (aiSegments && !isLocalFallback) {
+    focusChunks = aiSegments.map((seg) => ({
+      heading: seg.heading,
+      content: seg.content,
+      summary: seg.summary,
+      keyTerms: seg.keyTerms.length > 0 ? seg.keyTerms : focus.keyPoints.slice(0, 5),
+      metaphor: seg.metaphor || aiMetaphor,
+      dopamineHook: seg.dopamineHook || aiDopamineHook,
       logicRoot: focus.summary,
-      citations: isLocalFallback
-        ? 'Local structural fallback — citations were not generated.'
-        : 'Prism Focus synthesis — verify against your original source.',
-    };
-  });
+      citations: 'Prism Focus synthesis — verify against your original source.',
+    }));
+  } else {
+    // Split long study text into clean, digestible reading segments instead of a single wall
+    const rawParagraphs = (originalText || '')
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    const segments: string[] = [];
+    if (rawParagraphs.length > 1) {
+      let buffer = '';
+      for (const para of rawParagraphs) {
+        if (buffer && (buffer.length + para.length) > 700) {
+          segments.push(buffer.trim());
+          buffer = para;
+        } else {
+          buffer = buffer ? `${buffer}\n\n${para}` : para;
+        }
+        if (segments.length >= 5) break;
+      }
+      if (buffer.trim() && segments.length < 6) {
+        segments.push(buffer.trim());
+      }
+    }
+    if (segments.length === 0) {
+      segments.push(contentPreview);
+    }
+
+    focusChunks = segments.map((segmentText, index) => {
+      const keyPoint = focus.keyPoints[index] || focus.keyPoints[0] || focus.summary;
+      const nextTask = focus.nextAction.task;
+      const isFirst = index === 0;
+      const segmentSummary = isFirst ? focus.summary : keyPoint;
+      const segmentHook = isFirst
+        ? (aiDopamineHook || `Quick win locked in: ${nextTask}`)
+        : `Momentum check (${index + 1}/${segments.length}): ${keyPoint}`;
+      const segmentMetaphor = isFirst
+        ? (aiMetaphor || `Think of this like a blueprint where "${focus.summary.slice(0, 140)}" is the load-bearing beam holding every detail together.`)
+        : `Picture this step as locking piece ${index + 1} into place: ${keyPoint.slice(0, 150)}`;
+
+      return {
+        heading: isLocalFallback
+          ? (segments.length > 1 ? `Local Structural Refraction · Part ${index + 1}` : 'Local Structural Refraction')
+          : (segments.length > 1 ? `Prism Focus · Segment ${index + 1}` : 'Prism Focus'),
+        content: segmentText.slice(0, 1200),
+        summary: segmentSummary,
+        keyTerms: focus.keyPoints.slice(0, 5),
+        metaphor: segmentMetaphor,
+        dopamineHook: segmentHook,
+        logicRoot: focus.summary,
+        citations: isLocalFallback
+          ? 'Local structural fallback — citations were not generated.'
+          : 'Prism Focus synthesis — verify against your original source.',
+      };
+    });
+  }
 
   return {
     tldr: tldr.length > 0 ? tldr : [focus.summary],
