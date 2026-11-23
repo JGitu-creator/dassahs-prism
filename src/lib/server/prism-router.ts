@@ -885,6 +885,7 @@ async function callGroqCandidate(args: {
 
   if (/gpt-oss/i.test(args.model)) {
     payload.reasoning_effort = 'low';
+    payload.include_reasoning = false;
   }
 
   if (args.lane !== 'chat') {
@@ -1192,7 +1193,10 @@ export async function routeFourTier(
       : undefined;
 
   const normalizedLane: PrismLane =
-    rawRequest.lane === 'play' || rawRequest.lane === 'lens' || rawRequest.lane === 'chat'
+    rawRequest.lane === 'focus_plus'
+      || rawRequest.lane === 'play'
+      || rawRequest.lane === 'lens'
+      || rawRequest.lane === 'chat'
       ? rawRequest.lane
       : 'focus';
 

@@ -15,6 +15,7 @@ import {
   LOCAL_FALLBACK_CONFIDENCE_NOTE,
   mapLaneOutputToSimplifyResponse,
   type FocusCoreOutput,
+  type FocusPlusOutput,
   type LensOutput,
   type PlayCardOutput,
   type PrismLane,
@@ -213,7 +214,7 @@ export async function POST(req: Request) {
     // 4-Tier Capability-Matrix Routing Path (when PRISM_FOUR_TIER_ENABLED === 'true')
     if (isFourTierEnabled()) {
       const structuredLane: StructuredPrismLane =
-        lane === 'play' || lane === 'lens' ? lane : 'focus';
+        lane === 'focus_plus' || lane === 'play' || lane === 'lens' ? lane : 'focus';
       const routed = await routeFourTier({
         lane: structuredLane,
         text: String(text || ''),
@@ -235,7 +236,7 @@ export async function POST(req: Request) {
 
       const payload = mapLaneOutputToSimplifyResponse({
         lane: structuredLane,
-        data: routed.data as FocusCoreOutput | PlayCardOutput | LensOutput,
+        data: routed.data as FocusCoreOutput | FocusPlusOutput | PlayCardOutput | LensOutput,
         originalText: String(text || ''),
         usage: routed.usage,
         isLocalFallback: routed.isLocalFallback,
@@ -247,6 +248,9 @@ export async function POST(req: Request) {
           isLocalFallback: routed.isLocalFallback,
           failureClass: routed.failureClass,
           safetySignal: routed.safety.safetySignal,
+          attemptsSummary: routed.attempts.map(
+            (a) => `${a.tier}:${a.provider}:${a.status ?? 'err'}:${a.failureClass}`,
+          ),
         },
       });
 

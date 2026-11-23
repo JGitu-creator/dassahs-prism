@@ -288,7 +288,7 @@ const BionicText = ({ text, onWordSelect }: { text: string; onWordSelect?: (word
                 }
               }}
               title={`Tap to inspect “${cleaned}” in Prism Lens`}
-              className="inline-block mr-1 rounded-md px-0.5 -mx-0.5 cursor-pointer transition-colors hover:bg-blue-500/15 active:bg-blue-500/25 focus-visible:ring-2 focus-visible:ring-blue-400"
+              className="inline-block mr-[0.26em] rounded-md px-0.5 -mx-0.5 cursor-pointer transition-colors hover:bg-blue-500/15 active:bg-blue-500/25 focus-visible:ring-2 focus-visible:ring-blue-400"
             >
               <span className="font-black text-[var(--fg)]">{bold}</span>
               <span className="opacity-70">{rest}</span>
@@ -296,7 +296,7 @@ const BionicText = ({ text, onWordSelect }: { text: string; onWordSelect?: (word
           );
         }
         return (
-          <span key={i} className="inline-block mr-1">
+          <span key={i} className="inline-block mr-[0.26em]">
             <span className="font-black text-[var(--fg)]">{bold}</span>
             <span className="opacity-70">{rest}</span>
           </span>
@@ -1418,6 +1418,7 @@ export default function Home() {
             method: 'POST',
             headers: authHeaders,
             body: JSON.stringify({
+              lane: 'focus_plus',
               text: chunks[index],
               isScenic,
               cognitiveMode,

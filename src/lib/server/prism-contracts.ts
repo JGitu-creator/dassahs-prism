@@ -1,7 +1,7 @@
 import type { AiUsage } from '../ai-usage.ts';
 
-export type PrismLane = 'focus' | 'play' | 'lens' | 'chat';
-export type StructuredPrismLane = 'focus' | 'play' | 'lens';
+export type PrismLane = 'focus' | 'focus_plus' | 'play' | 'lens' | 'chat';
+export type StructuredPrismLane = 'focus' | 'focus_plus' | 'play' | 'lens';
 export type FocusPriority = 'low' | 'medium' | 'high';
 
 export type FocusNextAction = {
@@ -15,6 +15,11 @@ export type FocusCoreOutput = {
   keyPoints: string[];
   nextAction: FocusNextAction;
   confidenceNote: string;
+};
+
+export type FocusPlusOutput = FocusCoreOutput & {
+  metaphor: string;
+  dopamineHook: string;
 };
 
 export type PlayCardOutput = {
@@ -37,7 +42,7 @@ export type ChatOutput = {
   text: string;
 };
 
-export type LaneOutput = FocusCoreOutput | PlayCardOutput | LensOutput | ChatOutput;
+export type LaneOutput = FocusCoreOutput | FocusPlusOutput | PlayCardOutput | LensOutput | ChatOutput;
 
 export type ValidationResult<T> =
   | { ok: true; data: T }
@@ -90,6 +95,7 @@ export type SimplifyRouteMeta = {
   isLocalFallback?: boolean;
   failureClass?: string;
   safetySignal?: boolean;
+  attemptsSummary?: string[];
 };
 
 export type SimplifyPayload = {
@@ -119,6 +125,39 @@ export const FOCUS_CORE_SCHEMA = {
       type: 'array',
       items: { type: 'string' },
     },
+    nextAction: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['task', 'priority', 'estimatedMinutes'],
+      properties: {
+        task: { type: 'string' },
+        priority: {
+          type: 'string',
+          enum: ['low', 'medium', 'high'],
+        },
+        estimatedMinutes: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 120,
+        },
+      },
+    },
+    confidenceNote: { type: 'string' },
+  },
+} as const;
+
+export const FOCUS_PLUS_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['summary', 'keyPoints', 'metaphor', 'dopamineHook', 'nextAction', 'confidenceNote'],
+  properties: {
+    summary: { type: 'string' },
+    keyPoints: {
+      type: 'array',
+      items: { type: 'string' },
+    },
+    metaphor: { type: 'string' },
+    dopamineHook: { type: 'string' },
     nextAction: {
       type: 'object',
       additionalProperties: false,
@@ -174,7 +213,11 @@ export type GroqJsonSchemaResponseFormat = {
   json_schema: {
     name: string;
     strict: true;
-    schema: typeof FOCUS_CORE_SCHEMA | typeof PLAY_CARD_SCHEMA | typeof LENS_SCHEMA;
+    schema:
+      | typeof FOCUS_CORE_SCHEMA
+      | typeof FOCUS_PLUS_SCHEMA
+      | typeof PLAY_CARD_SCHEMA
+      | typeof LENS_SCHEMA;
   };
 };
 
@@ -196,6 +239,16 @@ export function getResponseFormatForLane(lane: StructuredPrismLane): GroqJsonSch
         name: 'prism_lens_explanation',
         strict: true,
         schema: LENS_SCHEMA,
+      },
+    };
+  }
+  if (lane === 'focus_plus') {
+    return {
+      type: 'json_schema',
+      json_schema: {
+        name: 'prism_focus_plus',
+        strict: true,
+        schema: FOCUS_PLUS_SCHEMA,
       },
     };
   }
@@ -419,12 +472,74 @@ export function validateLensResponse(data: unknown): ValidationResult<LensOutput
   };
 }
 
+export function validateFocusPlus(data: unknown): ValidationResult<FocusPlusOutput> {
+  if (!isPlainObject(data)) {
+    return { ok: false, errors: ['FocusPlus payload must be a plain object'] };
+  }
+
+  const errors: string[] = [];
+  validateExactKeys(data, FOCUS_PLUS_SCHEMA.required, '', errors);
+
+  const summary = validateNonEmptyString(data.summary, 'summary', 2000, errors);
+  const keyPoints = validateStringArray(data.keyPoints, 'keyPoints', 1, 12, 500, errors);
+  const metaphor = validateNonEmptyString(data.metaphor, 'metaphor', 600, errors);
+  const dopamineHook = validateNonEmptyString(data.dopamineHook, 'dopamineHook', 500, errors);
+  const confidenceNote = validateNonEmptyString(data.confidenceNote, 'confidenceNote', 800, errors);
+
+  let nextAction: FocusNextAction = { task: '', priority: 'medium', estimatedMinutes: 5 };
+  if (!isPlainObject(data.nextAction)) {
+    errors.push('nextAction must be a plain object');
+  } else {
+    validateExactKeys(
+      data.nextAction,
+      FOCUS_PLUS_SCHEMA.properties.nextAction.required,
+      'nextAction.',
+      errors,
+    );
+    const task = validateNonEmptyString(data.nextAction.task, 'nextAction.task', 500, errors);
+    const rawPriority = data.nextAction.priority;
+    if (typeof rawPriority !== 'string' || !VALID_PRIORITIES.has(rawPriority)) {
+      errors.push('nextAction.priority must be one of low, medium, high');
+    }
+    const rawMinutes = data.nextAction.estimatedMinutes;
+    if (
+      typeof rawMinutes !== 'number'
+      || !Number.isInteger(rawMinutes)
+      || rawMinutes < 1
+      || rawMinutes > 120
+    ) {
+      errors.push('nextAction.estimatedMinutes must be an integer between 1 and 120');
+    }
+    nextAction = {
+      task,
+      priority: (VALID_PRIORITIES.has(String(rawPriority)) ? rawPriority : 'medium') as FocusPriority,
+      estimatedMinutes: typeof rawMinutes === 'number' ? rawMinutes : 5,
+    };
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return {
+    ok: true,
+    data: {
+      summary,
+      keyPoints,
+      metaphor,
+      dopamineHook,
+      nextAction,
+      confidenceNote,
+    },
+  };
+}
+
 export function validateLanePayload(
   lane: StructuredPrismLane,
   data: unknown,
-): ValidationResult<FocusCoreOutput | PlayCardOutput | LensOutput> {
+): ValidationResult<FocusCoreOutput | FocusPlusOutput | PlayCardOutput | LensOutput> {
   if (lane === 'play') return validatePlayCard(data);
   if (lane === 'lens') return validateLensResponse(data);
+  if (lane === 'focus_plus') return validateFocusPlus(data);
   return validateFocusCore(data);
 }
 
@@ -903,6 +1018,31 @@ export function buildFocusPrompt(input: {
   ].filter(Boolean).join('\n');
 }
 
+export function buildFocusPlusPrompt(input: {
+  text: string;
+  cognitiveMode?: string;
+  simplicityLevel?: string;
+  isStory?: boolean;
+  missionGoal?: string;
+}): string {
+  const modeNote = input.cognitiveMode ? `Reading lens: ${input.cognitiveMode}.` : '';
+  const depthNote = input.simplicityLevel ? `Detail level: ${input.simplicityLevel}.` : '';
+  const storyNote = input.isStory ? 'Frame the metaphor as a vivid short-story analogy.' : '';
+  const goalNote = input.missionGoal ? `User goal: ${input.missionGoal}.` : '';
+  return [
+    'Transform the untrusted source document into the Prism Focus Plus JSON contract for ADHD-friendly clarity and high-retention study.',
+    'Return ONLY valid JSON matching the strict schema with exact keys: summary (clear, punchy overview), keyPoints (3-5 concise factual bullets), metaphor (a vivid everyday mental model or analogy grounded in the source), dopamineHook (a short, energizing 1-sentence spark that makes the reader feel momentum and want to keep going), nextAction ({ task, priority: low|medium|high, estimatedMinutes: integer 1..120 }), confidenceNote.',
+    'Do not include markdown wrappers or extra keys. Remain faithful to the source text.',
+    modeNote,
+    depthNote,
+    storyNote,
+    goalNote,
+    '--- BEGIN UNTRUSTED SOURCE DATA ---',
+    input.text,
+    '--- END UNTRUSTED SOURCE DATA ---',
+  ].filter(Boolean).join('\n');
+}
+
 export function buildPlayPrompt(input: {
   text: string;
   cognitiveMode?: string;
@@ -1002,6 +1142,12 @@ export function buildLaneMessages(
     'Output strictly valid JSON matching the requested schema with zero markdown wrappers or extra keys.',
   ].join(' ');
 
+  if (lane === 'focus_plus') {
+    return [
+      { role: 'system', content: systemContent },
+      { role: 'user', content: buildFocusPlusPrompt(input) },
+    ];
+  }
   if (lane === 'play') {
     return [
       { role: 'system', content: systemContent },
@@ -1114,7 +1260,7 @@ export function buildLocalFallbackData(
           : 'Local Structural Refraction: Embedded instruction-override patterns were ignored. Ask a direct question about your study material instead.',
       };
     }
-    return {
+    const baseBlocked: FocusCoreOutput = {
       summary: isSecret
         ? 'This request was handled locally because it asked for protected secrets or internal instructions.'
         : 'This input contained instruction-override patterns and was handled safely in local mode.',
@@ -1129,6 +1275,14 @@ export function buildLocalFallbackData(
       },
       confidenceNote: LOCAL_FALLBACK_CONFIDENCE_NOTE,
     };
+    if (lane === 'focus_plus') {
+      return {
+        ...baseBlocked,
+        metaphor: 'Like a locked glass vault: your study desk stays open while private keys stay sealed.',
+        dopamineHook: 'Your workspace stayed protected — trim out the flagged line and keep moving.',
+      };
+    }
+    return baseBlocked;
   }
 
   const sentences = extractCleanSentences(input.text, 4);
@@ -1177,7 +1331,7 @@ export function buildLocalFallbackData(
     ? sentences.slice(0, 3)
     : ['Review the source passage directly to confirm the core idea.'];
 
-  return {
+  const baseLocalFocus: FocusCoreOutput = {
     summary,
     keyPoints,
     nextAction: {
@@ -1187,11 +1341,21 @@ export function buildLocalFallbackData(
     },
     confidenceNote: LOCAL_FALLBACK_CONFIDENCE_NOTE,
   };
+
+  if (lane === 'focus_plus') {
+    return {
+      ...baseLocalFocus,
+      metaphor: `Think of this passage like a blueprint where "${summary.slice(0, 140)}" is the load-bearing beam holding the rest together.`,
+      dopamineHook: 'First anchor locked in — skim the key points below and pick one quick move to keep momentum.',
+    };
+  }
+
+  return baseLocalFocus;
 }
 
 export function mapLaneOutputToSimplifyResponse(args: {
   lane: StructuredPrismLane;
-  data: FocusCoreOutput | PlayCardOutput | LensOutput;
+  data: FocusCoreOutput | FocusPlusOutput | PlayCardOutput | LensOutput;
   originalText: string;
   usage: AiUsage;
   isLocalFallback: boolean;
@@ -1271,9 +1435,11 @@ export function mapLaneOutputToSimplifyResponse(args: {
     };
   }
 
-  const focus = data as FocusCoreOutput;
+  const focus = data as FocusCoreOutput & Partial<Pick<FocusPlusOutput, 'metaphor' | 'dopamineHook'>>;
   const tldr = [focus.summary, ...focus.keyPoints].filter((item) => item.trim().length > 0).slice(0, 6);
   const whyCare = focus.confidenceNote.trim() || LOCAL_FALLBACK_CONFIDENCE_NOTE;
+  const aiMetaphor = typeof focus.metaphor === 'string' ? focus.metaphor.trim() : '';
+  const aiDopamineHook = typeof focus.dopamineHook === 'string' ? focus.dopamineHook.trim() : '';
 
   // Split long study text into clean, digestible reading segments instead of a single wall
   const rawParagraphs = (originalText || '')
@@ -1306,16 +1472,16 @@ export function mapLaneOutputToSimplifyResponse(args: {
     const isFirst = index === 0;
     const segmentSummary = isFirst ? focus.summary : keyPoint;
     const segmentHook = isFirst
-      ? `Quick win locked in: ${nextTask}`
+      ? (aiDopamineHook || `Quick win locked in: ${nextTask}`)
       : `Momentum check (${index + 1}/${segments.length}): ${keyPoint}`;
     const segmentMetaphor = isFirst
-      ? `Think of this like a blueprint where "${focus.summary.slice(0, 140)}" is the load-bearing beam holding every detail together.`
+      ? (aiMetaphor || `Think of this like a blueprint where "${focus.summary.slice(0, 140)}" is the load-bearing beam holding every detail together.`)
       : `Picture this step as locking piece ${index + 1} into place: ${keyPoint.slice(0, 150)}`;
 
     return {
       heading: isLocalFallback
         ? (segments.length > 1 ? `Local Structural Refraction · Part ${index + 1}` : 'Local Structural Refraction')
-        : (segments.length > 1 ? `Focus Core · Segment ${index + 1}` : 'Focus Core'),
+        : (segments.length > 1 ? `Prism Focus · Segment ${index + 1}` : 'Prism Focus'),
       content: segmentText.slice(0, 1200),
       summary: segmentSummary,
       keyTerms: focus.keyPoints.slice(0, 5),
@@ -1324,7 +1490,7 @@ export function mapLaneOutputToSimplifyResponse(args: {
       logicRoot: focus.summary,
       citations: isLocalFallback
         ? 'Local structural fallback — citations were not generated.'
-        : 'Focus Core summary — verify against your original source.',
+        : 'Prism Focus synthesis — verify against your original source.',
     };
   });
 
@@ -1343,6 +1509,11 @@ export function mapLaneOutputToSimplifyResponse(args: {
     chartData: null,
     usage,
     ...(routeMeta ? { routeMeta } : {}),
-    focusCore: focus,
+    focusCore: {
+      summary: focus.summary,
+      keyPoints: focus.keyPoints,
+      nextAction: focus.nextAction,
+      confidenceNote: focus.confidenceNote,
+    },
   };
 }
