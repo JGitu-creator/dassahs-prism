@@ -879,9 +879,13 @@ async function callGroqCandidate(args: {
     model: args.model,
     messages,
     temperature: args.lane === 'chat' ? 0.4 : 0.2,
-    max_completion_tokens: args.maxOutputTokens,
+    max_completion_tokens: Math.max(args.maxOutputTokens, 1600),
     stream: false,
   };
+
+  if (/gpt-oss/i.test(args.model)) {
+    payload.reasoning_effort = 'low';
+  }
 
   if (args.lane !== 'chat') {
     payload.response_format = getResponseFormatForLane(args.lane);

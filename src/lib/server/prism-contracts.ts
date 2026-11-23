@@ -1274,24 +1274,65 @@ export function mapLaneOutputToSimplifyResponse(args: {
   const focus = data as FocusCoreOutput;
   const tldr = [focus.summary, ...focus.keyPoints].filter((item) => item.trim().length > 0).slice(0, 6);
   const whyCare = focus.confidenceNote.trim() || LOCAL_FALLBACK_CONFIDENCE_NOTE;
+
+  // Split long study text into clean, digestible reading segments instead of a single wall
+  const rawParagraphs = (originalText || '')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  const segments: string[] = [];
+  if (rawParagraphs.length > 1) {
+    let buffer = '';
+    for (const para of rawParagraphs) {
+      if (buffer && (buffer.length + para.length) > 700) {
+        segments.push(buffer.trim());
+        buffer = para;
+      } else {
+        buffer = buffer ? `${buffer}\n\n${para}` : para;
+      }
+      if (segments.length >= 5) break;
+    }
+    if (buffer.trim() && segments.length < 6) {
+      segments.push(buffer.trim());
+    }
+  }
+  if (segments.length === 0) {
+    segments.push(contentPreview);
+  }
+
+  const focusChunks: SimplifyChunk[] = segments.map((segmentText, index) => {
+    const keyPoint = focus.keyPoints[index] || focus.keyPoints[0] || focus.summary;
+    const nextTask = focus.nextAction.task;
+    const isFirst = index === 0;
+    const segmentSummary = isFirst ? focus.summary : keyPoint;
+    const segmentHook = isFirst
+      ? `Quick win locked in: ${nextTask}`
+      : `Momentum check (${index + 1}/${segments.length}): ${keyPoint}`;
+    const segmentMetaphor = isFirst
+      ? `Think of this like a blueprint where "${focus.summary.slice(0, 140)}" is the load-bearing beam holding every detail together.`
+      : `Picture this step as locking piece ${index + 1} into place: ${keyPoint.slice(0, 150)}`;
+
+    return {
+      heading: isLocalFallback
+        ? (segments.length > 1 ? `Local Structural Refraction · Part ${index + 1}` : 'Local Structural Refraction')
+        : (segments.length > 1 ? `Focus Core · Segment ${index + 1}` : 'Focus Core'),
+      content: segmentText.slice(0, 1200),
+      summary: segmentSummary,
+      keyTerms: focus.keyPoints.slice(0, 5),
+      metaphor: segmentMetaphor,
+      dopamineHook: segmentHook,
+      logicRoot: focus.summary,
+      citations: isLocalFallback
+        ? 'Local structural fallback — citations were not generated.'
+        : 'Focus Core summary — verify against your original source.',
+    };
+  });
+
   return {
     tldr: tldr.length > 0 ? tldr : [focus.summary],
     whyCare,
     readingTime,
-    chunks: [
-      {
-        heading: isLocalFallback ? 'Local Structural Refraction' : 'Focus Core',
-        content: contentPreview,
-        summary: focus.summary,
-        keyTerms: focus.keyPoints.slice(0, 5),
-        metaphor: '',
-        dopamineHook: '',
-        logicRoot: focus.summary,
-        citations: isLocalFallback
-          ? 'Local structural fallback — citations were not generated.'
-          : 'Focus Core summary — verify against your original source.',
-      },
-    ],
+    chunks: focusChunks,
     actions: [
       {
         task: focus.nextAction.task,

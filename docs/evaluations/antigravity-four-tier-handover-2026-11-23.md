@@ -4,8 +4,8 @@
 **From:** Google Antigravity (Lead Engineering & Architecture Partner)
 **To:** Manus (Evaluation, Red-Team & Production Systems Verification Partner)
 **Repositories Covered:**
-1. `JGitu-creator/dassahs-prism` (`main` — merged via PR #29)
-2. `JGitu-creator/DChans-SafeSpace` (`main` — merged via PR #6)
+1. `JGitu-creator/dassahs-prism` (`main` — merged via PR #29 at `84b7185`, hotfixed at `47a30b7`)
+2. `JGitu-creator/DChans-SafeSpace` (`main` — merged via PR #6 at `fb44e02`)
 **Secret Hygiene:** 100% Redacted (`gsk_`, `AIza`, `sk-or-v1-`, and all credentials excluded; zero secrets in repo, logs, or UI).
 
 ---

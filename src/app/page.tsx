@@ -2928,7 +2928,9 @@ export default function Home() {
                           <Star size={18} fill={starredItems.find(i => i.content === data.chunks[currentChunk].dopamineHook && i.type === 'hook') ? "currentColor" : "none"} />
                         </button>
                       </div>
-                      <p className="text-xl md:text-2xl font-black text-amber-100 italic leading-tight relative z-10">"{data.chunks[currentChunk].dopamineHook}"</p>
+                      <p className="text-xl md:text-2xl font-black text-amber-100 italic leading-tight relative z-10">
+                        {data.chunks[currentChunk].dopamineHook?.trim() || data.whyCare || 'Focus locked in. One clear step at a time.'}
+                      </p>
                     </div>
 
                     <div className="bg-purple-500/5 p-5 sm:p-8 rounded-[1.75rem] sm:rounded-[2.5rem] border-2 border-purple-500/10 space-y-4 relative group/card overflow-hidden">
@@ -2944,7 +2946,9 @@ export default function Home() {
                           <Star size={18} fill={starredItems.find(i => i.content === data.chunks[currentChunk].metaphor && i.type === 'metaphor') ? "currentColor" : "none"} />
                         </button>
                       </div>
-                      <p className="text-xl md:text-2xl font-black text-purple-100 italic leading-tight relative z-10">"{data.chunks[currentChunk].metaphor}"</p>
+                      <p className="text-xl md:text-2xl font-black text-purple-100 italic leading-tight relative z-10">
+                        {data.chunks[currentChunk].metaphor?.trim() || data.chunks[currentChunk].summary || 'Breaking complexity into clear building blocks.'}
+                      </p>
                     </div>
                   </div>
                 </div>
