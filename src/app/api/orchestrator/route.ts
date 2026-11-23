@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     };
 
     const lane: PrismLane =
-      body?.lane === 'play' || body?.lane === 'lens' || body?.lane === 'chat'
+      body?.lane === 'focus_plus' || body?.lane === 'play' || body?.lane === 'lens' || body?.lane === 'chat'
         ? body.lane
         : 'focus';
 
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
             : LOCAL_FALLBACK_LABEL;
 
     const structuredLane: StructuredPrismLane =
-      lane === 'play' || lane === 'lens' ? lane : 'focus';
+      lane === 'focus_plus' || lane === 'play' || lane === 'lens' ? lane : 'focus';
     const mapped =
       lane === 'chat'
         ? null

@@ -418,3 +418,9 @@ test('20. focus_plus auto runs Best-First Infinite Cascade (Mistral FIRST, bypas
   assert.equal(res.model, 'mistral-small-latest');
   assert.ok(seenUrls.every((u) => u.includes('api.mistral.ai')), 'Mistral must run first without touching Groq');
 });
+
+test('21. /api/simplify preserves rawLane === focus_plus instead of silently downgrading to focus', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const routeSrc = await readFile(new URL('../src/app/api/simplify/route.ts', import.meta.url), 'utf8');
+  assert.match(routeSrc, /rawLane\s*===\s*'focus_plus'/, '/api/simplify must preserve rawLane === focus_plus');
+});

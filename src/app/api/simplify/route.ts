@@ -111,7 +111,7 @@ export async function POST(req: Request) {
     const lane: PrismLane =
       mode === 'chat' || rawLane === 'chat'
         ? 'chat'
-        : rawLane === 'play' || rawLane === 'lens'
+        : rawLane === 'focus_plus' || rawLane === 'play' || rawLane === 'lens'
           ? rawLane
           : image && !rawLane
             ? 'lens'
