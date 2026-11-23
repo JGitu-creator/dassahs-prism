@@ -1528,13 +1528,13 @@ export default function Home() {
 
       const shareUrl = `${window.location.origin}/s/${id}`;
       const wordCount = input.trim().split(/\s+/).length;
-      const shareText = `I just crushed the noise! ⚡️ Dassah's-Prism refracted ${wordCount.toLocaleString()} words into ${data.readingTime} of pure clarity. Reclaimed ${Math.round(wordCount / 100)}% of my mental bandwidth. 🧠 Join the flow: ${shareUrl}`;
+      const shareText = `I just crushed the noise! ⚡️ Prism Focus refracted ${wordCount.toLocaleString()} words into ${data.readingTime} of pure clarity. Reclaimed ${Math.round(wordCount / 100)}% of my mental bandwidth. 🧠 Join the flow: ${shareUrl}`;
       await navigator.clipboard.writeText(shareText); alert("Victory shared! Link copied to clipboard. 🚀");
     } catch (err) { alert("Could not create share link."); } finally { setIsSharing(false); }
   };
   const handleDownloadSummary = () => {
     if (!data) return;
-    const content = `# DASSAH'S PRISM: NEURAL REFRACTION\n\n## THE VISION\n> ${data.whyCare}\n\n## CORE TL;DR\n${data.tldr.map(t => `* **${t}**`).join('\n')}\n\n## PRIORITY ROADMAP\n${data.actions.map(a => `* [ ] **[${a.priority.toUpperCase()}]** ${a.task}`).join('\n')}\n\n---\n*Refracted via Dassah's-Prism. Reclaim your focus.*`;
+    const content = `# DASSAH'S PRISM ENGINE: NEURAL REFRACTION\n\n## THE VISION\n> ${data.whyCare}\n\n## CORE TL;DR\n${data.tldr.map(t => `* **${t}**`).join('\n')}\n\n## PRIORITY ROADMAP\n${data.actions.map(a => `* [ ] **[${a.priority.toUpperCase()}]** ${a.task}`).join('\n')}\n\n---\n*Refracted via Prism Focus. Reclaim your focus.*`;
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1565,7 +1565,7 @@ export default function Home() {
       reader.onloadend = async () => {
         const base64Image = reader.result as string;
         setPendingImage({ data: base64Image, mime: file.type });
-        setInput('Image ready — add an optional goal, then open the Prism to refract it.');
+        setInput('Image ready. Add an optional goal, then open the Prism to refract it.');
         setLoading(false);
       };
       reader.onerror = () => {
@@ -2303,7 +2303,7 @@ export default function Home() {
                 {tutorialStep < NEURAL_GUIDE_STEPS.length - 1 ? (
                   <button onClick={() => setTutorialStep(step => step + 1)} className="px-7 py-3 rounded-xl bg-blue-600 text-white font-black">Next: {NEURAL_GUIDE_STEPS[tutorialStep + 1].title}</button>
                 ) : (
-                  <button onClick={completeNeuralGuide} className="px-7 py-3 rounded-xl bg-emerald-600 text-white font-black">I understand — enter Prism</button>
+                  <button onClick={completeNeuralGuide} className="px-7 py-3 rounded-xl bg-emerald-600 text-white font-black">I understand. Enter Prism</button>
                 )}
               </div>
             </motion.div>
@@ -2447,27 +2447,27 @@ export default function Home() {
             <button onClick={() => setShowAbout(false)} aria-label="Close About modal" className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 sm:p-4 hover:bg-[var(--bg)]/10 rounded-full text-slate-400 transition-colors z-20"><X size={28}/></button>
             <div className="space-y-12 relative z-10">
               <motion.header style={{ x: (mousePos.x - 1000) * 0.02, y: (mousePos.y - 500) * 0.02 }} className="space-y-4">
-                <div className="flex items-center gap-4 text-blue-400 font-black uppercase tracking-[0.3em] text-xs"><div className="w-12 h-[2px] bg-blue-500/50" /> THE HEART OF DASSAH&apos;S-PRISM</div>
+                <div className="flex items-center gap-4 text-blue-400 font-black uppercase tracking-[0.3em] text-xs"><div className="w-12 h-[2px] bg-blue-500/50" /> THE HEART OF DASSAH&apos;S PRISM ENGINE</div>
                 <h2 className="text-4xl md:text-7xl font-black text-[var(--fg)] leading-tight tracking-tight italic pb-6">The <span className="prism-text">Dastastical Founder</span> <span className="not-italic">🧠✨</span></h2>
               </motion.header>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                 <div className="lg:col-span-2 space-y-8 text-slate-200 text-lg leading-relaxed font-medium">
                   <motion.div style={{ y: (mousePos.y - 500) * -0.01, x: (mousePos.x - 1000) * -0.01 }} className="bg-gradient-to-r from-blue-500/10 to-transparent p-8 border-l-4 border-blue-500 rounded-r-3xl shadow-xl">
-                    <p>For as long as I can remember, the world hasn&apos;t just been loud; it has been a flood of raw, unfiltered data. From a young age, my mind and body processed every detail with profound intensity. For years, I navigated a world that felt like an overwhelming cacophony, battling the sheer exhaustion of a mind trying to process everything at once. I tried to manage this massive cognitive load on my own strength, but it only ever led to paralysis and defeat.</p>
+                    <p>For as long as I can remember, the world has not just been loud. It has been a flood of raw unfiltered data. From a young age, my mind and body processed every detail with profound intensity. For years, I navigated a world that felt like an overwhelming cacophony while battling the sheer exhaustion of a mind trying to process everything at once. I tried to manage this massive cognitive load on my own strength, but it only ever led to paralysis and defeat.</p>
                   </motion.div>
 
                   <motion.div style={{ y: (mousePos.y - 500) * 0.02, x: (mousePos.x - 1000) * 0.02 }} className="bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-blue-600/20 p-10 rounded-[3rem] border-2 border-white/10 italic text-[var(--fg)] shadow-[0_0_50px_rgba(59,130,246,0.2)] relative overflow-hidden group">
                     <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none" />
                     <p className="relative z-10 text-xl md:text-2xl leading-relaxed">
-                      The turning point was not a clever productivity hack or a sudden surge of willpower. When my mother and I surrendered our lives to Christ, He stepped into the absolute centre of that mental chaos. He didn&apos;t just quiet the room; He rescued me from the weight of my own mind. I realised then that my profound cognitive intensity was not a glitch. It was a high-powered engine that I had simply been running on the wrong fuel.
+                      The turning point was not a clever productivity hack or a sudden surge of willpower. When my mother and I surrendered our lives to Christ, He stepped into the absolute centre of that mental chaos. He did not just quiet the room. He rescued me from the weight of my own mind. I realised then that my profound cognitive intensity was not a glitch. It was a high powered engine that I had simply been running on the wrong fuel.
                     </p>
                   </motion.div>
                   <motion.div style={{ y: (mousePos.y - 500) * -0.015, x: (mousePos.x - 1000) * -0.015 }} className="bg-gradient-to-r from-purple-500/10 to-transparent p-8 border-l-4 border-purple-500 rounded-r-3xl shadow-xl">
-                    <p>It was only through His strength that my greatest source of exhaustion was transformed into my most powerful gift. The victory wasn&apos;t that the world stopped being complex; the victory was that He gave me the peace to finally master it. Guided by His grace, I began to channel that intense processing power into &apos;systems thinking&apos;. Suddenly, I could look under the hood of chaotic environments—whether untangling complex partnerships or building outdoor communities—and build structures that brought clarity, all for His glory.</p>
+                    <p>It was only through His strength that my greatest source of exhaustion was transformed into my most powerful gift. The victory was not that the world stopped being complex. The victory was that He gave me the peace to finally master it. Guided by His grace, I began to channel that intense processing power into systems thinking. Suddenly, I could look under the hood of chaotic environments, whether untangling complex partnerships or building outdoor communities, and build structures that brought clarity, all for His glory.</p>
                   </motion.div>
 
                   <motion.div style={{ y: (mousePos.y - 500) * 0.01, x: (mousePos.x - 1000) * 0.01 }} className="bg-gradient-to-br from-amber-500/10 to-transparent p-10 rounded-[3rem] border-2 border-amber-500/20 shadow-2xl">
-                    <p className="text-[var(--fg)] font-bold text-xl leading-relaxed">That is how Dassah&apos;s-Prism was born. It is not merely a tool; it is a living testimony of triumph. Our mission is to empower every neurodivergent soul to reclaim ownership of their focus. We transmute the overwhelming noise of modern information into a purposeful stream of clarity, inviting you to step out of the exhaustion, discover the true purpose of your neurodivergence, and perhaps meet the very Source of this peace.</p>
+                    <p className="text-[var(--fg)] font-bold text-xl leading-relaxed">That is how Dassah&apos;s Prism Engine was born. It is not merely a tool. It is a living testimony of triumph. Our mission is to empower every neurodivergent soul to reclaim ownership of their focus. We transmute the overwhelming noise of modern information into a purposeful stream of clarity, inviting you to step out of the exhaustion, discover the true purpose of your neurodivergence, and perhaps meet the very Source of this peace.</p>
                     <p className="mt-8 text-3xl font-black italic"><span className="prism-text">Stay Dastastic!</span> <span className="not-italic">🌟✨</span></p>
                   </motion.div>
                 </div>
@@ -2492,13 +2492,13 @@ export default function Home() {
                       <div className="border-l-4 border-amber-500 pl-6 pr-4 py-2 rounded-r-2xl space-y-2 group/magama hover:bg-[var(--bg)]/5 transition-colors">
                         <p className="text-[var(--fg)] font-black uppercase tracking-tighter text-xl group-hover:text-amber-400 transition-colors">Magama Tongogara Njuguna</p>
                         <p className="text-slate-400 text-sm font-bold">
-                          My cousin and lifelong companion in growth. Raised alongside me, Magama has remained consistent to the core—always striving for my growth and refusing to let me give up. His mother, Auntie Sisy, gave us a lasting charge: to push one another forward and stand together.
+                          My cousin and lifelong companion in growth. Raised alongside me, Magama has remained consistent to the core, always striving for my growth and refusing to let me give up. His mother, Auntie Sisy, gave us a lasting charge to push one another forward and stand together.
                         </p>
                       </div>
                       <div className="border-l-4 border-purple-500 pl-6 pr-4 py-2 rounded-r-2xl space-y-2 group/kizzie hover:bg-[var(--bg)]/5 transition-colors">
                         <p className="text-[var(--fg)] font-black uppercase tracking-tighter text-xl group-hover:text-[var(--accent)] transition-colors">Dr. Kizzie Shako</p>
                         <p className="text-slate-400 text-sm font-bold">
-                          The mentor whose encouragement gave the vision weight and urgency, turning an idea into a responsibility to act: <span className="text-[var(--accent)] font-black italic">&quot;Then do something about it.&quot;</span>
+                          The mentor whose encouragement gave the vision weight and urgency, turning an idea into a responsibility to act: <span className="text-[var(--accent)] font-black italic">Then do something about it.</span>
                         </p>
                       </div>
                     </div>
@@ -2509,7 +2509,7 @@ export default function Home() {
                     <div className="space-y-8 relative z-10">
                       <div className="group border-b border-white/5 pb-4">
                         <p className="text-[var(--fg)] font-black text-sm uppercase tracking-wider mb-2 group-hover:text-amber-400 transition-colors flex items-center gap-2">DChan <Heart size={12} className="fill-red-500 stroke-red-500" /></p>
-                        <p className="text-slate-400 text-xs italic leading-relaxed">&quot;He who finds a wife finds a good thing&quot; — My anchor, who centred me and fixed my eyes on Him.</p>
+                        <p className="text-slate-400 text-xs italic leading-relaxed">He who finds a wife finds a good thing. My anchor, who centred me and fixed my eyes on Him.</p>
                       </div>
                       <div className="group border-b border-white/5 pb-4">
                         <p className="text-[var(--fg)] font-black text-sm uppercase tracking-wider mb-2">Phido (Mum)</p>

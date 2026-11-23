@@ -110,13 +110,22 @@ export default function PrismEnginePortalPage() {
   const [playCardIndex, setPlayCardIndex] = useState(0);
   const [playXpEarned, setPlayXpEarned] = useState(25);
 
-  // Under-the-Hood Engine Ignition Key (re-triggers when user hovers/taps the bottom infinity strip)
+  // Under-the-Hood Engine Ignition State (waits until scrolled into view, and re-runs on hover/click)
+  const [engineIgnited, setEngineIgnited] = useState(false);
   const [engineCycleKey, setEngineCycleKey] = useState(0);
+
+  const igniteEngineSequence = () => {
+    setEngineIgnited(true);
+    setEngineCycleKey((k) => k + 1);
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const sync = () => setReducedMotion(mq.matches);
+    const sync = () => {
+      setReducedMotion(mq.matches);
+      if (mq.matches) setEngineIgnited(true);
+    };
     sync();
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
@@ -705,7 +714,7 @@ export default function PrismEnginePortalPage() {
                 </h3>
               </div>
               <p className={`text-xs ${muted} mt-1`}>
-                Classified prototypes in our lab — hover (or tap) any tile to decrypt the upcoming expansion.
+                Classified prototypes in our lab. Hover or tap any tile to decrypt the upcoming expansion.
               </p>
             </div>
             <span className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-[10px] font-black uppercase tracking-wider ${pillSurface}`}>
@@ -841,101 +850,189 @@ export default function PrismEnginePortalPage() {
           </div>
         </section>
 
-        {/* Under-the-Hood Ignition Animation: The Prism Engine ∞ Autonomous Self-Healing Intelligence */}
+        {/* Under-the-Hood 3-Stage Engine Ignition Chamber: The Prism Engine ∞ */}
         <motion.section
           aria-label="The Prism Engine Infinite-Loop Autonomous Orchestrator"
           data-engine-telemetry="Tier 1 · Tier 2 · Groq · Local Structural Refraction"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.35 }}
-          onMouseEnter={() => {
-            if (!reducedMotion) setEngineCycleKey((k) => k + 1);
+          onViewportEnter={() => {
+            if (!engineIgnited) igniteEngineSequence();
           }}
-          onClick={() => setEngineCycleKey((k) => k + 1)}
-          className={`group relative overflow-hidden rounded-3xl border p-6 sm:p-7 backdrop-blur-2xl flex flex-wrap items-center justify-between gap-5 cursor-pointer transition-all ${cardSurface}`}
+          viewport={{ once: false, amount: 0.45 }}
+          onClick={igniteEngineSequence}
+          className={`group relative overflow-hidden rounded-[2.25rem] border p-6 sm:p-8 backdrop-blur-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-6 cursor-pointer transition-all ${cardSurface}`}
         >
-          {/* Subtle Engine Combustion Pulse Sweep when Ignited */}
-          {!reducedMotion && (
+          {/* Stage 1: Full-Chamber Engine Combustion Sweep (0s -> 1.8s) */}
+          {!reducedMotion && engineIgnited && (
             <motion.div
               key={`ignition-sweep-${engineCycleKey}`}
-              initial={{ x: '-110%', opacity: 0.75 }}
-              animate={{ x: '210%', opacity: 0 }}
-              transition={{ duration: 1.4, ease: 'easeOut' }}
-              className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent"
+              initial={{ x: '-115%', opacity: 0.9 }}
+              animate={{ x: '220%', opacity: 0 }}
+              transition={{ duration: 2.1, ease: 'easeInOut' }}
+              className="pointer-events-none absolute inset-y-0 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent"
             />
           )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 relative z-10">
-            {/* Stage 1 & 2: Animated Infinity Loop Ignition Chamber */}
-            <div className="relative inline-flex h-16 w-24 items-center justify-center rounded-2xl border border-cyan-400/40 bg-[#050b1a] shadow-[0_0_32px_rgba(34,211,238,0.25)] shrink-0">
-              <svg width="68" height="34" viewBox="0 0 88 44" fill="none" aria-hidden="true">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6 relative z-10">
+            {/* Under-the-Hood Twin-Turbine Infinity Chamber */}
+            <div className="relative inline-flex h-20 w-32 items-center justify-center rounded-2xl border border-cyan-400/45 bg-[#040917] shadow-[0_0_40px_rgba(34,211,238,0.28),inset_0_0_20px_rgba(168,85,247,0.18)] shrink-0 overflow-hidden">
+              {/* Twin Under-the-Hood Rotating Turbine Rings (Left & Right Cylinders) */}
+              {!reducedMotion && (
+                <>
+                  <motion.span
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+                    className="pointer-events-none absolute left-3.5 h-11 w-11 rounded-full border border-dashed border-sky-400/35"
+                  />
+                  <motion.span
+                    animate={{ rotate: [360, 0] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+                    className="pointer-events-none absolute right-3.5 h-11 w-11 rounded-full border border-dashed border-emerald-400/35"
+                  />
+                </>
+              )}
+
+              <svg width="96" height="46" viewBox="0 0 88 44" fill="none" aria-hidden="true" className="relative z-10">
                 <defs>
                   <linearGradient id="prism-infinity-grad" x1="6" y1="22" x2="82" y2="22" gradientUnits="userSpaceOnUse">
                     <stop offset="0%" stopColor="#38BDF8" />
                     <stop offset="50%" stopColor="#A855F7" />
                     <stop offset="100%" stopColor="#10B981" />
                   </linearGradient>
+                  <filter id="infinity-neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="2.2" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
                 </defs>
-                {/* Faint dim track under the hood */}
+
+                {/* Base cylinder track */}
                 <path
                   d={INFINITY_PATH_D}
-                  stroke="rgba(148,163,184,0.18)"
-                  strokeWidth="5"
+                  stroke="rgba(148,163,184,0.16)"
+                  strokeWidth="5.5"
                   strokeLinecap="round"
                 />
-                {/* High-voltage self-drawing infinity loop */}
+
+                {/* Stage 2: Thinking Loop Formation (Deliberate 2.4-second figure-eight draw!) */}
                 <motion.path
                   key={`loop-path-${engineCycleKey}`}
                   d={INFINITY_PATH_D}
                   stroke="url(#prism-infinity-grad)"
-                  strokeWidth="5"
+                  strokeWidth="5.5"
                   strokeLinecap="round"
-                  initial={reducedMotion ? { pathLength: 1 } : { pathLength: 0, opacity: 0.4 }}
-                  whileInView={{ pathLength: 1, opacity: 1 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{ duration: 1.15, ease: 'easeInOut' }}
+                  filter="url(#infinity-neon-glow)"
+                  initial={reducedMotion ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0.25 }}
+                  animate={
+                    engineIgnited || reducedMotion
+                      ? { pathLength: 1, opacity: 1 }
+                      : { pathLength: 0, opacity: 0.25 }
+                  }
+                  transition={{ duration: 2.4, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
                 />
+
+                {/* Continuous High-Voltage Energy Pulse Racing Around the Infinity Loop */}
+                {!reducedMotion && engineIgnited && (
+                  <motion.path
+                    key={`loop-runner-${engineCycleKey}`}
+                    d={INFINITY_PATH_D}
+                    stroke="#FFFFFF"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray="14 190"
+                    initial={{ strokeDashoffset: 204, opacity: 0 }}
+                    animate={{ strokeDashoffset: [204, 0], opacity: [0, 1, 1] }}
+                    transition={{
+                      strokeDashoffset: { duration: 2.6, repeat: Infinity, ease: 'linear', delay: 1.8 },
+                      opacity: { duration: 0.6, delay: 1.8 },
+                    }}
+                  />
+                )}
               </svg>
-              {/* Dual Piston Ignition Spark Dot */}
-              {!reducedMotion && (
+
+              {/* Central Ignition Crossover Spark */}
+              {!reducedMotion && engineIgnited && (
                 <motion.span
                   key={`spark-${engineCycleKey}`}
-                  initial={{ scale: 0.4, opacity: 0 }}
-                  animate={{ scale: [1, 1.45, 1], opacity: [0.6, 1, 0.7] }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                  className="pointer-events-none absolute h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_14px_#22d3ee]"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: [0, 1.9, 1.15, 1.4, 1], opacity: [0, 1, 0.85, 1, 0.9] }}
+                  transition={{ duration: 2.2, times: [0, 0.25, 0.5, 0.75, 1] }}
+                  className="pointer-events-none absolute h-3 w-3 rounded-full bg-white shadow-[0_0_20px_#38bdf8,0_0_35px_#10b981] z-20"
                 />
               )}
             </div>
 
-            {/* Stage 3: Words Emerge After the Infinity Loop Ignites */}
-            <motion.div
-              key={`engine-copy-${engineCycleKey}`}
-              initial={reducedMotion ? false : { opacity: 0, x: -12 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.35 }}
-              className="space-y-1"
-            >
-              <p className="text-xs sm:text-sm font-black uppercase tracking-[0.16em] bg-gradient-to-r from-sky-300 via-violet-300 to-emerald-300 bg-clip-text text-transparent">
+            {/* Stage 3: Staggered Telemetry Reveal After the Infinity Loop Finishes Drawing */}
+            <div className="space-y-2">
+              {/* Thinking Status Indicator Bar (0.15s -> 1.8s) */}
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { label: '1 · Ignition Spark', delay: 0.15, color: 'text-sky-300 border-sky-400/35 bg-sky-500/15' },
+                  { label: '2 · Neural Loop Syncing', delay: 0.95, color: 'text-violet-300 border-violet-400/35 bg-violet-500/15' },
+                  { label: '3 · Infinite Loop Locked ∞', delay: 1.85, color: 'text-emerald-300 border-emerald-400/40 bg-emerald-500/20' },
+                ].map((step) => (
+                  <motion.span
+                    key={`${step.label}-${engineCycleKey}`}
+                    initial={reducedMotion ? false : { opacity: 0, y: 6, scale: 0.92 }}
+                    animate={
+                      engineIgnited || reducedMotion
+                        ? { opacity: 1, y: 0, scale: 1 }
+                        : { opacity: 0, y: 6, scale: 0.92 }
+                    }
+                    transition={{ duration: 0.45, delay: step.delay }}
+                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${step.color}`}
+                  >
+                    {step.label}
+                  </motion.span>
+                ))}
+              </div>
+
+              <motion.p
+                key={`engine-title-${engineCycleKey}`}
+                initial={reducedMotion ? false : { opacity: 0, y: 10, filter: 'blur(6px)' }}
+                animate={
+                  engineIgnited || reducedMotion
+                    ? { opacity: 1, y: 0, filter: 'blur(0px)' }
+                    : { opacity: 0, y: 10, filter: 'blur(6px)' }
+                }
+                transition={{ duration: 0.65, delay: 2.05 }}
+                className="text-xs sm:text-sm font-black uppercase tracking-[0.16em] bg-gradient-to-r from-sky-300 via-violet-300 to-emerald-300 bg-clip-text text-transparent"
+              >
                 The Prism Engine ∞ · Autonomous Self-Healing Intelligence
-              </p>
-              <p className={`text-xs sm:text-sm leading-relaxed ${muted}`}>
-                Proprietary Infinite-Loop Orchestration with guaranteed <strong>Local Structural Refraction</strong> continuity — adapts in real time so your flow never breaks.
-              </p>
-            </motion.div>
+              </motion.p>
+
+              <motion.p
+                key={`engine-desc-${engineCycleKey}`}
+                initial={reducedMotion ? false : { opacity: 0, y: 8, filter: 'blur(4px)' }}
+                animate={
+                  engineIgnited || reducedMotion
+                    ? { opacity: 1, y: 0, filter: 'blur(0px)' }
+                    : { opacity: 0, y: 8, filter: 'blur(4px)' }
+                }
+                transition={{ duration: 0.65, delay: 2.45 }}
+                className={`text-xs sm:text-sm leading-relaxed ${muted}`}
+              >
+                Proprietary Infinite-Loop Orchestration with guaranteed <strong>Local Structural Refraction</strong> continuity. Adapts in real time so your flow never breaks.
+              </motion.p>
+            </div>
           </div>
 
-          <motion.span
+          <motion.div
             key={`engine-pill-${engineCycleKey}`}
-            initial={reducedMotion ? false : { opacity: 0, scale: 0.92 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.45, delay: 0.55 }}
-            className={`relative z-10 inline-flex items-center gap-1.5 rounded-2xl border px-4 py-2.5 text-xs font-black ${pillSurface}`}
+            initial={reducedMotion ? false : { opacity: 0, scale: 0.88, filter: 'blur(4px)' }}
+            animate={
+              engineIgnited || reducedMotion
+                ? { opacity: 1, scale: 1, filter: 'blur(0px)' }
+                : { opacity: 0, scale: 0.88, filter: 'blur(4px)' }
+            }
+            transition={{ duration: 0.6, delay: 2.85 }}
+            className="relative z-10 flex flex-col items-start lg:items-end gap-1.5 shrink-0"
           >
-            <ShieldCheck size={15} className="text-emerald-500" /> Zero Secret Leaks · Free Forever
-          </motion.span>
+            <span className={`inline-flex items-center gap-1.5 rounded-2xl border px-4 py-2.5 text-xs font-black ${pillSurface}`}>
+              <ShieldCheck size={15} className="text-emerald-500" /> Zero Secret Leaks · Free Forever
+            </span>
+            <span className="text-[10px] font-bold text-cyan-400/80 px-1">
+              Tap chamber anytime to replay engine ignition
+            </span>
+          </motion.div>
         </motion.section>
       </main>
     </div>
