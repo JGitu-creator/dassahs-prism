@@ -37,9 +37,9 @@ export function AIUsageControl({
               ? 'Groq · Tier 1'
               : usage.provider === 'gemini' || usage.tier === 'tier3'
                 ? 'Gemini'
-                : usage.provider === 'openrouter'
-                  ? 'OpenRouter'
-                  : 'Auto';
+                : usage.provider === 'openrouter' || usage.tier === 'pool'
+                  ? 'OpenRouter · Pool'
+                  : 'Auto ∞';
 
   const badgeClass = isLocalFallback
     ? 'bg-emerald-500/20 text-emerald-300'
@@ -51,7 +51,7 @@ export function AIUsageControl({
     <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-glass)] px-2.5 py-1.5 text-[var(--fg)] shadow-lg backdrop-blur-xl">
       <a
         href="/engine"
-        title="Open Dassah's Prism Engine Hub (4-Tier Capability Routing: Groq Tier 1 · Groq Tier 2 · Gemini · Local Structural Refraction)"
+        title="Open Dassah's Prism Engine Hub · Powered by The Prism Engine (Infinite-Loop Autonomous Orchestrator ∞)"
         className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--fg)] hover:text-blue-400 transition-colors"
       >
         <Sparkles size={14} className={isLocalFallback ? 'text-emerald-400' : 'text-blue-400'} />
@@ -64,8 +64,8 @@ export function AIUsageControl({
         className="flex min-w-0 items-center gap-1 border-l border-[var(--color-border)] pl-2"
         title={
           isLocalFallback
-            ? 'Local Structural Refraction used (0 tokens spent)'
-            : `${providerLabel} · ${usage.model || '4-tier capability router ready'} (${usage.totalTokens.toLocaleString()} session tokens)`
+            ? 'The Prism Engine · Local Structural Refraction active (0 tokens spent)'
+            : `The Prism Engine · Infinite-Loop Autonomous Orchestrator ∞ (${usage.totalTokens.toLocaleString()} session tokens)`
         }
       >
         <Coins size={12} className="text-amber-400 shrink-0" />

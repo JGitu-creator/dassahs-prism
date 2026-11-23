@@ -261,13 +261,36 @@ export default function PrismEnginePortalPage() {
 
       {/* Top Navigation */}
       <header className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
-        <div className="flex items-center gap-2.5">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-cyan-400 to-emerald-400 text-slate-950 shadow-lg shadow-blue-500/30">
-            <Sparkles size={18} />
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-400/40 bg-[#070d1f] shadow-[0_0_24px_rgba(34,211,238,0.25)]">
+            <svg width="26" height="26" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="dpe-monogram-grad" x1="16" y1="14" x2="50" y2="50" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#38BDF8" />
+                  <stop offset="55%" stopColor="#22D3EE" />
+                  <stop offset="100%" stopColor="#10B981" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M18 14H33C43.5 14 50 21.2 50 32C50 42.8 43.5 50 33 50H18V14Z"
+                fill="rgba(56,189,248,0.18)"
+                stroke="url(#dpe-monogram-grad)"
+                strokeWidth="4"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M26 22H32.5C38.6 22 42 26 42 32C42 38 38.6 42 32.5 42H26V22Z"
+                fill="#070D1F"
+                stroke="#38BDF8"
+                strokeOpacity="0.75"
+                strokeWidth="2"
+                strokeLinejoin="round"
+              />
+            </svg>
           </span>
           <div>
             <p className="text-sm font-black tracking-tight">Dassah&apos;s Prism Engine</p>
-            <p className={`text-[11px] font-semibold ${muted}`}>Powered by The Prism Engine</p>
+            <p className={`text-[11px] font-semibold ${muted}`}>Powered by The Prism Engine ∞</p>
           </div>
         </div>
 
@@ -811,21 +834,36 @@ export default function PrismEnginePortalPage() {
           </div>
         </section>
 
-        {/* Live Engine Reliability Strip */}
+        {/* The Prism Engine · Infinite-Loop Autonomous Orchestrator Emblem (Proprietary Routing Kept Confidential) */}
         <section
-          aria-label="Prism Engine 4-tier resilience"
+          aria-label="The Prism Engine Infinite-Loop Autonomous Orchestrator"
+          data-engine-telemetry="Tier 1 · Tier 2 · Groq · Local Structural Refraction"
           className={`rounded-3xl border p-5 sm:p-6 backdrop-blur-2xl flex flex-wrap items-center justify-between gap-4 ${cardSurface}`}
         >
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-400 shrink-0">
-              <Cpu size={20} />
+          <div className="flex items-center gap-4">
+            <span className="relative inline-flex h-12 w-16 items-center justify-center rounded-2xl border border-cyan-400/35 bg-gradient-to-br from-blue-500/15 via-violet-500/15 to-emerald-500/15 shadow-[0_0_28px_rgba(34,211,238,0.22)] shrink-0">
+              <svg width="44" height="24" viewBox="0 0 88 44" fill="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="prism-infinity-grad" x1="6" y1="22" x2="82" y2="22" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#38BDF8" />
+                    <stop offset="50%" stopColor="#A855F7" />
+                    <stop offset="100%" stopColor="#10B981" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M24 10C15 10 9 15.2 9 22C9 28.8 15 34 24 34C33 34 39 22 44 22C49 22 55 10 64 10C73 10 79 15.2 79 22C79 28.8 73 34 64 34C55 34 49 22 44 22C39 22 33 10 24 10Z"
+                  stroke="url(#prism-infinity-grad)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                />
+              </svg>
             </span>
             <div>
-              <p className="text-xs font-black uppercase tracking-wider text-amber-400">
-                The Prism Engine · Self-Healing Capability Cascade
+              <p className="text-xs font-black uppercase tracking-[0.18em] bg-gradient-to-r from-sky-300 via-violet-300 to-emerald-300 bg-clip-text text-transparent">
+                The Prism Engine ∞ · Autonomous Self-Healing Intelligence
               </p>
               <p className={`text-xs sm:text-sm ${muted}`}>
-                <strong>Tier 1:</strong> Groq <code>openai/gpt-oss-20b</code> → <strong>Tier 2:</strong> Groq <code>openai/gpt-oss-120b</code> → <strong>Tier 3:</strong> Gemini 2.0 Flash → <strong>Pool:</strong> Verified OpenRouter Free Models → <strong>Tier 4:</strong> Honest <strong>Local Structural Refraction</strong>.
+                Proprietary Infinite-Loop Orchestration with guaranteed <strong>Local Structural Refraction</strong> continuity — adapts in real time so your flow never breaks.
               </p>
             </div>
           </div>

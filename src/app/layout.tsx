@@ -11,15 +11,18 @@ const lexend = Lexend({ subsets: ["latin"], variable: "--font-reading" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Dassah's Prism | The Prism Engine & Prism Play",
-  description: "The Prism Engine: refract overwhelming noise into clear focus with Dassah's Prism, and turn Canvas coursework dread into play with Prism Play.",
+  title: "Dassah's Prism Engine | Prism Focus & Prism Play",
+  description: "Dassah's Prism Engine — powered by The Prism Engine. Refract overwhelming noise into clear focus in Prism Focus, and turn coursework dread into play in Prism Play.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://dassahs-prism.vercel.app"),
   alternates: {
     canonical: "https://dassahs-prism.vercel.app",
   },
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo.png",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/logo.png", type: "image/png" },
+    ],
     apple: "/logo.png",
   },
   verification: {
@@ -29,16 +32,16 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Dassah's Prism | The Prism Engine & Prism Play",
-    description: "Turn overwhelming noise into clear focus in seconds, and turn study dread into play.",
+    title: "Dassah's Prism Engine | Prism Focus & Prism Play",
+    description: "Built for how your brain actually works. Refract the noise in Prism Focus and turn study dread into play in Prism Play.",
     url: "https://dassahs-prism.vercel.app",
-    siteName: "Dassah's Prism",
+    siteName: "Dassah's Prism Engine",
     images: [
       {
         url: "/logo.png",
         width: 800,
         height: 800,
-        alt: "Dassah's Prism - Cognitive Clarity",
+        alt: "Dassah's Prism Engine - Prism Focus & Prism Play",
       },
     ],
     locale: "en_US",
@@ -46,8 +49,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Dassah's-Prism",
-    description: "Crush the cognitive noise. Anchor your focus.",
+    title: "Dassah's Prism Engine",
+    description: "Refract the Noise. Unlock Your Mind. Powered by The Prism Engine.",
     images: ["/logo.png"],
   },
 };

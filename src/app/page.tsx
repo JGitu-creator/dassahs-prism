@@ -2612,8 +2612,11 @@ export default function Home() {
       )}</AnimatePresence>
       {!data ? (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl lg:max-w-4xl w-full space-y-6 md:space-y-10 z-10 px-4 pt-20 md:pt-24 pb-20">
-          <header className="text-center space-y-4 md:space-y-8 relative">
-            <h1 className="prism-brand text-4xl sm:text-6xl md:text-9xl font-black text-[var(--fg)] leading-[1.2] tracking-tight italic">Dassah&apos;s <span className="prism-text brand-prism">Prism</span></h1>
+          <header className="text-center space-y-4 md:space-y-6 relative">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/35 bg-blue-500/15 px-4 py-1.5 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-blue-300 shadow-[0_0_24px_rgba(59,130,246,0.2)]">
+              <Sparkles size={12} className="text-cyan-400" /> Dassah&apos;s Prism Engine · Powered by The Prism Engine
+            </div>
+            <h1 className="prism-brand text-4xl sm:text-6xl md:text-9xl font-black text-[var(--fg)] leading-[1.2] tracking-tight italic">Prism <span className="prism-text brand-prism">Focus</span></h1>
             <RefractiveTagline />
           </header>
           <NeuralRefractionSlider />
