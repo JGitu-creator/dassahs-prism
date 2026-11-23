@@ -507,7 +507,7 @@ export function validateFocusPlus(data: unknown): ValidationResult<FocusPlusOutp
   }
 
   const errors: string[] = [];
-  const allowedKeys = new Set<string>(FOCUS_PLUS_SCHEMA.required);
+  const allowedKeys = new Set<string>([...FOCUS_PLUS_SCHEMA.required, 'chunks']);
   for (const key of Object.keys(data)) {
     if (!allowedKeys.has(key)) {
       errors.push(`Unexpected property "${key}"`);
@@ -521,38 +521,42 @@ export function validateFocusPlus(data: unknown): ValidationResult<FocusPlusOutp
 
   const summary = validateNonEmptyString(data.summary, 'summary', 2000, errors);
   const keyPoints = validateStringArray(data.keyPoints, 'keyPoints', 1, 12, 500, errors);
-  const metaphor = validateNonEmptyString(data.metaphor, 'metaphor', 800, errors);
-  const dopamineHook = validateNonEmptyString(data.dopamineHook, 'dopamineHook', 600, errors);
+  const metaphor = validateNonEmptyString(data.metaphor, 'metaphor', 400, errors);
+  const dopamineHook = validateNonEmptyString(data.dopamineHook, 'dopamineHook', 300, errors);
   const confidenceNote = validateNonEmptyString(data.confidenceNote, 'confidenceNote', 800, errors);
 
-  let segments: FocusPlusSegment[] | undefined;
-  if (Array.isArray(data.segments) && data.segments.length > 0) {
-    const parsedSegments: FocusPlusSegment[] = [];
-    for (let i = 0; i < Math.min(data.segments.length, 6); i += 1) {
-      const seg = data.segments[i];
-      if (!isPlainObject(seg)) continue;
-      const heading = typeof seg.heading === 'string' && seg.heading.trim() ? seg.heading.trim().slice(0, 160) : '';
-      const segSummary = typeof seg.summary === 'string' && seg.summary.trim() ? seg.summary.trim().slice(0, 800) : '';
-      const content = typeof seg.content === 'string' && seg.content.trim() ? seg.content.trim().slice(0, 2000) : '';
-      const segMetaphor = typeof seg.metaphor === 'string' && seg.metaphor.trim() ? seg.metaphor.trim().slice(0, 800) : metaphor;
-      const segHook = typeof seg.dopamineHook === 'string' && seg.dopamineHook.trim() ? seg.dopamineHook.trim().slice(0, 600) : dopamineHook;
-      const keyTerms = Array.isArray(seg.keyTerms)
-        ? seg.keyTerms.filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map((t) => t.trim().slice(0, 120)).slice(0, 8)
-        : [];
-      if (heading && (content || segSummary)) {
-        parsedSegments.push({
-          heading,
-          summary: segSummary || heading,
-          content: content || segSummary,
-          metaphor: segMetaphor || metaphor,
-          dopamineHook: segHook || dopamineHook,
-          keyTerms: keyTerms.length > 0 ? keyTerms : keyPoints.slice(0, 4),
-        });
-      }
+  const rawSegments = Array.isArray(data.segments)
+    ? data.segments
+    : Array.isArray((data as Record<string, unknown>).chunks)
+      ? ((data as Record<string, unknown>).chunks as unknown[])
+      : [];
+
+  const parsedSegments: FocusPlusSegment[] = [];
+  for (let i = 0; i < Math.min(rawSegments.length, 6); i += 1) {
+    const seg = rawSegments[i];
+    if (!isPlainObject(seg)) continue;
+    const heading = typeof seg.heading === 'string' && seg.heading.trim() ? seg.heading.trim().slice(0, 120) : '';
+    const segSummary = typeof seg.summary === 'string' && seg.summary.trim() ? seg.summary.trim().slice(0, 500) : '';
+    const content = typeof seg.content === 'string' && seg.content.trim() ? seg.content.trim().slice(0, 2000) : '';
+    const segMetaphor = typeof seg.metaphor === 'string' && seg.metaphor.trim() ? seg.metaphor.trim().slice(0, 400) : metaphor;
+    const segHook = typeof seg.dopamineHook === 'string' && seg.dopamineHook.trim() ? seg.dopamineHook.trim().slice(0, 300) : dopamineHook;
+    const keyTerms = Array.isArray(seg.keyTerms)
+      ? seg.keyTerms.filter((t): t is string => typeof t === 'string' && t.trim().length > 0).map((t) => t.trim().slice(0, 100)).slice(0, 6)
+      : [];
+    if (heading && (content || segSummary)) {
+      parsedSegments.push({
+        heading,
+        summary: segSummary || heading,
+        content: content || segSummary,
+        metaphor: segMetaphor || metaphor,
+        dopamineHook: segHook || dopamineHook,
+        keyTerms: keyTerms.length > 0 ? keyTerms : keyPoints.slice(0, 4),
+      });
     }
-    if (parsedSegments.length > 0) {
-      segments = parsedSegments;
-    }
+  }
+
+  if (parsedSegments.length === 0) {
+    errors.push('segments must contain at least 1 valid study segment with heading, content, metaphor, and dopamineHook');
   }
 
   let nextAction: FocusNextAction = { task: '', priority: 'medium', estimatedMinutes: 5 };
@@ -597,7 +601,7 @@ export function validateFocusPlus(data: unknown): ValidationResult<FocusPlusOutp
       keyPoints,
       metaphor,
       dopamineHook,
-      ...(segments ? { segments } : {}),
+      segments: parsedSegments,
       nextAction,
       confidenceNote,
     },
@@ -1096,31 +1100,31 @@ export function buildFocusPlusPrompt(input: {
   isStory?: boolean;
   missionGoal?: string;
 }): string {
-  const modeNote = input.cognitiveMode ? `Reading lens: ${input.cognitiveMode}.` : '';
-  const depthNote = input.simplicityLevel ? `Detail level: ${input.simplicityLevel}.` : '';
-  const storyNote = input.isStory ? 'Frame every metaphor as a vivid mini-story analogy.' : '';
-  const goalNote = input.missionGoal ? `User goal: ${input.missionGoal}.` : '';
+  const modeNote = input.cognitiveMode ? `TARGET COGNITIVE MODE: ${input.cognitiveMode}.` : '';
+  const depthNote = input.simplicityLevel ? `SIMPLICITY LEVEL: ${input.simplicityLevel}.` : '';
+  const storyNote = input.isStory ? 'Preserve the narrative arc while keeping every fact crystal clear.' : '';
+  const goalNote = input.missionGoal ? `GOAL: ${input.missionGoal}.` : 'GOAL: Discovery and effortless retention.';
   return [
-    'Transform the untrusted source document into the Prism Focus Plus JSON contract for ADHD-friendly clarity, fast comprehension, and high retention.',
-    'Return ONLY valid JSON matching the strict schema with exact keys:',
-    '- summary: crisp 1-2 sentence big-picture takeaway.',
-    '- keyPoints: 3-5 concrete, factual bullet takeaways.',
-    '- metaphor: ONE vivid, concrete everyday analogy (e.g., video game inventory, kitchen prep, highway lanes, Lego bricks, smartphone RAM) that makes the core idea click instantly. NEVER use cliché filler like "Think of this like a blueprint".',
-    '- dopamineHook: ONE punchy, curiosity-sparking, encouraging sentence that rewards the reader and creates an immediate "aha!" momentum hit.',
-    '- segments: Break the passage into 2 to 4 bite-sized study cards (even if the source is 1 dense paragraph, split it into logical concept cards!). Each segment MUST have:',
-    '  * heading: a catchy, concept-specific title (3-6 words, NEVER generic "Segment 1" or "Prism Focus").',
-    '  * summary: a sharp 1-sentence Segment Snap.',
-    '  * content: clear, scannable plain-English rewrite of that concept (2-4 short sentences, zero wall of text).',
-    '  * metaphor: a fresh, concrete, relatable analogy tailored specifically to THIS segment.',
-    '  * dopamineHook: a sharp, rewarding 1-sentence momentum spark tailored specifically to THIS segment.',
-    '  * keyTerms: 2-5 important vocabulary terms from THIS segment.',
-    '- nextAction: { task, priority: low|medium|high, estimatedMinutes: integer 1..120 }.',
-    '- confidenceNote: brief accuracy note grounded in the source text.',
-    'Do not include markdown wrappers or extra keys. Remain faithful to the source text.',
+    'You are "Ask DJ," a Focus Guide. Your mission is to perform a Deep Neural Refraction on the provided untrusted Noise.',
+    'Perform a silent analysis to separate Signal vs Noise, uncover Logic Roots, craft punchy Dopamine Hooks, and create vivid Structural Anchors.',
+    goalNote,
     modeNote,
     depthNote,
     storyNote,
-    goalNote,
+    'Output ONLY valid JSON matching the exact schema keys (zero markdown wrappers, zero extra keys):',
+    '- summary: 1 crisp, plain-English sentence capturing the whole core signal.',
+    '- keyPoints: 3-5 ultra-clear factual takeaways.',
+    '- metaphor: ONE short, sweet, vivid everyday image (MAX 15-20 words, e.g., "Like clearing browser tabs so your laptop stops lagging."). NEVER write a paragraph.',
+    '- dopamineHook: ONE short, punchy, fun curiosity spark (MAX 10-16 words, e.g., "Master this 3-part trick and dense chapters suddenly click."). NEVER write a paragraph.',
+    '- segments: REQUIRED array of 2 to 4 bite-sized study cards (even for a short passage, break it into distinct concepts!). Every segment MUST include:',
+    '  * heading: catchy 2-5 word concept title (NEVER "Prism Focus", NEVER "Segment 1").',
+    '  * summary: 1 sharp sentence (Segment Snap).',
+    '  * content: clear, scannable plain-English explanation (2-3 short sentences, zero wall of text).',
+    '  * metaphor: ONE short, vivid everyday analogy for THIS segment (MAX 15-20 words).',
+    '  * dopamineHook: ONE short, sweet, punchy reward/curiosity hook for THIS segment (MAX 10-16 words).',
+    '  * keyTerms: 2-4 key terms from THIS segment.',
+    '- nextAction: { task, priority: low|medium|high, estimatedMinutes: integer 1..120 }.',
+    '- confidenceNote: brief accuracy reminder grounded in the source text.',
     '--- BEGIN UNTRUSTED SOURCE DATA ---',
     input.text,
     '--- END UNTRUSTED SOURCE DATA ---',
@@ -1567,20 +1571,19 @@ export function mapLaneOutputToSimplifyResponse(args: {
 
     focusChunks = segments.map((segmentText, index) => {
       const keyPoint = focus.keyPoints[index] || focus.keyPoints[0] || focus.summary;
-      const nextTask = focus.nextAction.task;
       const isFirst = index === 0;
       const segmentSummary = isFirst ? focus.summary : keyPoint;
       const segmentHook = isFirst
-        ? (aiDopamineHook || `Quick win locked in: ${nextTask}`)
-        : `Momentum check (${index + 1}/${segments.length}): ${keyPoint}`;
+        ? (aiDopamineHook || 'Key signal locked in — scan the takeaways below.')
+        : 'Next anchor ready — keep your momentum rolling.';
       const segmentMetaphor = isFirst
-        ? (aiMetaphor || `Think of this like a blueprint where "${focus.summary.slice(0, 140)}" is the load-bearing beam holding every detail together.`)
-        : `Picture this step as locking piece ${index + 1} into place: ${keyPoint.slice(0, 150)}`;
+        ? (aiMetaphor || 'Like zooming in on the highlight reel before reading the full playbook.')
+        : 'One bite-sized block at a time keeps your working memory clear.';
 
       return {
         heading: isLocalFallback
-          ? (segments.length > 1 ? `Local Structural Refraction · Part ${index + 1}` : 'Local Structural Refraction')
-          : (segments.length > 1 ? `Prism Focus · Segment ${index + 1}` : 'Prism Focus'),
+          ? (segments.length > 1 ? `Local Refraction · Part ${index + 1}` : 'Local Structural Refraction')
+          : (segments.length > 1 ? `Core Signal · Part ${index + 1}` : 'Core Signal'),
         content: segmentText.slice(0, 1200),
         summary: segmentSummary,
         keyTerms: focus.keyPoints.slice(0, 5),

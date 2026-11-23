@@ -233,8 +233,26 @@ test('15. unsafe or injection-sensitive result is rejected without remote fan-ou
 
 const VALID_FOCUS_PLUS = {
   ...VALID_FOCUS,
-  metaphor: 'Like taking a Polaroid before rearranging furniture so you can always reset in seconds.',
-  dopamineHook: 'One 5-minute snapshot locks in peace of mind before you touch production.',
+  metaphor: 'Like saving your game right before a boss fight.',
+  dopamineHook: 'One 5-minute snapshot locks in zero-stress deploys.',
+  segments: [
+    {
+      heading: 'Snapshot Before You Ship',
+      summary: 'Always save a timestamped config backup before changing production.',
+      content: 'Export your live settings before touching anything. If a deploy goes sideways, you can roll back in seconds.',
+      metaphor: 'Like saving your game right before a boss fight.',
+      dopamineHook: 'One 5-minute snapshot locks in zero-stress deploys.',
+      keyTerms: ['backup', 'snapshot', 'rollback'],
+    },
+    {
+      heading: 'Instant Post-Deploy Pulse Check',
+      summary: 'Hit /api/health right after release to confirm every provider is green.',
+      content: 'Do not guess whether production is healthy. Open /api/health right after deploy to verify live readiness.',
+      metaphor: 'Like checking the dashboard lights before pulling onto the highway.',
+      dopamineHook: 'Green health check in 3 seconds = instant peace of mind.',
+      keyTerms: ['health-check', 'verification'],
+    },
+  ],
 };
 
 test('16. focus_plus cascades from Groq 400 to OpenRouter Free Pool instead of dead-ending', async () => {
