@@ -446,9 +446,9 @@ export default function PrismEnginePortalPage() {
                     (word, idx) => (
                       <motion.span
                         key={`${word}-${idx}`}
-                        initial={reducedMotion ? false : { opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.35, delay: idx * 0.07 }}
+                        initial={reducedMotion ? false : { opacity: 0, y: 6, filter: 'blur(6px)' }}
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        transition={{ duration: 0.4, delay: idx * 0.08 }}
                         className={
                           word === '→'
                             ? 'text-xs font-black text-sky-400/80 px-0.5'
@@ -694,7 +694,7 @@ export default function PrismEnginePortalPage() {
           </motion.div>
         </section>
 
-        {/* In Orbit · The Prism Roadmap (100% Crystal Clear & Sharp!) */}
+        {/* In Orbit · The Prism Roadmap (Classified Prototype Constellation — Blurred Until Hovered/Tapped!) */}
         <section aria-label="In Orbit · The Prism Roadmap" className="space-y-5 pt-2">
           <div className="flex flex-wrap items-center justify-between gap-3 px-1">
             <div>
@@ -705,7 +705,7 @@ export default function PrismEnginePortalPage() {
                 </h3>
               </div>
               <p className={`text-xs ${muted} mt-1`}>
-                Upcoming expansions in our lab built on The Prism Engine.
+                Classified prototypes in our lab — hover (or tap) any tile to decrypt the upcoming expansion.
               </p>
             </div>
             <span className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-[10px] font-black uppercase tracking-wider ${pillSurface}`}>
@@ -715,7 +715,7 @@ export default function PrismEnginePortalPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {FUTURE_EXPANSIONS.map((item) => {
-              const isHighlighted = activePrototype === item.name;
+              const isRevealed = activePrototype === item.name;
               const edgeGlow =
                 item.accent === 'cyan'
                   ? 'via-cyan-400/75'
@@ -724,22 +724,35 @@ export default function PrismEnginePortalPage() {
                   : 'via-purple-400/75';
               const hoverBorder =
                 item.accent === 'cyan'
-                  ? 'hover:border-cyan-400/55'
+                  ? 'hover:border-cyan-400/50'
                   : item.accent === 'amber'
-                  ? 'hover:border-amber-400/55'
-                  : 'hover:border-purple-400/55';
+                  ? 'hover:border-amber-400/50'
+                  : 'hover:border-purple-400/50';
               const neonText =
                 item.accent === 'cyan'
                   ? darkMode
-                    ? 'text-cyan-300 drop-shadow-[0_0_14px_rgba(34,211,238,0.45)]'
+                    ? 'text-cyan-300 drop-shadow-[0_0_14px_rgba(34,211,238,0.65)]'
                     : 'text-cyan-700'
                   : item.accent === 'amber'
                   ? darkMode
-                    ? 'text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.45)]'
+                    ? 'text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.65)]'
                     : 'text-amber-700'
                   : darkMode
-                  ? 'text-purple-300 drop-shadow-[0_0_14px_rgba(192,132,252,0.45)]'
+                  ? 'text-purple-300 drop-shadow-[0_0_14px_rgba(192,132,252,0.65)]'
                   : 'text-purple-700';
+
+              const hoverNeonClass =
+                item.accent === 'cyan'
+                  ? darkMode
+                    ? 'group-hover:text-cyan-300 group-hover:drop-shadow-[0_0_14px_rgba(34,211,238,0.65)]'
+                    : 'group-hover:text-cyan-700'
+                  : item.accent === 'amber'
+                  ? darkMode
+                    ? 'group-hover:text-amber-300 group-hover:drop-shadow-[0_0_14px_rgba(251,191,36,0.65)]'
+                    : 'group-hover:text-amber-700'
+                  : darkMode
+                  ? 'group-hover:text-purple-300 group-hover:drop-shadow-[0_0_14px_rgba(192,132,252,0.65)]'
+                  : 'group-hover:text-purple-700';
 
               return (
                 <motion.button
@@ -750,15 +763,15 @@ export default function PrismEnginePortalPage() {
                   transition={{ type: 'spring', stiffness: 320, damping: 24 }}
                   className={`group relative text-left overflow-hidden rounded-[2rem] border p-6 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-5 cursor-pointer ${hoverBorder} ${
                     darkMode
-                      ? 'bg-[#050914]/90 border-white/12 shadow-[0_20px_60px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]'
-                      : 'bg-white/95 border-slate-200 shadow-[0_14px_40px_rgba(0,0,0,0.06)]'
+                      ? 'bg-[#050914]/85 border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.10)]'
+                      : 'bg-white/85 border-slate-200/90 shadow-[0_14px_40px_rgba(0,0,0,0.05)]'
                   }`}
                 >
-                  <div className={`pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent ${edgeGlow} to-transparent opacity-75 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent ${edgeGlow} to-transparent opacity-60 group-hover:opacity-100 transition-opacity`} />
 
                   <div
                     className={`pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full blur-2xl transition-opacity duration-500 ${
-                      isHighlighted ? 'opacity-100' : 'opacity-45 group-hover:opacity-100'
+                      isRevealed ? 'opacity-100' : 'opacity-25 group-hover:opacity-100'
                     } ${
                       item.accent === 'cyan'
                         ? 'bg-cyan-500/25'
@@ -782,19 +795,33 @@ export default function PrismEnginePortalPage() {
                         <item.icon size={19} />
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-300">
-                        <Sparkles size={9} /> {item.badge}
+                        <Lock size={9} /> {item.badge}
                       </span>
                     </div>
 
                     <div>
                       <h4 className="prism-brand text-2xl font-black italic tracking-tight flex flex-wrap items-baseline gap-2">
-                        <span className={neonText}>{item.name}</span>
+                        <span
+                          className={`transition-all duration-500 ${
+                            isRevealed
+                              ? `blur-0 opacity-100 ${neonText}`
+                              : `blur-[5px] opacity-75 group-hover:blur-0 group-hover:opacity-100 ${hoverNeonClass}`
+                          }`}
+                        >
+                          {item.name}
+                        </span>
                         <span className={`text-[10px] font-bold uppercase tracking-wider not-italic ${muted}`}>
                           · {item.parentApp}
                         </span>
                       </h4>
 
-                      <p className={`text-xs mt-2 leading-relaxed font-medium ${muted}`}>
+                      <p
+                        className={`text-xs mt-2 leading-relaxed transition-all duration-500 ${muted} ${
+                          isRevealed
+                            ? 'blur-0 opacity-100'
+                            : 'blur-[4px] opacity-35 group-hover:blur-0 group-hover:opacity-100'
+                        }`}
+                      >
                         {item.description}
                       </p>
                     </div>
@@ -802,10 +829,10 @@ export default function PrismEnginePortalPage() {
 
                   <div className="relative z-10 w-full pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] font-bold">
                     <span className="uppercase tracking-[0.18em] text-slate-400">
-                      Next Generation Module
+                      {isRevealed ? 'Decrypted' : 'Classified Prototype'}
                     </span>
-                    <span className="text-cyan-400 group-hover:text-cyan-300 transition-colors">
-                      In Orbit
+                    <span className="text-cyan-400/80 group-hover:text-cyan-300 transition-colors">
+                      {isRevealed ? 'Tap to veil' : 'Hover / Tap to reveal'}
                     </span>
                   </div>
                 </motion.button>
