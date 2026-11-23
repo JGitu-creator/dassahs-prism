@@ -13,6 +13,7 @@ export type QuotaResult =
   | { ok: false; status: number; error: string; code?: string };
 
 const isEnabled = () => process.env.PRISM_ENFORCE_USER_CREDITS === 'true';
+const isPaidCreditsEnforced = () => process.env.PRISM_ENFORCE_PAID_CREDITS === 'true';
 const requestCost = () => Math.max(1, Number.parseInt(process.env.PRISM_CREDITS_PER_REQUEST ?? '10', 10) || 10);
 const GUEST_TRIAL_LIMIT = 3;
 const GUEST_TRIAL_COOKIE = 'prism-guest-uses';
@@ -51,6 +52,11 @@ export async function reserveCredits(req: Request): Promise<QuotaResult> {
       };
     }
     return { ok: true, reservation: { enabled: false, amount: 0, guestUses: guestUses + 1 } };
+  }
+  // Signed-in users enjoy unlimited free refractions while Prism runs on free AI tiers.
+  // Set PRISM_ENFORCE_PAID_CREDITS=true when paid credit allowances are activated later.
+  if (!isPaidCreditsEnforced()) {
+    return { ok: true, reservation: { enabled: false, userId, amount: 0 } };
   }
   const amount = requestCost();
   const { data, error } = await createServiceClient().rpc('deduct_credits', { p_user_id: userId, p_amount: amount });
