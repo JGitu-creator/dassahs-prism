@@ -12,6 +12,8 @@ type Usage = {
 };
 
 export function AIUsageControl({
+  preference = 'auto',
+  onPreferenceChange,
   usage,
 }: {
   preference?: ProviderPreference;
@@ -38,7 +40,7 @@ export function AIUsageControl({
               : usage.provider === 'gemini' || usage.tier === 'tier3'
                 ? 'Gemini 3.5'
                 : usage.provider === 'mistral'
-                  ? 'Mistral'
+                  ? 'Mistral AI'
                   : usage.provider === 'openrouter' || usage.tier === 'pool'
                     ? 'OpenRouter · Free'
                     : 'Auto ∞';
@@ -61,11 +63,26 @@ export function AIUsageControl({
         className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--fg)] hover:text-blue-400 transition-colors"
       >
         <Sparkles size={14} className={isLocalFallback ? 'text-emerald-400' : 'text-blue-400'} />
-        <span className="hidden sm:inline">Prism Engine</span>
+        <span className="hidden md:inline">Prism Engine</span>
         <span className={`rounded px-1.5 py-0.5 text-[8px] font-black uppercase ${badgeClass}`}>
           {providerLabel}
         </span>
       </a>
+      {onPreferenceChange && (
+        <select
+          aria-label="Select AI Provider Route"
+          value={preference}
+          onChange={(e) => onPreferenceChange(e.target.value as ProviderPreference)}
+          title="Switch AI provider to compare Mistral AI, Gemini 3.5, OpenRouter Free, Groq, or Auto ∞"
+          className="cursor-pointer rounded-lg border border-[var(--color-border)] bg-[var(--color-glass)] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--fg)] outline-none hover:border-blue-400/50 transition-colors"
+        >
+          <option value="auto">Auto ∞</option>
+          <option value="mistral">Mistral AI</option>
+          <option value="gemini">Gemini 3.5</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="groq">Groq LPU</option>
+        </select>
+      )}
       <div
         className="flex min-w-0 items-center gap-1 border-l border-[var(--color-border)] pl-2"
         title={

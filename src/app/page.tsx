@@ -1463,6 +1463,7 @@ export default function Home() {
 
       setCompletedTasks({});
       setData(result);
+      sessionStorage.removeItem('ask_dj_interaction_id');
       setRefractionProgress({ completed: 0, total: 0 });
       setPendingImage(null);
       const refractionUsage = results.reduce((total, item) => total + Number(item?.usage?.totalTokens || 0), 0);
@@ -1749,12 +1750,21 @@ export default function Home() {
           'Content-Type': 'application/json',
           ...(activeSession?.access_token ? { Authorization: `Bearer ${activeSession.access_token}` } : {}),
         },
-        body: JSON.stringify({ message: chatInput, history: chatHistory, data, preferredProvider: providerPreference })
+        body: JSON.stringify({
+          message: chatInput,
+          history: chatHistory,
+          data,
+          preferredProvider: providerPreference,
+          previousInteractionId: sessionStorage.getItem('ask_dj_interaction_id') || undefined,
+        })
       });
       const result = await res.json();
       if (!res.ok) {
         if (res.status === 401 && result.code === 'guest_trial_exhausted') setShowPaywall(true);
         throw new Error(result.error || 'Ask DJ is currently unavailable.');
+      }
+      if (typeof result.interactionId === 'string' && result.interactionId.trim()) {
+        sessionStorage.setItem('ask_dj_interaction_id', result.interactionId.trim());
       }
       if (result.usage) {
         setAiUsage(prev => {

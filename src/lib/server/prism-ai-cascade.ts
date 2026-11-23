@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { tokenLogger } from '../tokenLogger';
 import { getOpenRouterChatCompletionsUrl } from './openrouter';
 import {
@@ -16,7 +16,7 @@ import {
   type RouterDependencies,
 } from './prism-router.ts';
 
-export type ProviderResult = { text: string; usage: AiUsage };
+export type ProviderResult = { text: string; usage: AiUsage; interactionId?: string };
 export type ImageInput = { data: string; mimeType: string };
 export type ChatTurn = { role: string; text: string };
 
@@ -165,81 +165,97 @@ async function runGeminiSingle(prompt: string, image?: ImageInput): Promise<Prov
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   if (!geminiKey) throw new Error('gemini_key_missing');
   const model = process.env.GEMINI_TIER3_MODEL?.trim() || 'gemini-3.5-flash-lite';
-  const content = image
-    ? [{ text: prompt }, { inlineData: { data: image.data, mimeType: image.mimeType } }]
+  const client = new GoogleGenAI({ apiKey: geminiKey });
+
+  const input = image
+    ? [
+        { type: 'text' as const, text: prompt },
+        { type: 'image' as const, data: image.data, mime_type: image.mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' },
+      ]
     : prompt;
-  const result = await withTimeout(
-    new GoogleGenerativeAI(geminiKey).getGenerativeModel({ model }).generateContent(content),
+
+  const interaction = await withTimeout(
+    client.interactions.create({
+      model,
+      input,
+      store: false,
+    }),
     GEMINI_TIMEOUT_MS,
     'Gemini request timed out',
   );
-  const metadata = result.response.usageMetadata as {
-    promptTokenCount?: number;
-    candidatesTokenCount?: number;
-    totalTokenCount?: number;
+
+  const rawUsage = interaction.usage as {
+    total_input_tokens?: number;
+    total_output_tokens?: number;
+    total_tokens?: number;
   } | undefined;
-  const promptTokens = Number(metadata?.promptTokenCount || 0);
-  const completionTokens = Number(metadata?.candidatesTokenCount || 0);
+  const promptTokens = Number(rawUsage?.total_input_tokens || 0);
+  const completionTokens = Number(rawUsage?.total_output_tokens || 0);
   const usage: AiUsage = {
     provider: 'gemini',
     model,
     promptTokens,
     completionTokens,
-    totalTokens: Number(metadata?.totalTokenCount || promptTokens + completionTokens),
+    totalTokens: Number(rawUsage?.total_tokens || promptTokens + completionTokens),
+    tier: 'tier3',
+    label: 'Gemini 3.5',
   };
   tokenLogger(model, usage.totalTokens);
-  return { text: result.response.text(), usage };
+  return {
+    text: String(interaction.output_text || '').trim(),
+    usage,
+    ...(interaction.id ? { interactionId: interaction.id } : {}),
+  };
 }
 
 async function runGeminiChat(
   message: string,
   history: ChatTurn[],
   systemInstruction: string,
+  previousInteractionId?: string,
 ): Promise<ProviderResult> {
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   if (!geminiKey) throw new Error('gemini_key_missing');
   const model = process.env.GEMINI_TIER3_MODEL?.trim() || 'gemini-3.5-flash-lite';
-  const chat = new GoogleGenerativeAI(geminiKey).getGenerativeModel({
-    model,
-    safetySettings: [
-      { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-      { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-      { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
-      { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    ],
-  }).startChat({
-    history: history.map((item) => ({
-      role: item.role === 'user' ? 'user' : 'model',
-      parts: [{ text: item.text }],
-    })),
-    systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
-  });
-  const sendResult = await withTimeout(
-    chat.sendMessage(message),
+  const client = new GoogleGenAI({ apiKey: geminiKey });
+
+  const historyText = !previousInteractionId && history.length > 0
+    ? `${history.map((item) => `${item.role === 'user' ? 'User' : 'Ask DJ'}: ${item.text}`).join('\n')}\nUser: ${message}`
+    : message;
+
+  const interaction = await withTimeout(
+    client.interactions.create({
+      model,
+      input: historyText,
+      system_instruction: systemInstruction,
+      ...(previousInteractionId ? { previous_interaction_id: previousInteractionId } : {}),
+    }),
     GEMINI_TIMEOUT_MS,
     'Gemini chat request timed out',
   );
-  const response = await withTimeout(
-    Promise.resolve(sendResult.response),
-    GEMINI_TIMEOUT_MS,
-    'Gemini chat response timed out',
-  );
-  const metadata = response.usageMetadata as {
-    promptTokenCount?: number;
-    candidatesTokenCount?: number;
-    totalTokenCount?: number;
+
+  const rawUsage = interaction.usage as {
+    total_input_tokens?: number;
+    total_output_tokens?: number;
+    total_tokens?: number;
   } | undefined;
-  const promptTokens = Number(metadata?.promptTokenCount || 0);
-  const completionTokens = Number(metadata?.candidatesTokenCount || 0);
+  const promptTokens = Number(rawUsage?.total_input_tokens || 0);
+  const completionTokens = Number(rawUsage?.total_output_tokens || 0);
   const usage: AiUsage = {
     provider: 'gemini',
     model,
     promptTokens,
     completionTokens,
-    totalTokens: Number(metadata?.totalTokenCount || promptTokens + completionTokens),
+    totalTokens: Number(rawUsage?.total_tokens || promptTokens + completionTokens),
+    tier: 'tier3',
+    label: 'Gemini 3.5 · Interactions',
   };
   tokenLogger(model, usage.totalTokens);
-  return { text: response.text(), usage };
+  return {
+    text: String(interaction.output_text || '').trim(),
+    usage,
+    ...(interaction.id ? { interactionId: interaction.id } : {}),
+  };
 }
 
 function explicitOpenRouterModel(provider: ProviderPreference): string | undefined {
@@ -340,7 +356,19 @@ export async function callPrismChat(
   history: ChatTurn[],
   systemInstruction: string,
   preferredProvider: ProviderPreference = 'auto',
+  previousInteractionId?: string,
 ): Promise<ProviderResult> {
+  if (preferredProvider === 'gemini' && process.env.GEMINI_API_KEY?.trim()) {
+    try {
+      const geminiResult = await runGeminiChat(message, history, systemInstruction, previousInteractionId);
+      if (geminiResult.text) return geminiResult;
+    } catch (error) {
+      console.warn('[PrismEngine] gemini_interactions_chat_failed', {
+        reason: providerErrorCategory(error),
+      });
+    }
+  }
+
   if (isFourTierEnabled()) {
     const result = await routeFourTier({
       lane: 'chat',
@@ -373,7 +401,7 @@ export async function callPrismChat(
 
   const tryGroq = () => runGroqChat(openAiMessages, 0.4);
   const tryOpenRouter = (explicitModel?: string) => runOpenRouterChat(openAiMessages, 0.4, explicitModel);
-  const tryGemini = () => runGeminiChat(message, history, systemInstruction);
+  const tryGemini = () => runGeminiChat(message, history, systemInstruction, previousInteractionId);
 
   const namedOpenRouter = explicitOpenRouterModel(preferredProvider);
   let providers: Array<{ name: string; run: () => Promise<ProviderResult> }>;
