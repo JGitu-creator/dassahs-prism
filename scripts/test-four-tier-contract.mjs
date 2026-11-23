@@ -240,7 +240,7 @@ const VALID_FOCUS_PLUS = {
 test('16. focus_plus cascades from Groq 400 to OpenRouter Free Pool instead of dead-ending', async () => {
   const seenUrls = [];
   const res = await routeFourTier(
-    { lane: 'focus_plus', text: 'Always back up configuration files before deploying.' },
+    { lane: 'focus_plus', text: 'Always back up configuration files before deploying.', preferredProvider: 'groq' },
     {
       env: {
         ...MOCK_ENV,
@@ -308,7 +308,8 @@ test('17. preferredProvider=openrouter routes OpenRouter FIRST and recovers from
   assert.ok(seenUrls.every((u) => u.includes('openrouter.ai')), 'Should never call Groq when OpenRouter succeeds first');
 });
 
-test('18. MISTRAL_API_KEY activates Mistral Experiment automatically when other remote tiers are unavailable', async () => {
+test('18. MISTRAL_API_KEY activates Mistral Pool automatically and cascades across Mistral Small 4 -> Ministral 3 14B', async () => {
+  const triedModels = [];
   const res = await routeFourTier(
     { lane: 'focus_plus', text: 'Verify service health after deployment.' },
     {
@@ -319,11 +320,16 @@ test('18. MISTRAL_API_KEY activates Mistral Experiment automatically when other 
         OPENROUTER_API_KEY: '',
         MISTRAL_API_KEY: 'mistral_test_synthetic',
       },
-      fetchImpl: async (url) => {
+      fetchImpl: async (url, init) => {
         assert.ok(String(url).includes('api.mistral.ai'));
+        const body = JSON.parse(String(init?.body || '{}'));
+        triedModels.push(body.model);
+        if (body.model === 'mistral-small-latest') {
+          return new Response('Rate limited', { status: 429 });
+        }
         return new Response(JSON.stringify({
           id: 'mistral-test',
-          model: 'mistral-small-latest',
+          model: body.model,
           choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(VALID_FOCUS_PLUS) } }],
           usage: VALID_USAGE,
         }), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -334,7 +340,8 @@ test('18. MISTRAL_API_KEY activates Mistral Experiment automatically when other 
   assert.equal(res.ok, true);
   assert.equal(res.isLocalFallback, false);
   assert.equal(res.provider, 'mistral');
-  assert.equal(res.model, 'mistral-small-latest');
+  assert.equal(res.model, 'ministral-14b-2512');
+  assert.deepEqual(triedModels, ['mistral-small-latest', 'ministral-14b-2512']);
 });
 
 test('19. PRISM_PRIMARY_PROVIDER=openrouter routes OpenRouter first without changing client code', async () => {
@@ -363,4 +370,33 @@ test('19. PRISM_PRIMARY_PROVIDER=openrouter routes OpenRouter first without chan
   assert.equal(res.ok, true);
   assert.equal(res.provider, 'openrouter');
   assert.ok(seenUrls.every((u) => u.includes('openrouter.ai')));
+});
+
+test('20. focus_plus auto runs Best-First Infinite Cascade (Mistral FIRST, bypassing Groq completely when Mistral succeeds)', async () => {
+  const seenUrls = [];
+  const res = await routeFourTier(
+    { lane: 'focus_plus', text: 'Verify service health after deployment.', preferredProvider: 'auto' },
+    {
+      env: {
+        ...MOCK_ENV,
+        MISTRAL_API_KEY: 'mistral_test_synthetic',
+        OPENROUTER_API_KEY: 'sk-or-test-synthetic',
+        OPENROUTER_DYNAMIC_DISCOVERY: 'false',
+      },
+      fetchImpl: async (url) => {
+        seenUrls.push(String(url));
+        return new Response(JSON.stringify({
+          id: 'mistral-first',
+          model: 'mistral-small-latest',
+          choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(VALID_FOCUS_PLUS) } }],
+          usage: VALID_USAGE,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      },
+      sleepImpl: async () => {},
+    },
+  );
+  assert.equal(res.ok, true);
+  assert.equal(res.provider, 'mistral');
+  assert.equal(res.model, 'mistral-small-latest');
+  assert.ok(seenUrls.every((u) => u.includes('api.mistral.ai')), 'Mistral must run first without touching Groq');
 });

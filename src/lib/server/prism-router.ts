@@ -41,6 +41,12 @@ export const DEFAULT_GROQ_TIER1_MODEL = 'openai/gpt-oss-20b';
 export const DEFAULT_GROQ_TIER2_MODEL = 'openai/gpt-oss-120b';
 export const DEFAULT_TIER3_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 export const DEFAULT_MISTRAL_MODEL = 'mistral-small-latest';
+export const DEFAULT_MISTRAL_POOL: readonly string[] = [
+  'mistral-small-latest',  // Mistral Small 4 (GA, 256K ctx, hybrid instruct+reasoning, multimodal)
+  'ministral-14b-2512',    // Ministral 3 14B (GA, 256K ctx, fast, multimodal)
+  'mistral-large-latest',  // Mistral Large (GA, flagship reasoning & long docs)
+  'ministral-8b-2512',     // Ministral 3 8B (GA, 256K ctx, ultra-fast fallback)
+];
 export const LOCAL_FALLBACK_MODEL = 'local-fallback';
 export const LOCAL_FALLBACK_LABEL = 'Local Structural Refraction';
 
@@ -48,7 +54,7 @@ export const TIER1_LABEL = 'Groq · Tier 1';
 export const TIER2_LABEL = 'Groq · Tier 2';
 export const TIER3_LABEL = 'Gemini 3.5';
 export const POOL_LABEL = 'OpenRouter · Free Pool';
-export const MISTRAL_LABEL = 'Mistral · Experiment';
+export const MISTRAL_LABEL = 'Mistral AI';
 
 /**
  * Verified Nov 2026 OpenRouter free models ranked by reliability, context window,
@@ -432,7 +438,7 @@ async function callMistralCandidate(args: {
   maxOutputTokens: number;
   timeoutMs: number;
 }): Promise<RemoteCallResult> {
-  const messages = buildLaneMessages(args.lane, {
+  const messages: Array<Record<string, unknown>> = buildLaneMessages(args.lane, {
     text: args.request.text,
     context: args.request.context,
     history: args.request.history,
@@ -441,8 +447,19 @@ async function callMistralCandidate(args: {
     simplicityLevel: args.request.simplicityLevel,
     isStory: args.request.isStory,
     missionGoal: args.request.missionGoal,
-    hasImage: false,
-  });
+    hasImage: Boolean(args.request.image),
+  }).map((m) => ({ ...m }));
+
+  if (args.request.image && messages.length > 0) {
+    const last = messages[messages.length - 1];
+    last.content = [
+      { type: 'text', text: String(last.content ?? '') },
+      {
+        type: 'image_url',
+        image_url: { url: `data:${args.request.image.mimeType};base64,${args.request.image.data}` },
+      },
+    ];
+  }
 
   const payload: Record<string, unknown> = {
     model: args.model,
@@ -1531,145 +1548,165 @@ export async function routeFourTier(
     return null;
   };
 
-  const tryMistralExperiment = async (): Promise<FourTierResult | null> => {
-    if (mistralTried || shouldStopAllRemote || !mistralKey || hasImage) {
+  const tryMistralPool = async (): Promise<FourTierResult | null> => {
+    if (mistralTried || shouldStopAllRemote || !mistralKey) {
       return null;
     }
     mistralTried = true;
-    const mistralModel = (byokProvider === 'mistral' && request.byok?.model?.trim())
-      ? request.byok.model.trim()
-      : getMistralModel(env);
-    const mistralBudget = getDefaultTierBudget(request.lane, 'tier3', false);
+    const customModel = (byokProvider === 'mistral' && request.byok?.model?.trim())
+      ? [request.byok.model.trim()]
+      : (env.MISTRAL_MODEL?.trim() ? [getMistralModel(env)] : []);
+    const mistralModels = Array.from(new Set([...customModel, ...DEFAULT_MISTRAL_POOL]));
+    const mistralBudget = getDefaultTierBudget(request.lane, 'tier3', hasImage);
     const maxTokensBudget = request.maxTokensBudget ?? mistralBudget.maxTotalTokens;
-    const timeoutMs = Math.min(request.timeoutMs ?? mistralBudget.timeoutMs, 18_000);
-    const startedAt = nowImpl();
+    const perModelTimeoutMs = Math.min(request.timeoutMs ?? 15_000, 15_000);
 
-    const callResult = await callMistralCandidate({
-      fetchImpl,
-      apiKey: mistralKey,
-      model: mistralModel,
-      lane: request.lane,
-      request,
-      maxOutputTokens: mistralBudget.maxOutputTokens,
-      timeoutMs,
-    });
-    const durationMs = Math.max(0, nowImpl() - startedAt);
+    for (const mistralModel of mistralModels) {
+      const startedAt = nowImpl();
+      const callResult = await callMistralCandidate({
+        fetchImpl,
+        apiKey: mistralKey,
+        model: mistralModel,
+        lane: request.lane,
+        request,
+        maxOutputTokens: mistralBudget.maxOutputTokens,
+        timeoutMs: perModelTimeoutMs,
+      });
+      const durationMs = Math.max(0, nowImpl() - startedAt);
 
-    if (callResult.error != null || (typeof callResult.status === 'number' && (callResult.status < 200 || callResult.status >= 300))) {
+      if (callResult.error != null || (typeof callResult.status === 'number' && (callResult.status < 200 || callResult.status >= 300))) {
+        const classification = classifyFailure({
+          status: callResult.status,
+          error: callResult.error,
+          tier: 'tier3',
+        });
+        attempts.push({
+          tier: 'pool',
+          provider: 'mistral',
+          model: mistralModel,
+          ...(typeof callResult.status === 'number' ? { status: callResult.status } : {}),
+          failureClass: classification.failureClass,
+          decision: 'next_tier',
+          retryCount: 0,
+          durationMs,
+        });
+        lastFailureClass = classification.failureClass;
+        lastFallbackReason = classification.failureClass;
+        // On 401/403 (bad key), skip remaining Mistral models immediately
+        if (callResult.status === 401 || callResult.status === 403) {
+          return null;
+        }
+        continue;
+      }
+
+      const rawText = callResult.text ?? '';
+      let schemaValid = false;
+      let validatedData: LaneOutput | null = null;
+      if (request.lane === 'chat') {
+        const trimmedChat = rawText.trim();
+        if (trimmedChat.length > 0) {
+          schemaValid = true;
+          validatedData = { text: trimmedChat };
+        }
+      } else {
+        const parsed = parseStrictJsonObject(rawText);
+        if (parsed.ok) {
+          const validated = validateLanePayload(request.lane as StructuredPrismLane, parsed.value);
+          if (validated.ok) {
+            schemaValid = true;
+            validatedData = validated.data;
+          }
+        }
+      }
+
+      const resolvedModel = callResult.resolvedModel || mistralModel;
+      const usageParsed = parseStrictProviderUsage(callResult.rawUsage, 'mistral', resolvedModel, {
+        tier: 'pool',
+        label: MISTRAL_LABEL,
+      });
+      const hasValidUsage = usageParsed.ok;
+      const overBudget = usageParsed.ok && usageParsed.usage.totalTokens > maxTokensBudget;
+      const serializedOutput = validatedData ? JSON.stringify(validatedData) : rawText;
+      const outputSafety = evaluateOutputSafety(serializedOutput);
+      const unsafe = !outputSafety.safe;
+
       const classification = classifyFailure({
-        status: callResult.status,
-        error: callResult.error,
+        status: callResult.status ?? 200,
+        schemaValid,
+        hasValidUsage,
+        overBudget,
+        unsafe,
         tier: 'tier3',
       });
+
       attempts.push({
         tier: 'pool',
         provider: 'mistral',
-        model: mistralModel,
-        ...(typeof callResult.status === 'number' ? { status: callResult.status } : {}),
+        model: resolvedModel,
+        status: callResult.status ?? 200,
         failureClass: classification.failureClass,
-        decision: 'next_tier',
+        decision: classification.decision === 'tier_accepted' ? 'tier_accepted' : 'next_tier',
         retryCount: 0,
         durationMs,
       });
+
+      if (unsafe) {
+        shouldStopAllRemote = true;
+        lastFailureClass = 'unsafe_boundary';
+        lastFallbackReason = outputSafety.reason || 'unsafe_boundary';
+        return null;
+      }
+
+      if (classification.decision === 'tier_accepted' && validatedData && usageParsed.ok) {
+        return {
+          ok: true,
+          lane: request.lane,
+          tier: 'pool',
+          provider: 'mistral',
+          model: resolvedModel,
+          label: MISTRAL_LABEL,
+          isLocalFallback: false,
+          shouldRefundCredits: false,
+          decision: 'pool_accepted',
+          failureClass: 'none',
+          whyCare: extractWhyCareFromLaneData(request.lane, validatedData),
+          data: validatedData,
+          usage: usageParsed.usage,
+          safety,
+          complexity,
+          attempts,
+        };
+      }
+
       lastFailureClass = classification.failureClass;
       lastFallbackReason = classification.failureClass;
-      return null;
     }
-
-    const rawText = callResult.text ?? '';
-    let schemaValid = false;
-    let validatedData: LaneOutput | null = null;
-    if (request.lane === 'chat') {
-      const trimmedChat = rawText.trim();
-      if (trimmedChat.length > 0) {
-        schemaValid = true;
-        validatedData = { text: trimmedChat };
-      }
-    } else {
-      const parsed = parseStrictJsonObject(rawText);
-      if (parsed.ok) {
-        const validated = validateLanePayload(request.lane as StructuredPrismLane, parsed.value);
-        if (validated.ok) {
-          schemaValid = true;
-          validatedData = validated.data;
-        }
-      }
-    }
-
-    const resolvedModel = callResult.resolvedModel || mistralModel;
-    const usageParsed = parseStrictProviderUsage(callResult.rawUsage, 'mistral', resolvedModel, {
-      tier: 'pool',
-      label: MISTRAL_LABEL,
-    });
-    const hasValidUsage = usageParsed.ok;
-    const overBudget = usageParsed.ok && usageParsed.usage.totalTokens > maxTokensBudget;
-    const serializedOutput = validatedData ? JSON.stringify(validatedData) : rawText;
-    const outputSafety = evaluateOutputSafety(serializedOutput);
-    const unsafe = !outputSafety.safe;
-
-    const classification = classifyFailure({
-      status: callResult.status ?? 200,
-      schemaValid,
-      hasValidUsage,
-      overBudget,
-      unsafe,
-      tier: 'tier3',
-    });
-
-    attempts.push({
-      tier: 'pool',
-      provider: 'mistral',
-      model: resolvedModel,
-      status: callResult.status ?? 200,
-      failureClass: classification.failureClass,
-      decision: classification.decision === 'tier_accepted' ? 'tier_accepted' : 'next_tier',
-      retryCount: 0,
-      durationMs,
-    });
-
-    if (unsafe) {
-      shouldStopAllRemote = true;
-      lastFailureClass = 'unsafe_boundary';
-      lastFallbackReason = outputSafety.reason || 'unsafe_boundary';
-      return null;
-    }
-
-    if (classification.decision === 'tier_accepted' && validatedData && usageParsed.ok) {
-      return {
-        ok: true,
-        lane: request.lane,
-        tier: 'pool',
-        provider: 'mistral',
-        model: resolvedModel,
-        label: MISTRAL_LABEL,
-        isLocalFallback: false,
-        shouldRefundCredits: false,
-        decision: 'pool_accepted',
-        failureClass: 'none',
-        whyCare: extractWhyCareFromLaneData(request.lane, validatedData),
-        data: validatedData,
-        usage: usageParsed.usage,
-        safety,
-        complexity,
-        attempts,
-      };
-    }
-
-    lastFailureClass = classification.failureClass;
-    lastFallbackReason = classification.failureClass;
     return null;
   };
 
-  // Optional primary-provider override (OpenRouter-first or Mistral-first)
+  // Best-First Infinite Cascade:
+  // 1) Explicit primary override (openrouter or mistral)
+  // 2) Live Prism Focus workspace (focus_plus, auto): Mistral Pool -> OpenRouter Top-6 Free Pool -> Gemini 3.5 -> Groq -> Local
   if (effectivePreferredProvider === 'openrouter') {
     const poolFirst = await tryOpenRouterPool();
     if (poolFirst) return poolFirst;
   } else if (effectivePreferredProvider === 'mistral') {
-    const mistralFirst = await tryMistralExperiment();
+    const mistralFirst = await tryMistralPool();
     if (mistralFirst) return mistralFirst;
+  } else if (request.lane === 'focus_plus' && effectivePreferredProvider === 'auto') {
+    const mistralFirst = await tryMistralPool();
+    if (mistralFirst) return mistralFirst;
+    const poolSecond = await tryOpenRouterPool();
+    if (poolSecond) return poolSecond;
   }
 
-  for (const tier of tierSequence) {
+  // On focus_plus (auto), put Gemini 3.5 Flash-Lite ahead of Groq's 8K TPM free tier
+  const activeTierSequence: RemotePrismTier[] =
+    request.lane === 'focus_plus' && effectivePreferredProvider === 'auto' && !hasImage
+      ? ['tier3', 'tier1', 'tier2']
+      : tierSequence;
+
+  for (const tier of activeTierSequence) {
     if (shouldStopAllRemote) break;
 
     const config = getTierConfig(tier, env);
@@ -1909,7 +1946,7 @@ export async function routeFourTier(
   const poolResult = await tryOpenRouterPool();
   if (poolResult) return poolResult;
 
-  const mistralResult = await tryMistralExperiment();
+  const mistralResult = await tryMistralPool();
   if (mistralResult) return mistralResult;
 
   return buildTier4Result({
