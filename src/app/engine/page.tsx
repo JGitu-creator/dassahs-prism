@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
   BookOpen,
   Brain,
+  CheckCircle2,
   Code2,
   Cpu,
   Gamepad2,
@@ -14,10 +15,12 @@ import {
   Layers,
   Lock,
   Moon,
+  RotateCcw,
   ShieldCheck,
   Sparkles,
   Sun,
   Swords,
+  Trophy,
   Users,
   Video,
   Zap,
@@ -51,12 +54,60 @@ const FUTURE_EXPANSIONS = [
   },
 ];
 
+const FOCUS_REFRACTION_STAGES = [
+  {
+    tag: '1 · TL;DR Signal',
+    color: 'from-sky-400 to-blue-500',
+    text: 'Strip out 80% of textbook padding into 1 executive takeaway in 2 seconds.',
+  },
+  {
+    tag: '2 · Vivid Metaphor',
+    color: 'from-blue-400 to-indigo-500',
+    text: 'Anchor abstract formulas to real-world visual analogies your brain never forgets.',
+  },
+  {
+    tag: '3 · Prism Lens & Action',
+    color: 'from-indigo-400 to-violet-500',
+    text: 'Tap any hard word or diagram for instant clarity + one concrete next step.',
+  },
+];
+
+const MINI_PLAY_QUEST_DECK = [
+  {
+    cardNo: 'Card 1 of 3 · Tiny Idea',
+    xp: '+25 XP',
+    title: 'How Prism Play Beats Overwhelm',
+    body: 'Instead of a 40-page syllabus wall, The Prism Engine deals you one calm, high-dopamine card at a time.',
+    boost: 'Dopamine Boost: You already unlocked Card 1 just by clicking!',
+  },
+  {
+    cardNo: 'Card 2 of 3 · Vivid Metaphor',
+    xp: '+50 XP',
+    title: 'Boss Fights & Soundscape Studio',
+    body: 'Like turning a scary dungeon into co-op checkpoints with brown noise, focus sprints, and instant rewards.',
+    boost: 'Streak Combo: 2x Focus Multiplier Activated!',
+  },
+  {
+    cardNo: 'Card 3 of 3 · Boss Cleared!',
+    xp: '+100 XP · Quest Complete',
+    title: 'Ready for Your Real Coursework?',
+    body: 'Paste any Canvas module or class notes into Prism Play and turn dread into your easiest win today.',
+    boost: 'Victory Unlocked: Focus Architect Rank Progress +1!',
+  },
+];
+
 export default function PrismEnginePortalPage() {
   const [darkMode, setDarkMode] = useState(true);
   const [mouse, setMouse] = useState({ x: 50, y: 35 });
   const [hasInteracted, setHasInteracted] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [revealedPrototype, setRevealedPrototype] = useState<string | null>(null);
+
+  // Unique Choreography States for Prism Focus (Refraction Flip) & Prism Play (Playable Quest Deck)
+  const [focusFlipped, setFocusFlipped] = useState(false);
+  const [focusBeamKey, setFocusBeamKey] = useState(0);
+  const [playCardIndex, setPlayCardIndex] = useState(0);
+  const [playXpEarned, setPlayXpEarned] = useState(25);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -67,6 +118,15 @@ export default function PrismEnginePortalPage() {
     return () => mq.removeEventListener('change', sync);
   }, []);
 
+  // Auto-trigger initial entrance refraction after mount so user sees the prism split right away
+  useEffect(() => {
+    if (reducedMotion) return;
+    const timer = setTimeout(() => {
+      setFocusBeamKey((k) => k + 1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [reducedMotion]);
+
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (reducedMotion) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -74,6 +134,19 @@ export default function PrismEnginePortalPage() {
     const y = ((e.clientY - rect.top) / Math.max(1, rect.height)) * 100;
     setMouse({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
     setHasInteracted(true);
+  };
+
+  const triggerFocusRefraction = () => {
+    setFocusFlipped((f) => !f);
+    setFocusBeamKey((k) => k + 1);
+  };
+
+  const advancePlayQuestCard = () => {
+    setPlayCardIndex((prev) => {
+      const next = (prev + 1) % MINI_PLAY_QUEST_DECK.length;
+      setPlayXpEarned(next === 0 ? 25 : next === 1 ? 75 : 175);
+      return next;
+    });
   };
 
   const pageBg = darkMode
@@ -87,6 +160,8 @@ export default function PrismEnginePortalPage() {
     ? 'bg-white/[0.06] border-white/12 text-slate-200'
     : 'bg-[#ece5d8] border-[#d6ccb9] text-[#243040]';
 
+  const activePlayCard = MINI_PLAY_QUEST_DECK[playCardIndex];
+
   return (
     <div
       onPointerMove={handlePointerMove}
@@ -94,7 +169,6 @@ export default function PrismEnginePortalPage() {
     >
       {/* Background: Lightweight & Fast on Mobile, Full Living Kinetic Prism Universe on Desktop */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
-        {/* Ultra-lightweight static ambient wash for mobile phones (zero GPU lag / battery friendly) */}
         <div
           className="md:hidden absolute inset-0"
           style={{
@@ -104,7 +178,6 @@ export default function PrismEnginePortalPage() {
           }}
         />
 
-        {/* Subtle Architectural Grid Overlay */}
         <div
           className="absolute inset-0 opacity-[0.06]"
           style={{
@@ -114,9 +187,7 @@ export default function PrismEnginePortalPage() {
           }}
         />
 
-        {/* Desktop-Only Living Kinetic Prism Universe (Hidden on mobile to keep phones fast and light) */}
         <div className="hidden md:block absolute inset-0">
-          {/* 1. Autonomous Kinetic Gliding Ambient Aurora */}
           <motion.div
             animate={
               reducedMotion
@@ -136,7 +207,6 @@ export default function PrismEnginePortalPage() {
             }}
           />
 
-          {/* 2. Interactive Prismatic Cursor Spotlight */}
           <div
             className="absolute inset-0 transition-opacity duration-500"
             style={{
@@ -147,7 +217,6 @@ export default function PrismEnginePortalPage() {
             }}
           />
 
-          {/* 3. Full-Viewport Sweeping Kinetic Refraction Beams, Orbs, Sparkles & Orbital Rings */}
           {!reducedMotion && (
             <>
               <motion.div
@@ -170,46 +239,6 @@ export default function PrismEnginePortalPage() {
                     : 'linear-gradient(90deg, transparent, rgba(245,158,11,0.16), rgba(236,72,153,0.20), rgba(59,130,246,0.18), transparent)',
                 }}
               />
-
-              <motion.div
-                animate={{ x: [0, 110, -70, 0], y: [0, 80, -50, 0], scale: [1, 1.25, 0.9, 1] }}
-                transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -top-20 -left-20 h-[32rem] w-[32rem] rounded-full blur-3xl"
-                style={{
-                  background: darkMode
-                    ? 'radial-gradient(circle, rgba(37,99,235,0.58) 0%, rgba(168,85,247,0.28) 45%, transparent 72%)'
-                    : 'radial-gradient(circle, rgba(59,130,246,0.38) 0%, rgba(168,85,247,0.20) 45%, transparent 72%)',
-                }}
-              />
-              <motion.div
-                animate={{ x: [0, -110, 75, 0], y: [0, -80, 60, 0], scale: [1, 0.92, 1.24, 1] }}
-                transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
-                className="absolute -bottom-20 -right-20 h-[34rem] w-[34rem] rounded-full blur-3xl"
-                style={{
-                  background: darkMode
-                    ? 'radial-gradient(circle, rgba(16,185,129,0.50) 0%, rgba(56,189,248,0.26) 48%, transparent 72%)'
-                    : 'radial-gradient(circle, rgba(16,185,129,0.32) 0%, rgba(56,189,248,0.20) 48%, transparent 72%)',
-                }}
-              />
-
-              {[
-                { top: '8%', left: '15%', size: 9, color: 'bg-cyan-400', dy: -20, dur: 4.8 },
-                { top: '16%', left: '82%', size: 11, color: 'bg-purple-400', dy: 24, dur: 5.6 },
-                { top: '48%', left: '4%', size: 8, color: 'bg-emerald-400', dy: -18, dur: 6.2 },
-                { top: '52%', left: '92%', size: 10, color: 'bg-blue-400', dy: 22, dur: 5.2 },
-                { top: '34%', left: '88%', size: 8, color: 'bg-pink-400', dy: -16, dur: 5.9 },
-                { top: '68%', left: '6%', size: 9, color: 'bg-amber-400', dy: 20, dur: 6.5 },
-                { top: '88%', left: '20%', size: 10, color: 'bg-cyan-300', dy: -22, dur: 5.5 },
-                { top: '92%', left: '78%', size: 9, color: 'bg-emerald-300', dy: 18, dur: 6.8 },
-              ].map((node, i) => (
-                <motion.span
-                  key={i}
-                  animate={{ y: [0, node.dy, 0], opacity: [0.4, 1, 0.4], scale: [0.85, 1.4, 0.85] }}
-                  transition={{ duration: node.dur, repeat: Infinity, ease: 'easeInOut', delay: i * 0.35 }}
-                  style={{ top: node.top, left: node.left, width: node.size, height: node.size }}
-                  className={`absolute rounded-full ${node.color} shadow-[0_0_18px_currentColor]`}
-                />
-              ))}
 
               <motion.div
                 animate={{ rotate: [0, 360] }}
@@ -238,7 +267,7 @@ export default function PrismEnginePortalPage() {
           </span>
           <div>
             <p className="text-sm font-black tracking-tight">Dassah&apos;s Prism Engine</p>
-            <p className={`text-[11px] font-semibold ${muted}`}>Powered by the Prism Engine</p>
+            <p className={`text-[11px] font-semibold ${muted}`}>Powered by The Prism Engine</p>
           </div>
         </div>
 
@@ -257,27 +286,27 @@ export default function PrismEnginePortalPage() {
         </div>
       </header>
 
-      {/* Main Hero & Dual Portal Stage */}
-      <main className="relative z-10 mx-auto max-w-6xl px-5 pt-6 pb-20 sm:px-8 sm:pt-12 space-y-12">
-        {/* Refractive Hero Centerpiece */}
-        <section className="mx-auto max-w-4xl text-center space-y-6">
+      {/* Main Hero & Dual Choreographed Portal Stage */}
+      <main className="relative z-10 mx-auto max-w-6xl px-5 pt-4 pb-20 sm:px-8 sm:pt-8 space-y-10">
+        {/* Refractive Hero Centerpiece (Style 2 + Style 3 Fusion) */}
+        <section className="mx-auto max-w-4xl text-center space-y-5">
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             className="inline-flex items-center gap-2 rounded-full border border-blue-500/35 bg-blue-500/15 px-4 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.25)]"
           >
-            <Zap size={13} className="text-amber-400" /> Choose Your Cognitive Mode · The Prism Engine
+            <Zap size={13} className="text-amber-400" /> Built for How Your Brain Actually Works
           </motion.div>
 
           <motion.h1
             initial={reducedMotion ? false : { opacity: 0, y: 18, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.05 }}
-            className="prism-brand text-4xl sm:text-6xl md:text-7xl lg:text-[5.75rem] font-black italic tracking-tight leading-[1.08]"
+            className="prism-brand text-4xl sm:text-6xl md:text-7xl lg:text-[5.6rem] font-black italic tracking-tight leading-[1.08]"
           >
             <span className="inline-block whitespace-nowrap">
-              <span className={darkMode ? 'text-white/90 drop-shadow-[0_0_18px_rgba(255,255,255,0.2)]' : 'text-slate-900'}>
+              <span className={darkMode ? 'text-white/95 drop-shadow-[0_0_18px_rgba(255,255,255,0.2)]' : 'text-slate-900'}>
                 Dassah&apos;s{' '}
               </span>
               <span
@@ -301,44 +330,70 @@ export default function PrismEnginePortalPage() {
             transition={{ duration: 0.55, delay: 0.1 }}
             className={`mx-auto max-w-2xl text-base sm:text-xl leading-relaxed font-medium ${muted}`}
           >
-            One refractive intelligence powered by <strong className={darkMode ? 'text-white' : 'text-slate-900'}>the Prism Engine</strong> for ADHD and neurodivergent minds. Pick whether you want to
-            decode heavy documents in <strong className={darkMode ? 'text-sky-300' : 'text-blue-700'}>Prism Focus</strong> or
-            turn intimidating coursework into a cozy game in <strong className={darkMode ? 'text-emerald-300' : 'text-emerald-700'}>Prism Play</strong>.
+            <strong className={darkMode ? 'text-white' : 'text-slate-900'}>Refract the Noise. Unlock Your Mind.</strong>{' '}
+            Powered by <strong className={darkMode ? 'text-cyan-300' : 'text-blue-700'}>The Prism Engine</strong> —
+            deep document refraction in{' '}
+            <strong className={darkMode ? 'text-sky-300' : 'text-blue-700'}>Prism Focus</strong> and
+            dopamine-driven study quests in{' '}
+            <strong className={darkMode ? 'text-emerald-300' : 'text-emerald-700'}>Prism Play</strong>.
           </motion.p>
         </section>
 
-        {/* Interactive Dual Portal Cards */}
+        {/* 15% Soft Background Instrumental Studio Bar */}
+        <PrismPromoShowcase darkMode={darkMode} />
+
+        {/* Dual Unique Choreographed Portal Cards */}
         <section aria-label="Prism Engine workspaces" className="grid grid-cols-1 lg:grid-cols-2 gap-7 sm:gap-9">
-          {/* Portal 1: Prism Focus (formerly Dassah's Prism - Signature Blue / Indigo) */}
+          {/* PORTAL 1: PRISM FOCUS — 3D Flip Entrance + Live Spectral Refraction Reveal */}
           <motion.div
+            initial={reducedMotion ? false : { opacity: 0, rotateY: -22, y: 24 }}
+            animate={{ opacity: 1, rotateY: 0, y: 0 }}
             whileHover={reducedMotion ? undefined : { y: -8, scale: 1.01 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-            className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-8 ${
+            transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+            style={{ transformPerspective: 1200 }}
+            className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-7 ${
               darkMode
                 ? 'bg-gradient-to-br from-[#0e1936]/90 via-[#0a1228]/85 to-[#070d1f]/90 border-blue-400/25 hover:border-blue-400/60 shadow-[0_30px_90px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] hover:shadow-[0_36px_110px_rgba(37,99,235,0.28),inset_0_1px_0_rgba(147,197,253,0.3)]'
                 : 'bg-gradient-to-br from-white/95 via-[#f6f9ff]/95 to-[#edf3ff]/90 border-blue-300/60 hover:border-blue-500/70 shadow-[0_24px_70px_rgba(37,99,235,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
             }`}
           >
-            {/* Liquid Glass Specular Edge & Ambient Blue Halo */}
+            {/* Animated Spectral Laser Sweep Across Prism Focus */}
+            {!reducedMotion && (
+              <motion.div
+                key={`beam-${focusBeamKey}`}
+                initial={{ x: '-120%', opacity: 0.95 }}
+                animate={{ x: '220%', opacity: 0 }}
+                transition={{ duration: 1.35, ease: 'easeOut' }}
+                className="pointer-events-none absolute inset-y-0 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-cyan-300/35 to-transparent z-20"
+              />
+            )}
+
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/70 to-transparent" />
             <div className="pointer-events-none absolute -right-14 -top-14 h-56 w-56 rounded-full bg-blue-500/25 blur-3xl transition-all duration-500 group-hover:scale-125 group-hover:opacity-100 opacity-70" />
-            <div className="pointer-events-none absolute -left-16 -bottom-16 h-44 w-44 rounded-full bg-indigo-500/15 blur-3xl opacity-60 group-hover:opacity-90 transition-opacity" />
 
-            <div className="space-y-6 relative z-10">
+            <div className="space-y-5 relative z-10">
               <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/25 to-indigo-500/20 text-blue-400 border border-blue-400/35 shadow-[0_0_24px_rgba(59,130,246,0.25)]">
                   <Brain size={25} />
                 </span>
-                <span className={`rounded-full border px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
-                  darkMode
-                    ? 'bg-blue-500/15 border-blue-400/30 text-blue-300'
-                    : 'bg-blue-50 border-blue-200 text-blue-700'
-                }`}>
-                  Document Studio
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={triggerFocusRefraction}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      darkMode
+                        ? 'bg-sky-500/20 border-sky-400/40 text-sky-200 hover:bg-sky-500/30'
+                        : 'bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200'
+                    }`}
+                  >
+                    <Sparkles size={11} />
+                    <span>{focusFlipped ? 'Show Overview' : 'Refract Capability Spectrum'}</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-3">
+              {/* Title + Staggered Prism Word-by-Word Refraction */}
+              <div className="space-y-2.5">
                 <div>
                   <h2 className="prism-brand text-4xl sm:text-5xl font-black tracking-tight italic leading-[1.1]">
                     Prism{' '}
@@ -352,34 +407,104 @@ export default function PrismEnginePortalPage() {
                       Focus
                     </span>
                   </h2>
-                  <div className="mt-2 h-[3px] w-24 rounded-full bg-gradient-to-r from-blue-500 via-sky-400 to-transparent" />
+                  <div className="mt-2 h-[3px] w-28 rounded-full bg-gradient-to-r from-sky-400 via-blue-500 to-violet-500" />
                 </div>
-                <p className={`text-sm sm:text-base font-bold italic ${darkMode ? 'text-sky-300' : 'text-blue-700'}`}>
-                  &ldquo;Turn overwhelming noise into clear focus in seconds.&rdquo;
-                </p>
-                <p className={`text-sm leading-relaxed ${muted}`}>
-                  Paste articles, upload PDFs or lecture slides, and refract dense walls of text into executive summaries, metaphors, visual diagrams, and Ask DJ insights.
-                </p>
+
+                {/* Slowly refracting capability words emerging like light splitting through a crystal */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1" key={`words-${focusBeamKey}`}>
+                  {['Dense PDFs', '→', 'Executive TL;DR', '→', 'Vivid Metaphor', '→', 'Prism Lens', '→', 'Ask DJ'].map(
+                    (word, idx) => (
+                      <motion.span
+                        key={`${word}-${idx}`}
+                        initial={reducedMotion ? false : { opacity: 0, y: 6, filter: 'blur(6px)' }}
+                        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                        transition={{ duration: 0.4, delay: idx * 0.08 }}
+                        className={
+                          word === '→'
+                            ? 'text-xs font-black text-sky-400/70 px-0.5'
+                            : `rounded-lg border px-2 py-0.5 text-[11px] font-black ${
+                                darkMode
+                                  ? 'border-sky-400/25 bg-sky-500/10 text-sky-200'
+                                  : 'border-blue-200 bg-blue-50 text-blue-800'
+                              }`
+                        }
+                      >
+                        {word}
+                      </motion.span>
+                    ),
+                  )}
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-1">
-                {[
-                  { icon: BookOpen, label: 'PDF & Doc Upload' },
-                  { icon: Layers, label: 'Deep Refractions' },
-                  { icon: Sparkles, label: 'Ask DJ Chat' },
-                ].map((tag) => (
-                  <span
-                    key={tag.label}
-                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
-                      darkMode
-                        ? 'bg-blue-500/[0.08] border-blue-400/20 text-slate-200 group-hover:border-blue-400/35'
-                        : 'bg-white/80 border-blue-200/80 text-slate-700'
-                    }`}
+              {/* Flip Stage: Overview vs Live 3-Beam Prism Spectrum Breakdown */}
+              <AnimatePresence mode="wait">
+                {!focusFlipped ? (
+                  <motion.div
+                    key="focus-overview"
+                    initial={reducedMotion ? false : { opacity: 0, rotateX: -12 }}
+                    animate={{ opacity: 1, rotateX: 0 }}
+                    exit={{ opacity: 0, rotateX: 12 }}
+                    transition={{ duration: 0.28 }}
+                    className="space-y-4"
                   >
-                    <tag.icon size={13} className="text-blue-400" /> {tag.label}
-                  </span>
-                ))}
-              </div>
+                    <p className={`text-sm sm:text-base font-bold italic ${darkMode ? 'text-sky-300' : 'text-blue-700'}`}>
+                      &ldquo;Turn overwhelming noise into clear focus in seconds.&rdquo;
+                    </p>
+                    <p className={`text-sm leading-relaxed ${muted}`}>
+                      Paste articles, upload PDFs or lecture slides, and watch <strong className={darkMode ? 'text-white' : 'text-slate-900'}>The Prism Engine</strong> refract walls of text into executive summaries, metaphors, visual diagrams, and Ask DJ insights.
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {[
+                        { icon: BookOpen, label: 'PDF & Doc Upload' },
+                        { icon: Layers, label: 'Deep Refractions' },
+                        { icon: Sparkles, label: 'Prism Lens & Ask DJ' },
+                      ].map((tag) => (
+                        <span
+                          key={tag.label}
+                          className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
+                            darkMode
+                              ? 'bg-blue-500/[0.08] border-blue-400/20 text-slate-200 group-hover:border-blue-400/35'
+                              : 'bg-white/80 border-blue-200/80 text-slate-700'
+                          }`}
+                        >
+                          <tag.icon size={13} className="text-blue-400" /> {tag.label}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="focus-spectrum"
+                    initial={reducedMotion ? false : { opacity: 0, rotateX: 14 }}
+                    animate={{ opacity: 1, rotateX: 0 }}
+                    exit={{ opacity: 0, rotateX: -14 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-2.5"
+                  >
+                    {FOCUS_REFRACTION_STAGES.map((beam, i) => (
+                      <motion.div
+                        key={beam.tag}
+                        initial={reducedMotion ? false : { opacity: 0, x: -16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                        className={`rounded-2xl border p-3.5 ${
+                          darkMode
+                            ? 'border-blue-400/25 bg-blue-950/40'
+                            : 'border-blue-200 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full bg-gradient-to-r ${beam.color}`} />
+                          <span className={`text-xs font-black uppercase tracking-wider ${darkMode ? 'text-sky-300' : 'text-blue-700'}`}>
+                            {beam.tag}
+                          </span>
+                        </div>
+                        <p className={`text-xs mt-1 font-medium ${muted}`}>{beam.text}</p>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <Link
@@ -391,37 +516,43 @@ export default function PrismEnginePortalPage() {
             </Link>
           </motion.div>
 
-          {/* Portal 2: Prism Play (Signature Emerald / Teal) */}
+          {/* PORTAL 2: PRISM PLAY — Enters in True "Play Mode" with Interactive Mini Quest Deck & XP Bar! */}
           <motion.div
+            initial={reducedMotion ? false : { opacity: 0, rotateY: 22, y: 24 }}
+            animate={{ opacity: 1, rotateY: 0, y: 0 }}
             whileHover={reducedMotion ? undefined : { y: -8, scale: 1.01 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-            className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-8 ${
+            transition={{ type: 'spring', stiffness: 240, damping: 22, delay: 0.08 }}
+            style={{ transformPerspective: 1200 }}
+            className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-7 ${
               darkMode
                 ? 'bg-gradient-to-br from-[#082221]/90 via-[#07181d]/85 to-[#061119]/90 border-emerald-400/25 hover:border-emerald-400/60 shadow-[0_30px_90px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] hover:shadow-[0_36px_110px_rgba(16,185,129,0.26),inset_0_1px_0_rgba(110,231,183,0.3)]'
                 : 'bg-gradient-to-br from-white/95 via-[#f2fcf8]/95 to-[#e8f8f2]/90 border-emerald-300/60 hover:border-emerald-500/70 shadow-[0_24px_70px_rgba(16,185,129,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
             }`}
           >
-            {/* Liquid Glass Specular Edge & Ambient Emerald Halo */}
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
             <div className="pointer-events-none absolute -right-14 -top-14 h-56 w-56 rounded-full bg-emerald-500/25 blur-3xl transition-all duration-500 group-hover:scale-125 group-hover:opacity-100 opacity-70" />
-            <div className="pointer-events-none absolute -left-16 -bottom-16 h-44 w-44 rounded-full bg-teal-400/15 blur-3xl opacity-60 group-hover:opacity-90 transition-opacity" />
 
-            <div className="space-y-6 relative z-10">
+            <div className="space-y-5 relative z-10">
               <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/25 to-teal-500/20 text-emerald-400 border border-emerald-400/35 shadow-[0_0_24px_rgba(16,185,129,0.25)]">
                   <Gamepad2 size={25} />
                 </span>
-                <span className={`rounded-full border px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
-                  darkMode
-                    ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300'
-                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                }`}>
-                  Canvas &amp; Study Quests
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider ${
+                      darkMode
+                        ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-200'
+                        : 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                    }`}
+                  >
+                    <Trophy size={12} className="text-amber-400" />
+                    <span>Live Play Mode · {playXpEarned} XP</span>
+                  </span>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <div>
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
                   <h2 className="prism-brand text-4xl sm:text-5xl font-black tracking-tight italic leading-[1.1]">
                     Prism{' '}
                     <span
@@ -434,17 +565,76 @@ export default function PrismEnginePortalPage() {
                       Play
                     </span>
                   </h2>
-                  <div className="mt-2 h-[3px] w-24 rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-transparent" />
+                  <span className={`text-xs font-black italic ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                    &ldquo;Turning Dread into Play.&rdquo;
+                  </span>
                 </div>
-                <p className={`text-sm sm:text-base font-bold italic ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                  &ldquo;Turning Dread into Play.&rdquo;
-                </p>
-                <p className={`text-sm leading-relaxed ${muted}`}>
-                  Connect your Canvas LMS course or paste class notes. Read one calm card at a time with Soundscapes, Kinetic Glow, Beat-the-Clock sprints, Boss Fights, and your Neural Identity.
-                </p>
+
+                {/* Live Mini XP Progress Bar inside the Prism Play tile */}
+                <div className="w-full h-1.5 rounded-full bg-emerald-950/60 overflow-hidden border border-emerald-400/20">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300"
+                    initial={{ width: '33%' }}
+                    animate={{ width: `${((playCardIndex + 1) / MINI_PLAY_QUEST_DECK.length) * 100}%` }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-1">
+              {/* Interactive Playable Study Card Deck right inside the tile */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePlayCard.cardNo}
+                  initial={reducedMotion ? false : { opacity: 0, rotateY: 25, scale: 0.96 }}
+                  animate={{ opacity: 1, rotateY: 0, scale: 1 }}
+                  exit={{ opacity: 0, rotateY: -25, scale: 0.96 }}
+                  transition={{ duration: 0.28 }}
+                  className={`rounded-2xl border p-4 space-y-2.5 ${
+                    darkMode
+                      ? 'border-emerald-400/30 bg-[#051517]/80 shadow-inner'
+                      : 'border-emerald-300 bg-white shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
+                    <span className={darkMode ? 'text-emerald-300' : 'text-emerald-700'}>
+                      {activePlayCard.cardNo}
+                    </span>
+                    <span className="rounded-full bg-amber-500/20 border border-amber-400/40 px-2.5 py-0.5 text-amber-300">
+                      {activePlayCard.xp}
+                    </span>
+                  </div>
+                  <p className={`text-sm font-black ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                    {activePlayCard.title}
+                  </p>
+                  <p className={`text-xs leading-relaxed ${muted}`}>
+                    {activePlayCard.body}
+                  </p>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className={`text-[11px] font-bold ${darkMode ? 'text-teal-300' : 'text-teal-700'}`}>
+                      ✨ {activePlayCard.boost}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={advancePlayQuestCard}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-400/40 px-3 py-1.5 text-[11px] font-black text-emerald-200 transition-all cursor-pointer active:scale-95"
+                    >
+                      {playCardIndex < MINI_PLAY_QUEST_DECK.length - 1 ? (
+                        <>
+                          <CheckCircle2 size={12} />
+                          <span>Claim Win &amp; Flip Card</span>
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw size={12} />
+                          <span>Replay Mini Quest</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="flex flex-wrap gap-2">
                 {[
                   { icon: Headphones, label: 'Soundscape Studio' },
                   { icon: Swords, label: 'Boss Fights & XP' },
@@ -473,9 +663,6 @@ export default function PrismEnginePortalPage() {
             </Link>
           </motion.div>
         </section>
-
-        {/* 75-Second Promo Video Showcase + 15% Low-Background Ambient Instrumental */}
-        <PrismPromoShowcase darkMode={darkMode} />
 
         {/* In Orbit · The Prism Roadmap (Classified Prototype Constellation) */}
         <section aria-label="In Orbit · The Prism Roadmap" className="space-y-5 pt-3">
@@ -535,7 +722,7 @@ export default function PrismEnginePortalPage() {
                     : 'group-hover:text-amber-700'
                   : darkMode
                   ? 'group-hover:text-purple-300 group-hover:drop-shadow-[0_0_14px_rgba(192,132,252,0.65)]'
-                    : 'group-hover:text-purple-700';
+                  : 'group-hover:text-purple-700';
 
               return (
                 <motion.button
@@ -550,10 +737,8 @@ export default function PrismEnginePortalPage() {
                       : 'bg-white/85 border-slate-200/90 shadow-[0_14px_40px_rgba(0,0,0,0.05)]'
                   }`}
                 >
-                  {/* Subtle Glowing Obsidian Edge */}
                   <div className={`pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent ${edgeGlow} to-transparent opacity-60 group-hover:opacity-100 transition-opacity`} />
 
-                  {/* Ambient Specular Glow */}
                   <div
                     className={`pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full blur-2xl transition-opacity duration-500 ${
                       isRevealed ? 'opacity-100' : 'opacity-25 group-hover:opacity-100'
