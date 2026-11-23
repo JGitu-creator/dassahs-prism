@@ -176,12 +176,12 @@ test('Unified 4-tier Prism Engine AI cascade powers both /api/simplify and /api/
   const chatRoute = await readFile(new URL('../src/app/api/chat/route.ts', import.meta.url), 'utf8');
   const envExample = await readFile(new URL('../.env.example', import.meta.url), 'utf8');
 
-  // 4-Tier Cascade: Groq -> OpenRouter Free -> Gemini -> Unlimited Local Prism
-  assert.match(cascade, /llama-3\.3-70b-versatile/);
-  assert.match(cascade, /meta-llama\/llama-3\.3-70b-instruct:free/);
-  assert.match(cascade, /google\/gemini-2\.0-flash-exp:free/);
-  assert.match(cascade, /openrouter\/free/);
-  assert.match(cascade, /gemini-2\.0-flash/);
+  // Infinite-Tier Cascade: Groq -> OpenRouter Free -> Gemini 3.5 Flash-Lite -> Unlimited Local Prism
+  assert.match(cascade, /openai\/gpt-oss-20b/);
+  assert.match(cascade, /nvidia\/nemotron-3-ultra-550b-a55b:free/);
+  assert.match(cascade, /baidu\/ernie-5\.5-flash-preview:free/);
+  assert.match(cascade, /google\/gemma-4-31b-it:free/);
+  assert.match(cascade, /gemini-3\.5-flash-lite/);
   assert.match(cascade, /createLocalChatReply/);
 
   // Both routes use the unified cascade and local fallback

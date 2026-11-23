@@ -1,8 +1,8 @@
-export type ProviderPreference = 'auto' | 'groq' | 'openrouter' | 'gemini' | 'gpt' | 'claude' | 'deepseek';
+export type ProviderPreference = 'auto' | 'groq' | 'openrouter' | 'gemini' | 'mistral' | 'gpt' | 'claude' | 'deepseek';
 
 export type AiTier = 'tier1' | 'tier2' | 'tier3' | 'pool' | 'tier4' | 'legacy';
 
-export type AiProvider = 'groq' | 'gemini' | 'openrouter' | 'local' | 'unknown' | (string & {});
+export type AiProvider = 'groq' | 'gemini' | 'openrouter' | 'mistral' | 'local' | 'unknown' | (string & {});
 
 export type AiUsage = {
   provider: AiProvider;

@@ -230,3 +230,137 @@ test('15. unsafe or injection-sensitive result is rejected without remote fan-ou
   assert.equal(res.tier, 'tier4');
   assert.equal(res.failureClass, 'unsafe_boundary');
 });
+
+const VALID_FOCUS_PLUS = {
+  ...VALID_FOCUS,
+  metaphor: 'Like taking a Polaroid before rearranging furniture so you can always reset in seconds.',
+  dopamineHook: 'One 5-minute snapshot locks in peace of mind before you touch production.',
+};
+
+test('16. focus_plus cascades from Groq 400 to OpenRouter Free Pool instead of dead-ending', async () => {
+  const seenUrls = [];
+  const res = await routeFourTier(
+    { lane: 'focus_plus', text: 'Always back up configuration files before deploying.' },
+    {
+      env: {
+        ...MOCK_ENV,
+        GEMINI_API_KEY: '',
+        OPENROUTER_API_KEY: 'sk-or-test-synthetic',
+        OPENROUTER_DYNAMIC_DISCOVERY: 'false',
+      },
+      fetchImpl: async (url) => {
+        const href = String(url);
+        seenUrls.push(href);
+        if (href.includes('api.groq.com')) {
+          return new Response('Bad Request', { status: 400 });
+        }
+        return new Response(JSON.stringify({
+          id: 'or-test',
+          model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+          choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(VALID_FOCUS_PLUS) } }],
+          usage: VALID_USAGE,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      },
+      sleepImpl: async () => {},
+    },
+  );
+  assert.equal(res.ok, true);
+  assert.equal(res.isLocalFallback, false);
+  assert.equal(res.provider, 'openrouter');
+  assert.equal(res.decision, 'pool_accepted');
+  assert.equal(res.data.metaphor, VALID_FOCUS_PLUS.metaphor);
+  assert.equal(res.data.dopamineHook, VALID_FOCUS_PLUS.dopamineHook);
+  assert.ok(seenUrls.some((u) => u.includes('openrouter.ai')));
+});
+
+test('17. preferredProvider=openrouter routes OpenRouter FIRST and recovers from 400 json_schema via json_object retry', async () => {
+  const seenUrls = [];
+  let openRouterCalls = 0;
+  const res = await routeFourTier(
+    { lane: 'focus_plus', text: 'Verify service health after deployment.', preferredProvider: 'openrouter' },
+    {
+      env: {
+        ...MOCK_ENV,
+        OPENROUTER_API_KEY: 'sk-or-test-synthetic',
+        OPENROUTER_DYNAMIC_DISCOVERY: 'false',
+      },
+      fetchImpl: async (url, init) => {
+        const href = String(url);
+        seenUrls.push(href);
+        openRouterCalls += 1;
+        const body = JSON.parse(String(init?.body || '{}'));
+        if (body.response_format?.type === 'json_schema') {
+          return new Response('json_schema unsupported', { status: 400 });
+        }
+        return new Response(JSON.stringify({
+          id: 'or-retry-ok',
+          model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+          choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(VALID_FOCUS_PLUS) } }],
+          usage: VALID_USAGE,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      },
+      sleepImpl: async () => {},
+    },
+  );
+  assert.equal(res.ok, true);
+  assert.equal(res.provider, 'openrouter');
+  assert.equal(openRouterCalls, 2);
+  assert.ok(seenUrls.every((u) => u.includes('openrouter.ai')), 'Should never call Groq when OpenRouter succeeds first');
+});
+
+test('18. MISTRAL_API_KEY activates Mistral Experiment automatically when other remote tiers are unavailable', async () => {
+  const res = await routeFourTier(
+    { lane: 'focus_plus', text: 'Verify service health after deployment.' },
+    {
+      env: {
+        PRISM_FOUR_TIER_ENABLED: 'true',
+        GROQ_API_KEY: '',
+        GEMINI_API_KEY: '',
+        OPENROUTER_API_KEY: '',
+        MISTRAL_API_KEY: 'mistral_test_synthetic',
+      },
+      fetchImpl: async (url) => {
+        assert.ok(String(url).includes('api.mistral.ai'));
+        return new Response(JSON.stringify({
+          id: 'mistral-test',
+          model: 'mistral-small-latest',
+          choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(VALID_FOCUS_PLUS) } }],
+          usage: VALID_USAGE,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      },
+      sleepImpl: async () => {},
+    },
+  );
+  assert.equal(res.ok, true);
+  assert.equal(res.isLocalFallback, false);
+  assert.equal(res.provider, 'mistral');
+  assert.equal(res.model, 'mistral-small-latest');
+});
+
+test('19. PRISM_PRIMARY_PROVIDER=openrouter routes OpenRouter first without changing client code', async () => {
+  const seenUrls = [];
+  const res = await routeFourTier(
+    { lane: 'focus_plus', text: 'Verify service health after deployment.', preferredProvider: 'auto' },
+    {
+      env: {
+        ...MOCK_ENV,
+        PRISM_PRIMARY_PROVIDER: 'openrouter',
+        OPENROUTER_API_KEY: 'sk-or-test-synthetic',
+        OPENROUTER_DYNAMIC_DISCOVERY: 'false',
+      },
+      fetchImpl: async (url) => {
+        seenUrls.push(String(url));
+        return new Response(JSON.stringify({
+          id: 'or-primary',
+          model: 'baidu/ernie-5.5-flash-preview:free',
+          choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify(VALID_FOCUS_PLUS) } }],
+          usage: VALID_USAGE,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      },
+      sleepImpl: async () => {},
+    },
+  );
+  assert.equal(res.ok, true);
+  assert.equal(res.provider, 'openrouter');
+  assert.ok(seenUrls.every((u) => u.includes('openrouter.ai')));
+});

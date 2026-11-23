@@ -35,36 +35,39 @@ export const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/co
 export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 export const OPENROUTER_CHAT_COMPLETIONS_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
+export const MISTRAL_CHAT_COMPLETIONS_URL = 'https://api.mistral.ai/v1/chat/completions';
 
 export const DEFAULT_GROQ_TIER1_MODEL = 'openai/gpt-oss-20b';
 export const DEFAULT_GROQ_TIER2_MODEL = 'openai/gpt-oss-120b';
-export const DEFAULT_TIER3_GEMINI_MODEL = 'gemini-2.0-flash';
+export const DEFAULT_TIER3_GEMINI_MODEL = 'gemini-3.5-flash-lite';
+export const DEFAULT_MISTRAL_MODEL = 'mistral-small-latest';
 export const LOCAL_FALLBACK_MODEL = 'local-fallback';
 export const LOCAL_FALLBACK_LABEL = 'Local Structural Refraction';
 
 export const TIER1_LABEL = 'Groq · Tier 1';
 export const TIER2_LABEL = 'Groq · Tier 2';
-export const TIER3_LABEL = 'Gemini';
+export const TIER3_LABEL = 'Gemini 3.5';
 export const POOL_LABEL = 'OpenRouter · Free Pool';
+export const MISTRAL_LABEL = 'Mistral · Experiment';
 
 /**
- * Seed list of OpenRouter free models that advertised structured output in the
- * live catalog (checked 22 Nov 2026). Operators can prepend their own list via
- * OPENROUTER_FREE_MODELS (comma separated); the live catalog is also discovered
- * at runtime so new free models join the pool without a code change.
+ * Verified Nov 2026 OpenRouter free models ranked by reliability, context window,
+ * and structured JSON output support. Operators can prepend custom models via
+ * OPENROUTER_FREE_MODELS (comma separated); live catalog discovery also runs at runtime.
  */
 export const DEFAULT_OPENROUTER_FREE_POOL: readonly string[] = [
+  'nvidia/nemotron-3-ultra-550b-a55b:free',
   'baidu/ernie-5.5-flash-preview:free',
   'nvidia/nemotron-3.5-super-vl:free',
   'google/gemma-4-31b-it:free',
-  'particle-ai/particle-1:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'nvidia/nemotron-3.5-lightning:free',
 ];
 const DEFAULT_OPENROUTER_VISION_MODELS: readonly string[] = [
   'nvidia/nemotron-3.5-super-vl:free',
   'google/gemma-4-31b-it:free',
-  'particle-ai/particle-1:free',
 ];
-const DEFAULT_POOL_MAX_MODELS = 4;
+const DEFAULT_POOL_MAX_MODELS = 6;
 const POOL_TOTAL_DEADLINE_MS = 45_000;
 const POOL_PER_MODEL_TIMEOUT_MS = 12_000;
 const CATALOG_TTL_MS = 60 * 60 * 1000;
@@ -184,6 +187,10 @@ export function getTier3GeminiModel(env: Record<string, string | undefined> = pr
   return sanitizeApprovedModel(env.GEMINI_TIER3_MODEL, DEFAULT_TIER3_GEMINI_MODEL);
 }
 
+export function getMistralModel(env: Record<string, string | undefined> = process.env): string {
+  return sanitizeApprovedModel(env.MISTRAL_MODEL, DEFAULT_MISTRAL_MODEL);
+}
+
 export type FourTierHealthMetadata = {
   fourTierEnabled: boolean;
   groqModels: {
@@ -191,6 +198,7 @@ export type FourTierHealthMetadata = {
     tier2: string;
   };
   tier3Model: string;
+  mistralModel: string;
   multimodalLane: 'tier3_gemini';
   groqVisionDeferred: true;
   openRouterPool: {
@@ -202,6 +210,7 @@ export type FourTierHealthMetadata = {
     groq: boolean;
     openrouter: boolean;
     gemini: boolean;
+    mistral: boolean;
     local: true;
   };
 };
@@ -221,6 +230,7 @@ export function getFourTierHealthMetadata(
       tier2: getGroqTier2Model(env),
     },
     tier3Model: getTier3GeminiModel(env),
+    mistralModel: getMistralModel(env),
     multimodalLane: 'tier3_gemini',
     groqVisionDeferred: true,
     openRouterPool: {
@@ -232,6 +242,7 @@ export function getFourTierHealthMetadata(
       groq: Boolean(env.GROQ_API_KEY?.trim()),
       openrouter: openRouterReady,
       gemini: Boolean(env.GEMINI_API_KEY?.trim()),
+      mistral: Boolean(env.MISTRAL_API_KEY?.trim()),
       local: true,
     },
   };
@@ -351,7 +362,7 @@ async function callOpenRouterCandidate(args: {
     model: args.model,
     messages,
     temperature: args.lane === 'chat' ? 0.4 : 0.2,
-    max_tokens: args.maxOutputTokens,
+    max_tokens: Math.max(args.maxOutputTokens, 1800),
     stream: false,
     usage: { include: true },
   };
@@ -359,8 +370,8 @@ async function callOpenRouterCandidate(args: {
     payload.response_format = getResponseFormatForLane(args.lane);
   }
 
-  try {
-    const response = await fetchWithTimeout(
+  const sendOpenRouter = async (requestPayload: Record<string, unknown>) =>
+    fetchWithTimeout(
       args.fetchImpl,
       OPENROUTER_CHAT_COMPLETIONS_URL,
       {
@@ -371,10 +382,102 @@ async function callOpenRouterCandidate(args: {
           'HTTP-Referer': 'https://dassahs-prism.vercel.app',
           'X-Title': "Dassah's Prism Engine",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestPayload),
       },
       args.timeoutMs,
     );
+
+  try {
+    let response = await sendOpenRouter(payload);
+    // Many OpenRouter free endpoints reject strict json_schema with 400 but succeed with json_object.
+    if (response.status === 400 && args.lane !== 'chat') {
+      const fallbackPayload: Record<string, unknown> = {
+        ...payload,
+        response_format: { type: 'json_object' },
+      };
+      response = await sendOpenRouter(fallbackPayload);
+    }
+    const retryAfterMs = parseRetryAfterMs(response.headers?.get?.('retry-after') ?? null);
+    if (!response.ok) return { status: response.status, retryAfterMs };
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      return { status: 200, text: '', rawUsage: undefined };
+    }
+    const record = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
+    const choices = Array.isArray(record.choices) ? record.choices : [];
+    const firstChoice = (choices[0] && typeof choices[0] === 'object' ? choices[0] : {}) as Record<string, unknown>;
+    const message = (firstChoice.message && typeof firstChoice.message === 'object'
+      ? firstChoice.message
+      : {}) as Record<string, unknown>;
+    const content = typeof message.content === 'string' ? message.content : '';
+    return {
+      status: response.status,
+      text: content,
+      rawUsage: record.usage,
+      resolvedModel: typeof record.model === 'string' && record.model.trim() ? record.model.trim() : args.model,
+    };
+  } catch (error) {
+    return { error };
+  }
+}
+
+async function callMistralCandidate(args: {
+  fetchImpl: typeof fetch;
+  apiKey: string;
+  model: string;
+  lane: PrismLane;
+  request: FourTierRequest;
+  maxOutputTokens: number;
+  timeoutMs: number;
+}): Promise<RemoteCallResult> {
+  const messages = buildLaneMessages(args.lane, {
+    text: args.request.text,
+    context: args.request.context,
+    history: args.request.history,
+    systemInstruction: args.request.systemInstruction,
+    cognitiveMode: args.request.cognitiveMode,
+    simplicityLevel: args.request.simplicityLevel,
+    isStory: args.request.isStory,
+    missionGoal: args.request.missionGoal,
+    hasImage: false,
+  });
+
+  const payload: Record<string, unknown> = {
+    model: args.model,
+    messages,
+    temperature: args.lane === 'chat' ? 0.4 : 0.2,
+    max_tokens: Math.max(args.maxOutputTokens, 1600),
+    stream: false,
+  };
+  if (args.lane !== 'chat') {
+    payload.response_format = getResponseFormatForLane(args.lane);
+  }
+
+  const sendMistral = async (requestPayload: Record<string, unknown>) =>
+    fetchWithTimeout(
+      args.fetchImpl,
+      MISTRAL_CHAT_COMPLETIONS_URL,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${args.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestPayload),
+      },
+      args.timeoutMs,
+    );
+
+  try {
+    let response = await sendMistral(payload);
+    if (response.status === 400 && args.lane !== 'chat') {
+      response = await sendMistral({
+        ...payload,
+        response_format: { type: 'json_object' },
+      });
+    }
     const retryAfterMs = parseRetryAfterMs(response.headers?.get?.('retry-after') ?? null);
     if (!response.ok) return { status: response.status, retryAfterMs };
     let body: unknown;
@@ -679,6 +782,15 @@ function getDefaultTierBudget(lane: PrismLane, tier: RemotePrismTier, hasImage: 
     }
     return { maxOutputTokens: 1400, maxTotalTokens: 16000, timeoutMs: 18000, maxRetries: 1, retryDelaysMs: [0, 1500] };
   }
+  if (lane === 'focus_plus') {
+    if (tier === 'tier1') {
+      return { maxOutputTokens: 1400, maxTotalTokens: 24000, timeoutMs: 15000, maxRetries: 1, retryDelaysMs: [0, 1000] };
+    }
+    if (tier === 'tier2') {
+      return { maxOutputTokens: 1800, maxTotalTokens: 32000, timeoutMs: 18000, maxRetries: 1, retryDelaysMs: [0, 1500] };
+    }
+    return { maxOutputTokens: 1800, maxTotalTokens: 32000, timeoutMs: 20000, maxRetries: 1, retryDelaysMs: [0, 1500] };
+  }
   // focus lane
   if (tier === 'tier1') {
     return { maxOutputTokens: 900, maxTotalTokens: 8000, timeoutMs: 12000, maxRetries: 1, retryDelaysMs: [0, 1000] };
@@ -699,9 +811,15 @@ function estimateUsageCostUsd(model: string, usage: AiUsage): number {
   } else if (lower.includes('gpt-oss-120b')) {
     inputPerMillion = 0.15;
     outputPerMillion = 0.6;
-  } else if (lower.includes('gemini-2.0-flash')) {
+  } else if (lower.includes('gemini-3.5-flash-lite')) {
+    inputPerMillion = 0.3;
+    outputPerMillion = 2.5;
+  } else if (lower.includes('gemini-2.0-flash') || lower.includes('gemini-2.5-flash-lite')) {
     inputPerMillion = 0.1;
     outputPerMillion = 0.4;
+  } else if (lower.includes('mistral-small')) {
+    inputPerMillion = 0.1;
+    outputPerMillion = 0.3;
   }
   return (
     (usage.promptTokens / 1_000_000) * inputPerMillion
@@ -738,7 +856,7 @@ export type FourTierRequest = {
    * Validated against injection/forbidden patterns and never persisted or logged.
    */
   byok?: {
-    provider: 'groq' | 'gemini' | 'openrouter';
+    provider: 'groq' | 'gemini' | 'openrouter' | 'mistral';
     apiKey: string;
     model?: string;
   };
@@ -892,8 +1010,8 @@ async function callGroqCandidate(args: {
     payload.response_format = getResponseFormatForLane(args.lane);
   }
 
-  try {
-    const response = await fetchWithTimeout(
+  const sendGroq = async (requestPayload: Record<string, unknown>) =>
+    fetchWithTimeout(
       args.fetchImpl,
       GROQ_CHAT_COMPLETIONS_URL,
       {
@@ -902,10 +1020,22 @@ async function callGroqCandidate(args: {
           Authorization: `Bearer ${args.apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestPayload),
       },
       args.timeoutMs,
     );
+
+  try {
+    let response = await sendGroq(payload);
+    // On focus_plus, if Groq's strict json_schema or include_reasoning returns 400, retry once with json_object.
+    if (response.status === 400 && args.lane === 'focus_plus') {
+      const relaxedPayload: Record<string, unknown> = {
+        ...payload,
+        response_format: { type: 'json_object' },
+      };
+      delete relaxedPayload.include_reasoning;
+      response = await sendGroq(relaxedPayload);
+    }
 
     const retryAfterMs = parseRetryAfterMs(response.headers?.get?.('retry-after') ?? null);
     if (!response.ok) {
@@ -1236,7 +1366,14 @@ export async function routeFourTier(
   }
 
   const attempts: AttemptRecord[] = [];
-  const tierSequence = buildTierSequence(request, complexity);
+  const effectivePreferredProvider =
+    request.preferredProvider && request.preferredProvider !== 'auto'
+      ? request.preferredProvider
+      : ((env.PRISM_PRIMARY_PROVIDER?.trim().toLowerCase() as ProviderPreference | undefined) || 'auto');
+  const tierSequence = buildTierSequence(
+    { ...request, preferredProvider: effectivePreferredProvider },
+    complexity,
+  );
   const hasImage = Boolean(request.image);
   let lastFailureClass: FailureClass = 'auth_or_config';
   let lastFallbackReason = 'all_remote_tiers_unavailable';
@@ -1245,7 +1382,296 @@ export async function routeFourTier(
   const byokProvider = request.byok?.provider;
   const byokKey = typeof request.byok?.apiKey === 'string' ? request.byok.apiKey.trim() : '';
 
+  const openRouterKey = (byokProvider === 'openrouter' && byokKey) ? byokKey : getOpenRouterKey(env);
+  const mistralKey = (byokProvider === 'mistral' && byokKey) ? byokKey : (env.MISTRAL_API_KEY?.trim() || '');
+  let openRouterTried = false;
+  let mistralTried = false;
+
+  const tryOpenRouterPool = async (): Promise<FourTierResult | null> => {
+    if (openRouterTried || shouldStopAllRemote || !openRouterKey || env.OPENROUTER_POOL_ENABLED === 'false') {
+      return null;
+    }
+    openRouterTried = true;
+    const poolStartedAt = nowImpl();
+    const customByokModel = byokProvider === 'openrouter' && request.byok?.model && isAllowedPoolModel(request.byok.model)
+      ? [request.byok.model.trim()]
+      : [];
+    const poolModels = [
+      ...customByokModel,
+      ...(await resolvePoolModels({
+        env,
+        fetchImpl,
+        nowMs: poolStartedAt,
+        needsVision: hasImage,
+      })),
+    ];
+    const poolBudget = getDefaultTierBudget(request.lane, 'tier3', hasImage);
+    const maxTokensBudget = request.maxTokensBudget ?? poolBudget.maxTotalTokens;
+    const perModelTimeoutMs = Math.min(request.timeoutMs ?? POOL_PER_MODEL_TIMEOUT_MS, POOL_PER_MODEL_TIMEOUT_MS);
+
+    for (const poolModel of Array.from(new Set(poolModels))) {
+      if (nowImpl() - poolStartedAt >= POOL_TOTAL_DEADLINE_MS) {
+        break;
+      }
+      const startedAt = nowImpl();
+      const callResult = await callOpenRouterCandidate({
+        fetchImpl,
+        apiKey: openRouterKey,
+        model: poolModel,
+        lane: request.lane,
+        request,
+        maxOutputTokens: poolBudget.maxOutputTokens,
+        timeoutMs: perModelTimeoutMs,
+      });
+      const durationMs = Math.max(0, nowImpl() - startedAt);
+
+      if (callResult.error != null || (typeof callResult.status === 'number' && (callResult.status < 200 || callResult.status >= 300))) {
+        const classification = classifyFailure({
+          status: callResult.status,
+          error: callResult.error,
+          tier: 'tier3',
+        });
+        attempts.push({
+          tier: 'pool',
+          provider: 'openrouter',
+          model: poolModel,
+          ...(typeof callResult.status === 'number' ? { status: callResult.status } : {}),
+          failureClass: classification.failureClass,
+          decision: 'next_tier',
+          retryCount: 0,
+          durationMs,
+        });
+        lastFailureClass = classification.failureClass;
+        lastFallbackReason = classification.failureClass;
+        continue;
+      }
+
+      const rawText = callResult.text ?? '';
+      let schemaValid = false;
+      let validatedData: LaneOutput | null = null;
+      if (request.lane === 'chat') {
+        const trimmedChat = rawText.trim();
+        if (trimmedChat.length > 0) {
+          schemaValid = true;
+          validatedData = { text: trimmedChat };
+        }
+      } else {
+        const parsed = parseStrictJsonObject(rawText);
+        if (parsed.ok) {
+          const validated = validateLanePayload(request.lane as StructuredPrismLane, parsed.value);
+          if (validated.ok) {
+            schemaValid = true;
+            validatedData = validated.data;
+          }
+        }
+      }
+
+      const resolvedModel = callResult.resolvedModel || poolModel;
+      const usageParsed = parseStrictProviderUsage(callResult.rawUsage, 'openrouter', resolvedModel, {
+        tier: 'pool',
+        label: POOL_LABEL,
+      });
+      const hasValidUsage = usageParsed.ok;
+      const overBudget = usageParsed.ok && usageParsed.usage.totalTokens > maxTokensBudget;
+      const serializedOutput = validatedData ? JSON.stringify(validatedData) : rawText;
+      const outputSafety = evaluateOutputSafety(serializedOutput);
+      const unsafe = !outputSafety.safe;
+
+      const classification = classifyFailure({
+        status: callResult.status ?? 200,
+        schemaValid,
+        hasValidUsage,
+        overBudget,
+        unsafe,
+        tier: 'tier3',
+      });
+
+      attempts.push({
+        tier: 'pool',
+        provider: 'openrouter',
+        model: resolvedModel,
+        status: callResult.status ?? 200,
+        failureClass: classification.failureClass,
+        decision: classification.decision === 'tier_accepted' ? 'tier_accepted' : 'next_tier',
+        retryCount: 0,
+        durationMs,
+      });
+
+      if (unsafe) {
+        shouldStopAllRemote = true;
+        lastFailureClass = 'unsafe_boundary';
+        lastFallbackReason = outputSafety.reason || 'unsafe_boundary';
+        return null;
+      }
+
+      if (classification.decision === 'tier_accepted' && validatedData && usageParsed.ok) {
+        return {
+          ok: true,
+          lane: request.lane,
+          tier: 'pool',
+          provider: 'openrouter',
+          model: resolvedModel,
+          label: POOL_LABEL,
+          isLocalFallback: false,
+          shouldRefundCredits: false,
+          decision: 'pool_accepted',
+          failureClass: 'none',
+          whyCare: extractWhyCareFromLaneData(request.lane, validatedData),
+          data: validatedData,
+          usage: usageParsed.usage,
+          safety,
+          complexity,
+          attempts,
+        };
+      }
+
+      lastFailureClass = classification.failureClass;
+      lastFallbackReason = classification.failureClass;
+    }
+    return null;
+  };
+
+  const tryMistralExperiment = async (): Promise<FourTierResult | null> => {
+    if (mistralTried || shouldStopAllRemote || !mistralKey || hasImage) {
+      return null;
+    }
+    mistralTried = true;
+    const mistralModel = (byokProvider === 'mistral' && request.byok?.model?.trim())
+      ? request.byok.model.trim()
+      : getMistralModel(env);
+    const mistralBudget = getDefaultTierBudget(request.lane, 'tier3', false);
+    const maxTokensBudget = request.maxTokensBudget ?? mistralBudget.maxTotalTokens;
+    const timeoutMs = Math.min(request.timeoutMs ?? mistralBudget.timeoutMs, 18_000);
+    const startedAt = nowImpl();
+
+    const callResult = await callMistralCandidate({
+      fetchImpl,
+      apiKey: mistralKey,
+      model: mistralModel,
+      lane: request.lane,
+      request,
+      maxOutputTokens: mistralBudget.maxOutputTokens,
+      timeoutMs,
+    });
+    const durationMs = Math.max(0, nowImpl() - startedAt);
+
+    if (callResult.error != null || (typeof callResult.status === 'number' && (callResult.status < 200 || callResult.status >= 300))) {
+      const classification = classifyFailure({
+        status: callResult.status,
+        error: callResult.error,
+        tier: 'tier3',
+      });
+      attempts.push({
+        tier: 'pool',
+        provider: 'mistral',
+        model: mistralModel,
+        ...(typeof callResult.status === 'number' ? { status: callResult.status } : {}),
+        failureClass: classification.failureClass,
+        decision: 'next_tier',
+        retryCount: 0,
+        durationMs,
+      });
+      lastFailureClass = classification.failureClass;
+      lastFallbackReason = classification.failureClass;
+      return null;
+    }
+
+    const rawText = callResult.text ?? '';
+    let schemaValid = false;
+    let validatedData: LaneOutput | null = null;
+    if (request.lane === 'chat') {
+      const trimmedChat = rawText.trim();
+      if (trimmedChat.length > 0) {
+        schemaValid = true;
+        validatedData = { text: trimmedChat };
+      }
+    } else {
+      const parsed = parseStrictJsonObject(rawText);
+      if (parsed.ok) {
+        const validated = validateLanePayload(request.lane as StructuredPrismLane, parsed.value);
+        if (validated.ok) {
+          schemaValid = true;
+          validatedData = validated.data;
+        }
+      }
+    }
+
+    const resolvedModel = callResult.resolvedModel || mistralModel;
+    const usageParsed = parseStrictProviderUsage(callResult.rawUsage, 'mistral', resolvedModel, {
+      tier: 'pool',
+      label: MISTRAL_LABEL,
+    });
+    const hasValidUsage = usageParsed.ok;
+    const overBudget = usageParsed.ok && usageParsed.usage.totalTokens > maxTokensBudget;
+    const serializedOutput = validatedData ? JSON.stringify(validatedData) : rawText;
+    const outputSafety = evaluateOutputSafety(serializedOutput);
+    const unsafe = !outputSafety.safe;
+
+    const classification = classifyFailure({
+      status: callResult.status ?? 200,
+      schemaValid,
+      hasValidUsage,
+      overBudget,
+      unsafe,
+      tier: 'tier3',
+    });
+
+    attempts.push({
+      tier: 'pool',
+      provider: 'mistral',
+      model: resolvedModel,
+      status: callResult.status ?? 200,
+      failureClass: classification.failureClass,
+      decision: classification.decision === 'tier_accepted' ? 'tier_accepted' : 'next_tier',
+      retryCount: 0,
+      durationMs,
+    });
+
+    if (unsafe) {
+      shouldStopAllRemote = true;
+      lastFailureClass = 'unsafe_boundary';
+      lastFallbackReason = outputSafety.reason || 'unsafe_boundary';
+      return null;
+    }
+
+    if (classification.decision === 'tier_accepted' && validatedData && usageParsed.ok) {
+      return {
+        ok: true,
+        lane: request.lane,
+        tier: 'pool',
+        provider: 'mistral',
+        model: resolvedModel,
+        label: MISTRAL_LABEL,
+        isLocalFallback: false,
+        shouldRefundCredits: false,
+        decision: 'pool_accepted',
+        failureClass: 'none',
+        whyCare: extractWhyCareFromLaneData(request.lane, validatedData),
+        data: validatedData,
+        usage: usageParsed.usage,
+        safety,
+        complexity,
+        attempts,
+      };
+    }
+
+    lastFailureClass = classification.failureClass;
+    lastFallbackReason = classification.failureClass;
+    return null;
+  };
+
+  // Optional primary-provider override (OpenRouter-first or Mistral-first)
+  if (effectivePreferredProvider === 'openrouter') {
+    const poolFirst = await tryOpenRouterPool();
+    if (poolFirst) return poolFirst;
+  } else if (effectivePreferredProvider === 'mistral') {
+    const mistralFirst = await tryMistralExperiment();
+    if (mistralFirst) return mistralFirst;
+  }
+
   for (const tier of tierSequence) {
+    if (shouldStopAllRemote) break;
+
     const config = getTierConfig(tier, env);
     const budget = getDefaultTierBudget(request.lane, tier, hasImage);
     const maxTokensBudget = request.maxTokensBudget ?? budget.maxTotalTokens;
@@ -1345,7 +1771,11 @@ export async function routeFourTier(
         lastFallbackReason = classification.failureClass;
 
         if (classification.decision === 'candidate_failed') {
-          shouldStopAllRemote = true;
+          // On focus_plus (live workspace), allow cross-provider failover to Gemini / OpenRouter / Mistral
+          // unless it's a safety boundary violation. Strict focus lane remains fail-closed.
+          if (classification.failureClass === 'unsafe_boundary' || request.lane !== 'focus_plus') {
+            shouldStopAllRemote = true;
+          }
           break;
         }
         if (classification.retryable && attemptIdx < maxRetries) {
@@ -1454,8 +1884,11 @@ export async function routeFourTier(
         : classification.failureClass;
 
       if (classification.decision === 'candidate_failed') {
-        // Fail closed: 0 same-model retries, NEVER fan out to another remote provider
-        shouldStopAllRemote = true;
+        // Safety boundary ALWAYS stops all remote calls. On focus_plus, non-safety
+        // schema/budget mismatches cascade cleanly to Gemini / OpenRouter / Mistral.
+        if (unsafe || request.lane !== 'focus_plus') {
+          shouldStopAllRemote = true;
+        }
         break;
       }
 
@@ -1471,148 +1904,13 @@ export async function routeFourTier(
   }
 
   // -------------------------------------------------------------------------
-  // Tier 4..N: OpenRouter Infinite Free Pool ("Backup of Backup" Cascade)
-  // Executes when fixed tiers (Groq + Gemini) are exhausted on transient or
-  // missing-key errors, and OPENROUTER_API_KEY (or BYOK openrouter key) is set.
+  // Tier 4..N: OpenRouter Infinite Free Pool + Mistral Experiment Cascade
   // -------------------------------------------------------------------------
-  const openRouterKey = (byokProvider === 'openrouter' && byokKey) ? byokKey : getOpenRouterKey(env);
-  if (!shouldStopAllRemote && openRouterKey && env.OPENROUTER_POOL_ENABLED !== 'false') {
-    const poolStartedAt = nowImpl();
-    const customByokModel = byokProvider === 'openrouter' && request.byok?.model && isAllowedPoolModel(request.byok.model)
-      ? [request.byok.model.trim()]
-      : [];
-    const poolModels = [
-      ...customByokModel,
-      ...(await resolvePoolModels({
-        env,
-        fetchImpl,
-        nowMs: poolStartedAt,
-        needsVision: hasImage,
-      })),
-    ];
-    const poolBudget = getDefaultTierBudget(request.lane, 'tier3', hasImage);
-    const maxTokensBudget = request.maxTokensBudget ?? poolBudget.maxTotalTokens;
-    const perModelTimeoutMs = Math.min(request.timeoutMs ?? POOL_PER_MODEL_TIMEOUT_MS, POOL_PER_MODEL_TIMEOUT_MS);
+  const poolResult = await tryOpenRouterPool();
+  if (poolResult) return poolResult;
 
-    for (const poolModel of Array.from(new Set(poolModels))) {
-      if (nowImpl() - poolStartedAt >= POOL_TOTAL_DEADLINE_MS) {
-        break;
-      }
-      const startedAt = nowImpl();
-      const callResult = await callOpenRouterCandidate({
-        fetchImpl,
-        apiKey: openRouterKey,
-        model: poolModel,
-        lane: request.lane,
-        request,
-        maxOutputTokens: poolBudget.maxOutputTokens,
-        timeoutMs: perModelTimeoutMs,
-      });
-      const durationMs = Math.max(0, nowImpl() - startedAt);
-
-      if (callResult.error != null || (typeof callResult.status === 'number' && (callResult.status < 200 || callResult.status >= 300))) {
-        const classification = classifyFailure({
-          status: callResult.status,
-          error: callResult.error,
-          tier: 'tier3',
-        });
-        attempts.push({
-          tier: 'pool',
-          provider: 'openrouter',
-          model: poolModel,
-          ...(typeof callResult.status === 'number' ? { status: callResult.status } : {}),
-          failureClass: classification.failureClass,
-          decision: 'next_tier',
-          retryCount: 0,
-          durationMs,
-        });
-        lastFailureClass = classification.failureClass;
-        lastFallbackReason = classification.failureClass;
-        continue;
-      }
-
-      const rawText = callResult.text ?? '';
-      let schemaValid = false;
-      let validatedData: LaneOutput | null = null;
-      if (request.lane === 'chat') {
-        const trimmedChat = rawText.trim();
-        if (trimmedChat.length > 0) {
-          schemaValid = true;
-          validatedData = { text: trimmedChat };
-        }
-      } else {
-        const parsed = parseStrictJsonObject(rawText);
-        if (parsed.ok) {
-          const validated = validateLanePayload(request.lane as StructuredPrismLane, parsed.value);
-          if (validated.ok) {
-            schemaValid = true;
-            validatedData = validated.data;
-          }
-        }
-      }
-
-      const resolvedModel = callResult.resolvedModel || poolModel;
-      const usageParsed = parseStrictProviderUsage(callResult.rawUsage, 'openrouter', resolvedModel, {
-        tier: 'pool',
-        label: POOL_LABEL,
-      });
-      const hasValidUsage = usageParsed.ok;
-      const overBudget = usageParsed.ok && usageParsed.usage.totalTokens > maxTokensBudget;
-      const serializedOutput = validatedData ? JSON.stringify(validatedData) : rawText;
-      const outputSafety = evaluateOutputSafety(serializedOutput);
-      const unsafe = !outputSafety.safe;
-
-      const classification = classifyFailure({
-        status: callResult.status ?? 200,
-        schemaValid,
-        hasValidUsage,
-        overBudget,
-        unsafe,
-        tier: 'tier3',
-      });
-
-      attempts.push({
-        tier: 'pool',
-        provider: 'openrouter',
-        model: resolvedModel,
-        status: callResult.status ?? 200,
-        failureClass: classification.failureClass,
-        decision: classification.decision === 'tier_accepted' ? 'tier_accepted' : 'next_tier',
-        retryCount: 0,
-        durationMs,
-      });
-
-      if (unsafe) {
-        lastFailureClass = 'unsafe_boundary';
-        lastFallbackReason = outputSafety.reason || 'unsafe_boundary';
-        break;
-      }
-
-      if (classification.decision === 'tier_accepted' && validatedData && usageParsed.ok) {
-        return {
-          ok: true,
-          lane: request.lane,
-          tier: 'pool',
-          provider: 'openrouter',
-          model: resolvedModel,
-          label: POOL_LABEL,
-          isLocalFallback: false,
-          shouldRefundCredits: false,
-          decision: 'pool_accepted',
-          failureClass: 'none',
-          whyCare: extractWhyCareFromLaneData(request.lane, validatedData),
-          data: validatedData,
-          usage: usageParsed.usage,
-          safety,
-          complexity,
-          attempts,
-        };
-      }
-
-      lastFailureClass = classification.failureClass;
-      lastFallbackReason = classification.failureClass;
-    }
-  }
+  const mistralResult = await tryMistralExperiment();
+  if (mistralResult) return mistralResult;
 
   return buildTier4Result({
     request,

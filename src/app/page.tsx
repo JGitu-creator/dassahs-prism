@@ -1467,7 +1467,11 @@ export default function Home() {
       setPendingImage(null);
       const refractionUsage = results.reduce((total, item) => total + Number(item?.usage?.totalTokens || 0), 0);
       const latestUsage = results.find((item) => item?.usage)?.usage;
+      const latestRouteMeta = results.slice().reverse().find((item: any) => item?.routeMeta)?.routeMeta;
       if (latestUsage?.provider === 'local') {
+        if (latestRouteMeta) {
+          console.info('[PrismEngine] routeMeta', latestRouteMeta);
+        }
         setUiNotice({ type: 'info', message: 'External AI providers were busy, so Prism used local structural refraction (0 credits spent).' });
       } else {
         setUiNotice(null);
@@ -1478,6 +1482,8 @@ export default function Home() {
             totalTokens: prev.totalTokens + refractionUsage,
             provider: latestUsage?.provider || prev.provider,
             model: latestUsage?.model || prev.model,
+            tier: latestUsage?.tier || latestRouteMeta?.tier,
+            label: latestUsage?.label || latestRouteMeta?.label,
           };
           localStorage.setItem('dassahs_ai_tokens', next.totalTokens.toString());
           localStorage.setItem('dassahs_ai_provider', next.provider);

@@ -36,16 +36,22 @@ export function AIUsageControl({
             : usage.provider === 'groq'
               ? 'Groq · Tier 1'
               : usage.provider === 'gemini' || usage.tier === 'tier3'
-                ? 'Gemini'
-                : usage.provider === 'openrouter' || usage.tier === 'pool'
-                  ? 'OpenRouter · Pool'
-                  : 'Auto ∞';
+                ? 'Gemini 3.5'
+                : usage.provider === 'mistral'
+                  ? 'Mistral'
+                  : usage.provider === 'openrouter' || usage.tier === 'pool'
+                    ? 'OpenRouter · Free'
+                    : 'Auto ∞';
 
   const badgeClass = isLocalFallback
     ? 'bg-emerald-500/20 text-emerald-300'
     : usage.provider === 'groq'
       ? 'bg-cyan-500/20 text-cyan-300'
-      : 'bg-blue-500/15 text-blue-300';
+      : usage.provider === 'mistral'
+        ? 'bg-amber-500/20 text-amber-300'
+        : usage.provider === 'openrouter'
+          ? 'bg-violet-500/20 text-violet-300'
+          : 'bg-blue-500/15 text-blue-300';
 
   return (
     <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-glass)] px-2.5 py-1.5 text-[var(--fg)] shadow-lg backdrop-blur-xl">

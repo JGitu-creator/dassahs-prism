@@ -23,15 +23,16 @@ export type ChatTurn = { role: string; text: string };
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export const GROQ_FALLBACK_MODELS = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
+  'openai/gpt-oss-20b',
+  'openai/gpt-oss-120b',
 ] as const;
 
 export const OPENROUTER_FREE_FALLBACK_MODELS = [
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'google/gemini-2.0-flash-exp:free',
-  'deepseek/deepseek-chat:free',
-  'openrouter/free',
+  'nvidia/nemotron-3-ultra-550b-a55b:free',
+  'baidu/ernie-5.5-flash-preview:free',
+  'nvidia/nemotron-3.5-super-vl:free',
+  'google/gemma-4-31b-it:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
 ] as const;
 
 export function getGroqModelList(): string[] {
@@ -163,7 +164,7 @@ export async function withTimeout<T>(promise: Promise<T>, ms: number, message: s
 async function runGeminiSingle(prompt: string, image?: ImageInput): Promise<ProviderResult> {
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   if (!geminiKey) throw new Error('gemini_key_missing');
-  const model = 'gemini-2.0-flash';
+  const model = process.env.GEMINI_TIER3_MODEL?.trim() || 'gemini-3.5-flash-lite';
   const content = image
     ? [{ text: prompt }, { inlineData: { data: image.data, mimeType: image.mimeType } }]
     : prompt;
@@ -197,7 +198,7 @@ async function runGeminiChat(
 ): Promise<ProviderResult> {
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
   if (!geminiKey) throw new Error('gemini_key_missing');
-  const model = 'gemini-2.0-flash';
+  const model = process.env.GEMINI_TIER3_MODEL?.trim() || 'gemini-3.5-flash-lite';
   const chat = new GoogleGenerativeAI(geminiKey).getGenerativeModel({
     model,
     safetySettings: [
