@@ -1093,6 +1093,36 @@ export function buildFocusPrompt(input: {
   ].filter(Boolean).join('\n');
 }
 
+/**
+ * Strips raw Markdown symbols (asterisks, headings, backticks, bullet dashes,
+ * decorative em/en-dashes) while preserving normal grammatical punctuation
+ * and hyphenated compound words (e.g. "well-known", "short-term").
+ */
+export function cleanPlainProse(raw: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+  return raw
+    .replace(/\r\n/g, '\n')
+    // Remove markdown heading prefixes (### Title -> Title)
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    // Remove bold/italic wrappers (**text**, __text__, *text*)
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s.,!?;:)]|$)/g, '$1$2')
+    // Remove inline code backticks
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove leading markdown bullet markers (- item or * item)
+    .replace(/^\s*[-*•]\s+/gm, '')
+    // Remove any leftover stray asterisks
+    .replace(/\*/g, '')
+    // Replace decorative em/en dashes with clean commas or spaces
+    .replace(/\s*[—–]\s*/g, ', ')
+    // Collapse excess blank lines and trailing spaces
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/,\s*,/g, ',')
+    .trim();
+}
+
 export function buildFocusPlusPrompt(input: {
   text: string;
   cognitiveMode?: string;
@@ -1107,6 +1137,7 @@ export function buildFocusPlusPrompt(input: {
   return [
     'You are "Ask DJ," a Focus Guide. Your mission is to perform a Deep Neural Refraction on the provided untrusted Noise.',
     'Perform a silent analysis to separate Signal vs Noise, uncover Logic Roots, craft punchy Dopamine Hooks, and create vivid Structural Anchors.',
+    'Write in clean, natural plain English. Never use markdown asterisks (*, **), hashes (#), backticks, bullet dashes, or decorative em-dashes. Only use standard grammar punctuation.',
     goalNote,
     modeNote,
     depthNote,
@@ -1143,6 +1174,7 @@ export function buildPlayPrompt(input: {
   return [
     'Transform the untrusted source passage into a concise Prism Play Card matching the strict JSON schema.',
     'Return ONLY valid JSON with exact keys: tinyIdea, metaphor, dopamineBoost (short non-medical encouragement), oneSmallMove, keyTerms (non-empty string array).',
+    'Write in clean plain English with zero markdown asterisks, hashes, backticks, or decorative em-dashes.',
     'Do not make clinical or medical claims and do not invent quiz answer keys.',
     modeNote,
     storyNote,
@@ -1455,28 +1487,28 @@ export function mapLaneOutputToSimplifyResponse(args: {
 
   if (lane === 'play') {
     const play = data as PlayCardOutput;
-    const whyCare = play.dopamineBoost.trim() || LOCAL_FALLBACK_CONFIDENCE_NOTE;
+    const whyCare = cleanPlainProse(play.dopamineBoost.trim() || LOCAL_FALLBACK_CONFIDENCE_NOTE);
     return {
-      tldr: [play.tinyIdea],
+      tldr: [cleanPlainProse(play.tinyIdea)],
       whyCare,
       readingTime,
       chunks: [
         {
           heading: isLocalFallback ? 'Local Structural Refraction' : 'Prism Play Card',
           content: contentPreview,
-          summary: play.tinyIdea,
-          keyTerms: play.keyTerms.length > 0 ? play.keyTerms : ['core-concept'],
-          metaphor: play.metaphor,
-          dopamineHook: play.dopamineBoost,
-          logicRoot: play.tinyIdea,
+          summary: cleanPlainProse(play.tinyIdea),
+          keyTerms: (play.keyTerms.length > 0 ? play.keyTerms : ['core-concept']).map(cleanPlainProse),
+          metaphor: cleanPlainProse(play.metaphor),
+          dopamineHook: cleanPlainProse(play.dopamineBoost),
+          logicRoot: cleanPlainProse(play.tinyIdea),
           citations: isLocalFallback
-            ? 'Local structural fallback — citations were not generated.'
-            : 'Prism Play card — verify against your source material.',
+            ? 'Local structural fallback. Citations were not generated.'
+            : 'Prism Play card. Verify against your source material.',
         },
       ],
       actions: [
         {
-          task: play.oneSmallMove,
+          task: cleanPlainProse(play.oneSmallMove),
           priority: 'high',
           estimatedMinutes: 2,
         },
@@ -1484,34 +1516,40 @@ export function mapLaneOutputToSimplifyResponse(args: {
       chartData: null,
       usage,
       ...(routeMeta ? { routeMeta } : {}),
-      playCard: play,
+      playCard: {
+        ...play,
+        tinyIdea: cleanPlainProse(play.tinyIdea),
+        metaphor: cleanPlainProse(play.metaphor),
+        dopamineBoost: cleanPlainProse(play.dopamineBoost),
+        oneSmallMove: cleanPlainProse(play.oneSmallMove),
+      },
     };
   }
 
   if (lane === 'lens') {
     const lens = data as LensOutput;
-    const whyCare = lens.whyItMatters.trim() || LOCAL_FALLBACK_CONFIDENCE_NOTE;
+    const whyCare = cleanPlainProse(lens.whyItMatters.trim() || LOCAL_FALLBACK_CONFIDENCE_NOTE);
     return {
-      tldr: [`${lens.term}: ${lens.definition}`],
+      tldr: [`${cleanPlainProse(lens.term)}: ${cleanPlainProse(lens.definition)}`],
       whyCare,
       readingTime,
       chunks: [
         {
-          heading: isLocalFallback ? 'Local Structural Refraction' : `Prism Lens · ${lens.term}`,
+          heading: isLocalFallback ? 'Local Structural Refraction' : `Prism Lens ${cleanPlainProse(lens.term)}`,
           content: contentPreview,
-          summary: lens.definition,
-          keyTerms: [lens.term],
-          metaphor: lens.plainExample,
-          dopamineHook: lens.whyItMatters,
-          logicRoot: lens.uncertaintyNote,
+          summary: cleanPlainProse(lens.definition),
+          keyTerms: [cleanPlainProse(lens.term)],
+          metaphor: cleanPlainProse(lens.plainExample),
+          dopamineHook: cleanPlainProse(lens.whyItMatters),
+          logicRoot: cleanPlainProse(lens.uncertaintyNote),
           citations: isLocalFallback
-            ? 'Local structural fallback — citations were not generated.'
-            : 'Prism Lens explanation — verify against your source material.',
+            ? 'Local structural fallback. Citations were not generated.'
+            : 'Prism Lens explanation. Verify against your source material.',
         },
       ],
       actions: [
         {
-          task: `Verify how "${lens.term}" is used in your original source.`,
+          task: `Verify how "${cleanPlainProse(lens.term)}" is used in your original source.`,
           priority: 'medium',
           estimatedMinutes: 2,
         },
@@ -1519,7 +1557,14 @@ export function mapLaneOutputToSimplifyResponse(args: {
       chartData: null,
       usage,
       ...(routeMeta ? { routeMeta } : {}),
-      lens,
+      lens: {
+        ...lens,
+        term: cleanPlainProse(lens.term),
+        definition: cleanPlainProse(lens.definition),
+        plainExample: cleanPlainProse(lens.plainExample),
+        whyItMatters: cleanPlainProse(lens.whyItMatters),
+        uncertaintyNote: cleanPlainProse(lens.uncertaintyNote),
+      },
     };
   }
 
@@ -1534,14 +1579,14 @@ export function mapLaneOutputToSimplifyResponse(args: {
 
   if (aiSegments && !isLocalFallback) {
     focusChunks = aiSegments.map((seg) => ({
-      heading: seg.heading,
-      content: seg.content,
-      summary: seg.summary,
-      keyTerms: seg.keyTerms.length > 0 ? seg.keyTerms : focus.keyPoints.slice(0, 5),
-      metaphor: seg.metaphor || aiMetaphor,
-      dopamineHook: seg.dopamineHook || aiDopamineHook,
-      logicRoot: focus.summary,
-      citations: 'Prism Focus synthesis — verify against your original source.',
+      heading: cleanPlainProse(seg.heading),
+      content: cleanPlainProse(seg.content),
+      summary: cleanPlainProse(seg.summary),
+      keyTerms: (seg.keyTerms.length > 0 ? seg.keyTerms : focus.keyPoints.slice(0, 5)).map(cleanPlainProse),
+      metaphor: cleanPlainProse(seg.metaphor || aiMetaphor),
+      dopamineHook: cleanPlainProse(seg.dopamineHook || aiDopamineHook),
+      logicRoot: cleanPlainProse(focus.summary),
+      citations: 'Prism Focus synthesis. Verify against your original source.',
     }));
   } else {
     // Split long study text into clean, digestible reading segments instead of a single wall
@@ -1574,32 +1619,32 @@ export function mapLaneOutputToSimplifyResponse(args: {
       const isFirst = index === 0;
       const segmentSummary = isFirst ? focus.summary : keyPoint;
       const segmentHook = isFirst
-        ? (aiDopamineHook || 'Key signal locked in — scan the takeaways below.')
-        : 'Next anchor ready — keep your momentum rolling.';
+        ? (aiDopamineHook || 'Key signal locked in. Scan the takeaways below.')
+        : 'Next anchor ready. Keep your momentum rolling.';
       const segmentMetaphor = isFirst
         ? (aiMetaphor || 'Like zooming in on the highlight reel before reading the full playbook.')
         : 'One bite-sized block at a time keeps your working memory clear.';
 
       return {
         heading: isLocalFallback
-          ? (segments.length > 1 ? `Local Refraction · Part ${index + 1}` : 'Local Structural Refraction')
-          : (segments.length > 1 ? `Core Signal · Part ${index + 1}` : 'Core Signal'),
+          ? (segments.length > 1 ? `Local Refraction Part ${index + 1}` : 'Local Structural Refraction')
+          : (segments.length > 1 ? `Core Signal Part ${index + 1}` : 'Core Signal'),
         content: segmentText.slice(0, 1200),
-        summary: segmentSummary,
-        keyTerms: focus.keyPoints.slice(0, 5),
-        metaphor: segmentMetaphor,
-        dopamineHook: segmentHook,
-        logicRoot: focus.summary,
+        summary: cleanPlainProse(segmentSummary),
+        keyTerms: focus.keyPoints.slice(0, 5).map(cleanPlainProse),
+        metaphor: cleanPlainProse(segmentMetaphor),
+        dopamineHook: cleanPlainProse(segmentHook),
+        logicRoot: cleanPlainProse(focus.summary),
         citations: isLocalFallback
-          ? 'Local structural fallback — citations were not generated.'
-          : 'Prism Focus synthesis — verify against your original source.',
+          ? 'Local structural fallback. Citations were not generated.'
+          : 'Prism Focus synthesis. Verify against your original source.',
       };
     });
   }
 
   return {
-    tldr: tldr.length > 0 ? tldr : [focus.summary],
-    whyCare,
+    tldr: (tldr.length > 0 ? tldr : [focus.summary]).map(cleanPlainProse),
+    whyCare: cleanPlainProse(whyCare),
     readingTime,
     chunks: focusChunks,
     actions: [
