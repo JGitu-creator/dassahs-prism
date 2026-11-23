@@ -549,7 +549,7 @@ const RefractiveTagline = () => {
         }}
         className={`text-lg md:text-xl font-bold italic tracking-tight text-center transition-colors duration-500 ${phase === 'clarity' ? 'text-blue-400' : 'text-[var(--fg)]'}`}
       >
-        "{text}"
+        {text}
       </motion.p>
 
       <AnimatePresence>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Inter, JetBrains_Mono, Lexend, Space_Grotesk } from "next/font/google";
+import { Cormorant_Garamond, Inter, JetBrains_Mono, Lexend, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import SessionSync from "@/components/SessionSync";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -9,10 +9,16 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-display" });
 const lexend = Lexend({ subsets: ["latin"], variable: "--font-reading" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  style: ["italic"],
+  variable: "--font-serif-signature",
+});
 
 export const metadata: Metadata = {
   title: "Dassah's Prism Engine | Prism Focus & Prism Play",
-  description: "Dassah's Prism Engine — powered by The Prism Engine. Refract overwhelming noise into clear focus in Prism Focus, and turn coursework dread into play in Prism Play.",
+  description: "Dassah's Prism Engine powered by The Prism Engine. Refract overwhelming noise into clear focus in Prism Focus and turn coursework dread into play in Prism Play.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://dassahs-prism.vercel.app"),
   alternates: {
     canonical: "https://dassahs-prism.vercel.app",
@@ -41,7 +47,7 @@ export const metadata: Metadata = {
         url: "/logo.png",
         width: 800,
         height: 800,
-        alt: "Dassah's Prism Engine - Prism Focus & Prism Play",
+        alt: "Dassah's Prism Engine",
       },
     ],
     locale: "en_US",
@@ -61,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${lexend.variable} ${jetbrainsMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${lexend.variable} ${jetbrainsMono.variable} ${cormorant.variable} h-full antialiased`}>
       <body className={`${inter.className} h-full`}>
         <Script
           src="https://www.googletagmanager.com/gtm.js?id=GTM-P9WZRQB6"
