@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Beaker, Compass, Moon, Sparkles, Sun, Wind, Zap } from 'lucide-react';
-import { PrismBeamSimulator } from '@/components/prism/PrismBeamSimulator';
+import { ArrowLeft, Beaker, Compass, Moon, Sparkles, Sun, Wind } from 'lucide-react';
+import { DopamineSparksLab } from '@/components/prism/DopamineSparksLab';
 
 export default function PrismLabPage() {
   const [darkMode, setDarkMode] = useState(true);
@@ -75,33 +75,23 @@ export default function PrismLabPage() {
         <section className="space-y-3 pt-2">
           <h1 className="text-3xl font-black tracking-tight sm:text-5xl">
             Prism Lab{' '}
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-violet-400 bg-clip-text text-transparent">
-              Interactive Sandbox
+            <span className="bg-gradient-to-r from-amber-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+              Idea 2 Sandbox
             </span>
           </h1>
           <p className={`max-w-2xl text-sm leading-relaxed sm:text-base ${muted}`}>
-            Test new visual and interactive upgrades safely in isolation before promoting them to the main workspace. Currently active: Idea 1.
+            Testing Dopamine Sparks, Momentum Bursts, and tactile Glass Chime feedback in isolation before promoting anything to the main workspace.
           </p>
         </section>
 
-        {/* Idea 1: Live Interactive Simulator */}
-        <PrismBeamSimulator darkMode={darkMode} reducedMotion={reducedMotion} />
+        {/* Idea 2: Dopamine Sparks & Momentum */}
+        <DopamineSparksLab darkMode={darkMode} reducedMotion={reducedMotion} />
 
-        {/* Staged Queue for Ideas 2, 3, 4 */}
-        <section aria-label="Upcoming Lab Experiments" className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          <div className={`rounded-3xl border p-6 backdrop-blur-xl ${cardSurface}`}>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-400">
-              <Zap size={12} /> Idea 2 · Next Up
-            </div>
-            <h3 className="text-lg font-black">Dopamine Sparks & Momentum</h3>
-            <p className={`mt-2 text-xs leading-relaxed ${muted}`}>
-              Subtle spectral light bursts and Bandwidth Reclaimed victory badges when refracting notes or completing study steps.
-            </p>
-          </div>
-
+        {/* Queued Next Experiments */}
+        <section aria-label="Upcoming Lab Experiments" className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div className={`rounded-3xl border p-6 backdrop-blur-xl ${cardSurface}`}>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-400">
-              <Wind size={12} /> Idea 3 · Queued
+              <Wind size={12} /> Idea 3 · Next Up
             </div>
             <h3 className="text-lg font-black">Breathing Living Aurora</h3>
             <p className={`mt-2 text-xs leading-relaxed ${muted}`}>
