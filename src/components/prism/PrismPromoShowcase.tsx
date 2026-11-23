@@ -26,7 +26,6 @@ export const PROMO_CHAPTERS = [
 
 const PROMO_VIDEO_SRC = '/media/Dassahs-Prism-product-promo-draft.mp4';
 const INSTRUMENTAL_SRC = '/media/Prism-joyful-instrumental.mp3';
-const POSTER_SRC = '/brand/03-prism-ribbon.png';
 const AMBIENT_DEFAULT_VOLUME = 0.15;
 
 export function PrismPromoShowcase({ darkMode = true }: { darkMode?: boolean }) {
@@ -206,14 +205,14 @@ export function PrismPromoShowcase({ darkMode = true }: { darkMode?: boolean }) 
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-cyan-300">
             <Sparkles size={12} />
-            <span>75-Second Product Preview · Authentic Captures</span>
+            <span>75-Second Product Showcase</span>
           </div>
           <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${heading}`}>
             See Dassah’s Prism Engine in 75 seconds
           </h2>
         </div>
         <p className={`max-w-md text-xs sm:text-sm font-medium ${muted}`}>
-          From overload to one clear next step: Dassah’s Prism for understanding, Prism Play for manageable study cards.
+          Powered by the Prism Engine: Prism Focus for deep document clarity, Prism Play for gamified study quests.
         </p>
       </div>
 
@@ -231,7 +230,6 @@ export function PrismPromoShowcase({ darkMode = true }: { darkMode?: boolean }) 
               key={fullCut ? 'full' : 'preview'}
               ref={videoRef}
               src={PROMO_VIDEO_SRC}
-              poster={POSTER_SRC}
               className="h-full w-full object-cover"
               playsInline
               muted={!fullCut}
