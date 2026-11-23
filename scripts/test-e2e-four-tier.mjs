@@ -559,16 +559,19 @@ if (shouldRunTier(1)) {
 
   // --- Area 1B: 4-Tier Capability Routing & Feature Flag (F3, F10) ---
 
-  test('T1-1B-01: PRISM_FOUR_TIER_ENABLED defaults OFF and .env.example documents 4-tier keys', async () => {
+  test('T1-1B-01: PRISM_FOUR_TIER_ENABLED defaults ON with emergency kill-switch and .env.example documents keys', async () => {
     const mod = await loadContractModule('../src/lib/server/prism-router.ts');
     const isFourTierEnabled = requireExport(mod, 'isFourTierEnabled', 'src/lib/server/prism-router.ts');
 
     await withEnvAndMockFetch({ PRISM_FOUR_TIER_ENABLED: undefined }, async () => new Response('', { status: 500 }), async () => {
-      assert.equal(isFourTierEnabled(), false, 'PRISM_FOUR_TIER_ENABLED must default to false when unset');
+      assert.equal(isFourTierEnabled(), true, 'PRISM_FOUR_TIER_ENABLED must default to true when unset');
+    });
+    await withEnvAndMockFetch({ PRISM_FOUR_TIER_ENABLED: 'false' }, async () => new Response('', { status: 500 }), async () => {
+      assert.equal(isFourTierEnabled(), false, 'PRISM_FOUR_TIER_ENABLED=false kill-switch must disable router');
     });
 
     const envExample = await readRepoFile('.env.example');
-    assert.match(envExample, /PRISM_FOUR_TIER_ENABLED\s*=\s*false/, '.env.example must set PRISM_FOUR_TIER_ENABLED=false');
+    assert.match(envExample, /PRISM_FOUR_TIER_ENABLED\s*=\s*true/, '.env.example must set PRISM_FOUR_TIER_ENABLED=true');
     assert.match(envExample, /GROQ_TIER1_MODEL\s*=\s*openai\/gpt-oss-20b/, '.env.example must define GROQ_TIER1_MODEL=openai/gpt-oss-20b');
     assert.match(envExample, /GROQ_TIER2_MODEL\s*=\s*openai\/gpt-oss-120b/, '.env.example must define GROQ_TIER2_MODEL=openai/gpt-oss-120b');
     assert.match(envExample, /PRISM_SHADOW_MODE\s*=\s*false/, '.env.example must keep PRISM_SHADOW_MODE=false');
@@ -1477,18 +1480,20 @@ if (shouldRunTier(2)) {
     );
   });
 
-  test('T2-2E-02: isFourTierEnabled() strictly accepts only exact "true"', async () => {
+  test('T2-2E-02: isFourTierEnabled() defaults ON and honors explicit kill-switch', async () => {
     const mod = await loadContractModule('../src/lib/server/prism-router.ts');
     const isFourTierEnabled = requireExport(mod, 'isFourTierEnabled', 'src/lib/server/prism-router.ts');
 
-    for (const val of [undefined, '', 'false', '0', '1', 'yes', 'TRUE']) {
+    for (const val of ['', 'false', '0', '1', 'yes', 'TRUE']) {
       await withEnvAndMockFetch({ PRISM_FOUR_TIER_ENABLED: val }, async () => new Response(''), async () => {
         assert.equal(isFourTierEnabled(), false, `PRISM_FOUR_TIER_ENABLED=${String(val)} must evaluate to false`);
       });
     }
-    await withEnvAndMockFetch({ PRISM_FOUR_TIER_ENABLED: 'true' }, async () => new Response(''), async () => {
-      assert.equal(isFourTierEnabled(), true, 'PRISM_FOUR_TIER_ENABLED="true" must evaluate to true');
-    });
+    for (const val of [undefined, 'true']) {
+      await withEnvAndMockFetch({ PRISM_FOUR_TIER_ENABLED: val }, async () => new Response(''), async () => {
+        assert.equal(isFourTierEnabled(), true, `PRISM_FOUR_TIER_ENABLED=${String(val)} must evaluate to true`);
+      });
+    }
   });
 
   test('T2-2E-03: Backward-compatible internal storage, env, CSS & DB keys remain intact', async () => {
@@ -2234,7 +2239,10 @@ if (shouldRunTier(4)) {
     const isFourTierEnabled = requireExport(routerMod, 'isFourTierEnabled', 'src/lib/server/prism-router.ts');
     const classifyFailure = requireExport(routerMod, 'classifyFailure', 'src/lib/server/prism-router.ts');
     await withEnvAndMockFetch({ PRISM_FOUR_TIER_ENABLED: undefined }, async () => new Response(''), async () => {
-      assert.equal(isFourTierEnabled(), false, 'Production default PRISM_FOUR_TIER_ENABLED must be false');
+      assert.equal(isFourTierEnabled(), true, 'Production default PRISM_FOUR_TIER_ENABLED must be true');
+    });
+    await withEnvAndMockFetch({ PRISM_FOUR_TIER_ENABLED: 'false' }, async () => new Response(''), async () => {
+      assert.equal(isFourTierEnabled(), false, 'Kill-switch PRISM_FOUR_TIER_ENABLED=false must evaluate to false');
     });
 
     // 4. Core 15-check failure-class & fallback contract verification

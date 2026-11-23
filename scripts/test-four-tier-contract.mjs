@@ -90,7 +90,8 @@ test('4. remote candidate failure does not replace the local baseline', async ()
 });
 
 test('5. candidate integration preserves baseline when candidate route is unavailable', async () => {
-  assert.equal(isFourTierEnabled({ PRISM_FOUR_TIER_ENABLED: undefined }), false);
+  assert.equal(isFourTierEnabled({ PRISM_FOUR_TIER_ENABLED: 'false' }), false);
+  assert.equal(isFourTierEnabled({ PRISM_FOUR_TIER_ENABLED: undefined }), true);
   const res = await routeFourTier(
     { lane: 'focus', text: 'Verify service health after deployment.' },
     {

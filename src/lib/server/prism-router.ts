@@ -23,11 +23,18 @@ import {
   type StructuredPrismLane,
 } from './prism-contracts.ts';
 
-export type PrismTier = 'tier1' | 'tier2' | 'tier3' | 'tier4';
+/**
+ * Prism tiers. 'pool' is the open-ended OpenRouter free-model pool that sits
+ * between the fixed remote tiers (Groq → Groq → Gemini) and the local fallback,
+ * turning the cascade into an extensible "backup of backup" chain.
+ */
+export type PrismTier = 'tier1' | 'tier2' | 'tier3' | 'pool' | 'tier4';
 export type RemotePrismTier = 'tier1' | 'tier2' | 'tier3';
 
 export const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions';
 export const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+export const OPENROUTER_CHAT_COMPLETIONS_URL = 'https://openrouter.ai/api/v1/chat/completions';
+export const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 
 export const DEFAULT_GROQ_TIER1_MODEL = 'openai/gpt-oss-20b';
 export const DEFAULT_GROQ_TIER2_MODEL = 'openai/gpt-oss-120b';
@@ -38,6 +45,29 @@ export const LOCAL_FALLBACK_LABEL = 'Local Structural Refraction';
 export const TIER1_LABEL = 'Groq · Tier 1';
 export const TIER2_LABEL = 'Groq · Tier 2';
 export const TIER3_LABEL = 'Gemini';
+export const POOL_LABEL = 'OpenRouter · Free Pool';
+
+/**
+ * Seed list of OpenRouter free models that advertised structured output in the
+ * live catalog (checked 22 Nov 2026). Operators can prepend their own list via
+ * OPENROUTER_FREE_MODELS (comma separated); the live catalog is also discovered
+ * at runtime so new free models join the pool without a code change.
+ */
+export const DEFAULT_OPENROUTER_FREE_POOL: readonly string[] = [
+  'baidu/ernie-5.5-flash-preview:free',
+  'nvidia/nemotron-3.5-super-vl:free',
+  'google/gemma-4-31b-it:free',
+  'particle-ai/particle-1:free',
+];
+const DEFAULT_OPENROUTER_VISION_MODELS: readonly string[] = [
+  'nvidia/nemotron-3.5-super-vl:free',
+  'google/gemma-4-31b-it:free',
+  'particle-ai/particle-1:free',
+];
+const DEFAULT_POOL_MAX_MODELS = 4;
+const POOL_TOTAL_DEADLINE_MS = 45_000;
+const POOL_PER_MODEL_TIMEOUT_MS = 12_000;
+const CATALOG_TTL_MS = 60 * 60 * 1000;
 
 export type ModelCapabilityEntry = {
   provider: AiProvider;
@@ -77,6 +107,14 @@ export const PRISM_CAPABILITY_MATRIX: readonly ModelCapabilityEntry[] = [
     supportsVision: true,
     approvedForProduction: true,
   },
+  ...DEFAULT_OPENROUTER_FREE_POOL.map((model): ModelCapabilityEntry => ({
+    provider: 'openrouter',
+    model,
+    tier: 'pool',
+    supportsStrictJsonSchema: true,
+    supportsVision: DEFAULT_OPENROUTER_VISION_MODELS.includes(model),
+    approvedForProduction: true,
+  })),
   {
     provider: 'groq',
     model: DEFERRED_GROQ_VISION_MODEL,
@@ -123,8 +161,15 @@ function sanitizeApprovedModel(candidate: string | undefined, fallback: string):
   return trimmed;
 }
 
+/**
+ * Infinite-Tier Orchestrator activation check.
+ * Enabled ON by default (Groq Tier 1 -> Groq Tier 2 -> Gemini 2.0 Flash -> OpenRouter Free Pool -> Local Refraction).
+ * Operators can explicitly disable via PRISM_FOUR_TIER_ENABLED=false as an emergency kill-switch.
+ */
 export function isFourTierEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return env.PRISM_FOUR_TIER_ENABLED === 'true';
+  const raw = env.PRISM_FOUR_TIER_ENABLED;
+  if (raw === undefined) return true;
+  return raw === 'true';
 }
 
 export function getGroqTier1Model(env: Record<string, string | undefined> = process.env): string {
@@ -148,6 +193,11 @@ export type FourTierHealthMetadata = {
   tier3Model: string;
   multimodalLane: 'tier3_gemini';
   groqVisionDeferred: true;
+  openRouterPool: {
+    enabled: boolean;
+    seedModels: string[];
+    dynamicDiscovery: boolean;
+  };
   providers: {
     groq: boolean;
     openrouter: boolean;
@@ -163,6 +213,7 @@ export type FourTierHealthMetadata = {
 export function getFourTierHealthMetadata(
   env: Record<string, string | undefined> = process.env,
 ): FourTierHealthMetadata {
+  const openRouterReady = Boolean(getOpenRouterKey(env));
   return {
     fourTierEnabled: isFourTierEnabled(env),
     groqModels: {
@@ -172,13 +223,182 @@ export function getFourTierHealthMetadata(
     tier3Model: getTier3GeminiModel(env),
     multimodalLane: 'tier3_gemini',
     groqVisionDeferred: true,
+    openRouterPool: {
+      enabled: openRouterReady && env.OPENROUTER_POOL_ENABLED !== 'false',
+      seedModels: getConfiguredPoolSeed(env),
+      dynamicDiscovery: env.OPENROUTER_DYNAMIC_DISCOVERY !== 'false',
+    },
     providers: {
       groq: Boolean(env.GROQ_API_KEY?.trim()),
-      openrouter: Boolean((env.OPENROUTER_API_KEY || env.ROUTER_API_KEY)?.trim()),
+      openrouter: openRouterReady,
       gemini: Boolean(env.GEMINI_API_KEY?.trim()),
       local: true,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// OpenRouter Free Pool (open-ended "backup of backup" tier)
+// ---------------------------------------------------------------------------
+
+function getOpenRouterKey(env: Record<string, string | undefined>): string {
+  return (env.OPENROUTER_API_KEY || env.ROUTER_API_KEY || '').trim();
+}
+
+function isAllowedPoolModel(model: string): boolean {
+  if (!model || !model.includes('/')) return false;
+  return !FORBIDDEN_FOUR_TIER_MODEL_PATTERNS.some((re) => re.test(model));
+}
+
+function getConfiguredPoolSeed(env: Record<string, string | undefined>): string[] {
+  const fromEnv = (env.OPENROUTER_FREE_MODELS || '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return Array.from(new Set([...fromEnv, ...DEFAULT_OPENROUTER_FREE_POOL])).filter(isAllowedPoolModel);
+}
+
+type CatalogModel = { id: string; structured: boolean; vision: boolean };
+let catalogCache: { at: number; models: CatalogModel[] } | null = null;
+
+/** Test hook: clears the cached OpenRouter catalog. */
+export function resetOpenRouterCatalogCache(): void {
+  catalogCache = null;
+}
+
+async function discoverOpenRouterFreeModels(
+  fetchImpl: typeof fetch,
+  nowMs: number,
+): Promise<CatalogModel[]> {
+  if (catalogCache && nowMs - catalogCache.at < CATALOG_TTL_MS) return catalogCache.models;
+  try {
+    const response = await fetchWithTimeout(fetchImpl, OPENROUTER_MODELS_URL, { method: 'GET' }, 4000);
+    if (!response.ok) return catalogCache?.models ?? [];
+    const body = (await response.json()) as { data?: Array<Record<string, unknown>> };
+    const models: CatalogModel[] = (Array.isArray(body?.data) ? body.data : [])
+      .map((m) => {
+        const id = typeof m.id === 'string' ? m.id : '';
+        const params = Array.isArray(m.supported_parameters) ? (m.supported_parameters as string[]) : [];
+        const arch = (m.architecture && typeof m.architecture === 'object' ? m.architecture : {}) as Record<string, unknown>;
+        const inputs = Array.isArray(arch.input_modalities) ? (arch.input_modalities as string[]) : [];
+        return {
+          id,
+          structured: params.includes('structured_outputs') || params.includes('response_format'),
+          vision: inputs.includes('image'),
+        };
+      })
+      .filter((m) => m.id.endsWith(':free') && m.structured && isAllowedPoolModel(m.id));
+    catalogCache = { at: nowMs, models };
+    return models;
+  } catch {
+    return catalogCache?.models ?? [];
+  }
+}
+
+async function resolvePoolModels(args: {
+  env: Record<string, string | undefined>;
+  fetchImpl: typeof fetch;
+  nowMs: number;
+  needsVision: boolean;
+}): Promise<string[]> {
+  const seed = getConfiguredPoolSeed(args.env);
+  const discovered = args.env.OPENROUTER_DYNAMIC_DISCOVERY === 'false'
+    ? []
+    : await discoverOpenRouterFreeModels(args.fetchImpl, args.nowMs);
+  const visionSet = new Set([
+    ...DEFAULT_OPENROUTER_VISION_MODELS,
+    ...discovered.filter((m) => m.vision).map((m) => m.id),
+  ]);
+  const ordered = Array.from(new Set([...seed, ...discovered.map((m) => m.id)]));
+  const eligible = args.needsVision ? ordered.filter((m) => visionSet.has(m)) : ordered;
+  const maxModels = Math.max(1, Math.min(12, Number(args.env.OPENROUTER_POOL_MAX) || DEFAULT_POOL_MAX_MODELS));
+  return eligible.slice(0, maxModels);
+}
+
+async function callOpenRouterCandidate(args: {
+  fetchImpl: typeof fetch;
+  apiKey: string;
+  model: string;
+  lane: PrismLane;
+  request: FourTierRequest;
+  maxOutputTokens: number;
+  timeoutMs: number;
+}): Promise<RemoteCallResult> {
+  const messages: Array<Record<string, unknown>> = buildLaneMessages(args.lane, {
+    text: args.request.text,
+    context: args.request.context,
+    history: args.request.history,
+    systemInstruction: args.request.systemInstruction,
+    cognitiveMode: args.request.cognitiveMode,
+    simplicityLevel: args.request.simplicityLevel,
+    isStory: args.request.isStory,
+    missionGoal: args.request.missionGoal,
+    hasImage: Boolean(args.request.image),
+  }).map((m) => ({ ...m }));
+
+  if (args.request.image && messages.length > 0) {
+    const last = messages[messages.length - 1];
+    last.content = [
+      { type: 'text', text: String(last.content ?? '') },
+      {
+        type: 'image_url',
+        image_url: { url: `data:${args.request.image.mimeType};base64,${args.request.image.data}` },
+      },
+    ];
+  }
+
+  const payload: Record<string, unknown> = {
+    model: args.model,
+    messages,
+    temperature: args.lane === 'chat' ? 0.4 : 0.2,
+    max_tokens: args.maxOutputTokens,
+    stream: false,
+    usage: { include: true },
+  };
+  if (args.lane !== 'chat') {
+    payload.response_format = getResponseFormatForLane(args.lane);
+  }
+
+  try {
+    const response = await fetchWithTimeout(
+      args.fetchImpl,
+      OPENROUTER_CHAT_COMPLETIONS_URL,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${args.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://dassahs-prism.vercel.app',
+          'X-Title': "Dassah's Prism Engine",
+        },
+        body: JSON.stringify(payload),
+      },
+      args.timeoutMs,
+    );
+    const retryAfterMs = parseRetryAfterMs(response.headers?.get?.('retry-after') ?? null);
+    if (!response.ok) return { status: response.status, retryAfterMs };
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      return { status: 200, text: '', rawUsage: undefined };
+    }
+    const record = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
+    const choices = Array.isArray(record.choices) ? record.choices : [];
+    const firstChoice = (choices[0] && typeof choices[0] === 'object' ? choices[0] : {}) as Record<string, unknown>;
+    const message = (firstChoice.message && typeof firstChoice.message === 'object'
+      ? firstChoice.message
+      : {}) as Record<string, unknown>;
+    const content = typeof message.content === 'string' ? message.content : '';
+    return {
+      status: response.status,
+      text: content,
+      rawUsage: record.usage,
+      resolvedModel: typeof record.model === 'string' && record.model.trim() ? record.model.trim() : args.model,
+    };
+  } catch (error) {
+    return { error };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -513,6 +733,15 @@ export type FourTierRequest = {
   maxTokensBudget?: number;
   maxCostUsd?: number;
   timeoutMs?: number;
+  /**
+   * Optional future-ready BYOK (Bring Your Own Key) ephemeral configuration.
+   * Validated against injection/forbidden patterns and never persisted or logged.
+   */
+  byok?: {
+    provider: 'groq' | 'gemini' | 'openrouter';
+    apiKey: string;
+    model?: string;
+  };
 };
 
 export type AttemptRecord = {
@@ -535,7 +764,7 @@ export type FourTierResult = {
   label: string;
   isLocalFallback: boolean;
   shouldRefundCredits: boolean;
-  decision: 'tier1_accepted' | 'tier2_accepted' | 'tier3_accepted' | 'tier4_local_fallback';
+  decision: 'tier1_accepted' | 'tier2_accepted' | 'tier3_accepted' | 'pool_accepted' | 'tier4_local_fallback';
   failureClass: FailureClass;
   fallbackReason?: string;
   whyCare: string;
@@ -1003,6 +1232,10 @@ export async function routeFourTier(
   const hasImage = Boolean(request.image);
   let lastFailureClass: FailureClass = 'auth_or_config';
   let lastFallbackReason = 'all_remote_tiers_unavailable';
+  let shouldStopAllRemote = false;
+
+  const byokProvider = request.byok?.provider;
+  const byokKey = typeof request.byok?.apiKey === 'string' ? request.byok.apiKey.trim() : '';
 
   for (const tier of tierSequence) {
     const config = getTierConfig(tier, env);
@@ -1012,9 +1245,9 @@ export async function routeFourTier(
     const maxRetries = deps?.maxRetriesPerTier ?? budget.maxRetries;
     const retryDelays = deps?.retryDelaysMs ?? budget.retryDelaysMs;
 
-    // Check provider key availability without making unnecessary network calls
-    const groqKey = env.GROQ_API_KEY?.trim() || '';
-    const geminiKey = env.GEMINI_API_KEY?.trim() || '';
+    // Check provider key availability (including optional ephemeral BYOK override)
+    const groqKey = (byokProvider === 'groq' && byokKey) ? byokKey : (env.GROQ_API_KEY?.trim() || '');
+    const geminiKey = (byokProvider === 'gemini' && byokKey) ? byokKey : (env.GEMINI_API_KEY?.trim() || '');
 
     if ((tier === 'tier1' || tier === 'tier2') && !groqKey) {
       attempts.push({
@@ -1047,7 +1280,6 @@ export async function routeFourTier(
     }
 
     let prevRetryAfterMs: number | undefined;
-    let shouldStopAllRemote = false;
 
     for (let attemptIdx = 0; attemptIdx <= maxRetries; attemptIdx += 1) {
       if (attemptIdx > 0) {
@@ -1227,6 +1459,150 @@ export async function routeFourTier(
 
     if (shouldStopAllRemote) {
       break;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Tier 4..N: OpenRouter Infinite Free Pool ("Backup of Backup" Cascade)
+  // Executes when fixed tiers (Groq + Gemini) are exhausted on transient or
+  // missing-key errors, and OPENROUTER_API_KEY (or BYOK openrouter key) is set.
+  // -------------------------------------------------------------------------
+  const openRouterKey = (byokProvider === 'openrouter' && byokKey) ? byokKey : getOpenRouterKey(env);
+  if (!shouldStopAllRemote && openRouterKey && env.OPENROUTER_POOL_ENABLED !== 'false') {
+    const poolStartedAt = nowImpl();
+    const customByokModel = byokProvider === 'openrouter' && request.byok?.model && isAllowedPoolModel(request.byok.model)
+      ? [request.byok.model.trim()]
+      : [];
+    const poolModels = [
+      ...customByokModel,
+      ...(await resolvePoolModels({
+        env,
+        fetchImpl,
+        nowMs: poolStartedAt,
+        needsVision: hasImage,
+      })),
+    ];
+    const poolBudget = getDefaultTierBudget(request.lane, 'tier3', hasImage);
+    const maxTokensBudget = request.maxTokensBudget ?? poolBudget.maxTotalTokens;
+    const perModelTimeoutMs = Math.min(request.timeoutMs ?? POOL_PER_MODEL_TIMEOUT_MS, POOL_PER_MODEL_TIMEOUT_MS);
+
+    for (const poolModel of Array.from(new Set(poolModels))) {
+      if (nowImpl() - poolStartedAt >= POOL_TOTAL_DEADLINE_MS) {
+        break;
+      }
+      const startedAt = nowImpl();
+      const callResult = await callOpenRouterCandidate({
+        fetchImpl,
+        apiKey: openRouterKey,
+        model: poolModel,
+        lane: request.lane,
+        request,
+        maxOutputTokens: poolBudget.maxOutputTokens,
+        timeoutMs: perModelTimeoutMs,
+      });
+      const durationMs = Math.max(0, nowImpl() - startedAt);
+
+      if (callResult.error != null || (typeof callResult.status === 'number' && (callResult.status < 200 || callResult.status >= 300))) {
+        const classification = classifyFailure({
+          status: callResult.status,
+          error: callResult.error,
+          tier: 'tier3',
+        });
+        attempts.push({
+          tier: 'pool',
+          provider: 'openrouter',
+          model: poolModel,
+          ...(typeof callResult.status === 'number' ? { status: callResult.status } : {}),
+          failureClass: classification.failureClass,
+          decision: 'next_tier',
+          retryCount: 0,
+          durationMs,
+        });
+        lastFailureClass = classification.failureClass;
+        lastFallbackReason = classification.failureClass;
+        continue;
+      }
+
+      const rawText = callResult.text ?? '';
+      let schemaValid = false;
+      let validatedData: LaneOutput | null = null;
+      if (request.lane === 'chat') {
+        const trimmedChat = rawText.trim();
+        if (trimmedChat.length > 0) {
+          schemaValid = true;
+          validatedData = { text: trimmedChat };
+        }
+      } else {
+        const parsed = parseStrictJsonObject(rawText);
+        if (parsed.ok) {
+          const validated = validateLanePayload(request.lane as StructuredPrismLane, parsed.value);
+          if (validated.ok) {
+            schemaValid = true;
+            validatedData = validated.data;
+          }
+        }
+      }
+
+      const resolvedModel = callResult.resolvedModel || poolModel;
+      const usageParsed = parseStrictProviderUsage(callResult.rawUsage, 'openrouter', resolvedModel, {
+        tier: 'pool',
+        label: POOL_LABEL,
+      });
+      const hasValidUsage = usageParsed.ok;
+      const overBudget = usageParsed.ok && usageParsed.usage.totalTokens > maxTokensBudget;
+      const serializedOutput = validatedData ? JSON.stringify(validatedData) : rawText;
+      const outputSafety = evaluateOutputSafety(serializedOutput);
+      const unsafe = !outputSafety.safe;
+
+      const classification = classifyFailure({
+        status: callResult.status ?? 200,
+        schemaValid,
+        hasValidUsage,
+        overBudget,
+        unsafe,
+        tier: 'tier3',
+      });
+
+      attempts.push({
+        tier: 'pool',
+        provider: 'openrouter',
+        model: resolvedModel,
+        status: callResult.status ?? 200,
+        failureClass: classification.failureClass,
+        decision: classification.decision === 'tier_accepted' ? 'tier_accepted' : 'next_tier',
+        retryCount: 0,
+        durationMs,
+      });
+
+      if (unsafe) {
+        lastFailureClass = 'unsafe_boundary';
+        lastFallbackReason = outputSafety.reason || 'unsafe_boundary';
+        break;
+      }
+
+      if (classification.decision === 'tier_accepted' && validatedData && usageParsed.ok) {
+        return {
+          ok: true,
+          lane: request.lane,
+          tier: 'pool',
+          provider: 'openrouter',
+          model: resolvedModel,
+          label: POOL_LABEL,
+          isLocalFallback: false,
+          shouldRefundCredits: false,
+          decision: 'pool_accepted',
+          failureClass: 'none',
+          whyCare: extractWhyCareFromLaneData(request.lane, validatedData),
+          data: validatedData,
+          usage: usageParsed.usage,
+          safety,
+          complexity,
+          attempts,
+        };
+      }
+
+      lastFailureClass = classification.failureClass;
+      lastFallbackReason = classification.failureClass;
     }
   }
 
