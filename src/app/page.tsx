@@ -467,14 +467,14 @@ const RefractiveNeuralCore = ({ loading, inputLength, isVictorious, user, mouseP
   </div>
 );
 };
-const DIVINE_INSIGHTS = [
+const SCRIPTURE_INSIGHTS = [
   "Commit your work to the Lord, and your plans will be established. - Proverbs 16:3",
   "For I know the plans I have for you, declares the Lord. - Jeremiah 29:11",
   "I can do all things through Christ who strengthens me. - Philippians 4:13",
   "He gives power to the faint, and to him who has no might he increases strength. - Isaiah 40:29"
 ];
 const getIsSunday = () => new Date().getDay() === 0;
-const getDailyInsight = () => DIVINE_INSIGHTS[new Date().getDate() % DIVINE_INSIGHTS.length];
+const getDailyInsight = () => SCRIPTURE_INSIGHTS[new Date().getDate() % SCRIPTURE_INSIGHTS.length];
 const CerebralRecap = ({ data, onFinish }: { data: any, onFinish: () => void }) => {
   if (!data) return null;
   const computedWordCount = data.chunks.reduce((acc: number, chunk: any) => acc + (chunk.original?.trim().split(/\s+/).filter(Boolean).length || 0), 0);
@@ -549,7 +549,7 @@ const RefractiveTagline = () => {
         }}
         className={`text-lg md:text-xl font-bold italic tracking-tight text-center transition-colors duration-500 ${phase === 'clarity' ? 'text-blue-400' : 'text-[var(--fg)]'}`}
       >
-        "{text}"
+        {text}
       </motion.p>
 
       <AnimatePresence>
@@ -1382,7 +1382,7 @@ export default function Home() {
     const sensitiveKeyword = /password|secret|api key|access token|bank account|medical record|患者|diagnosis/i;
 
     if (!pendingImage && (ssnPattern.test(textToSimplify) || privateKeyPattern.test(textToSimplify) || (textToSimplify.length < 120 && sensitiveKeyword.test(textToSimplify)))) {
-      if (!confirm("SOVEREIGN PRIVACY WARNING: This text may contain a password, API key, identity number, financial detail, or medical information. It will be sent to the configured AI provider for refraction. Remove secrets first, or choose Cancel.")) {
+      if (!confirm("PRIVACY WARNING: This text may contain a password, API key, identity number, financial detail, or medical information. It will be sent to the configured AI provider for refraction. Remove secrets first, or choose Cancel.")) {
         return;
       }
     }
@@ -1751,7 +1751,13 @@ export default function Home() {
       }
       if (result.usage) {
         setAiUsage(prev => {
-          const next = { totalTokens: prev.totalTokens + Number(result.usage.totalTokens || 0), provider: result.usage.provider || prev.provider, model: result.usage.model || prev.model };
+          const next = {
+            totalTokens: prev.totalTokens + Number(result.usage.totalTokens || 0),
+            provider: result.usage.provider || prev.provider,
+            model: result.usage.model || prev.model,
+            tier: result.usage.tier || result.routeMeta?.tier,
+            label: result.usage.label || result.routeMeta?.label,
+          };
           localStorage.setItem('dassahs_ai_tokens', next.totalTokens.toString());
           localStorage.setItem('dassahs_ai_provider', next.provider);
           localStorage.setItem('dassahs_ai_model', next.model);
@@ -2086,7 +2092,7 @@ export default function Home() {
             <motion.div whileHover={{ scale: 1.2, rotate: -10 }}><Clock size={18} className="md:w-5 md:h-5 transition-transform" /></motion.div>
           </button>
           <div className="w-[1px] h-6 bg-[var(--bg)]/10 mx-0.5 md:mx-1" />
-          <button onClick={() => { setFocusMode(f => f === "dastastic" ? "sovereign" : "dastastic"); }} title={focusMode === 'sovereign' ? 'Focus (Sovereign) mode active — click to switch to Dastastic mode' : 'Dastastic mode active — click to switch to Focus (Sovereign) mode'} className={`px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 ${focusMode === 'sovereign' ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'border border-[var(--color-border)] bg-[var(--bg)]/5 text-[var(--fg)]/85 hover:text-[var(--fg)]'}`}>
+          <button onClick={() => { setFocusMode(f => f === "dastastic" ? "sovereign" : "dastastic"); }} title={focusMode === 'sovereign' ? 'Focus mode active — click to switch to Dastastic mode' : 'Dastastic mode active — click to switch to Focus mode'} className={`px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 ${focusMode === 'sovereign' ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'border border-[var(--color-border)] bg-[var(--bg)]/5 text-[var(--fg)]/85 hover:text-[var(--fg)]'}`}>
             {focusMode === 'sovereign' ? <Crown size={13} className="md:w-3.5 md:h-3.5 shrink-0" /> : <Zap size={13} className="md:w-3.5 md:h-3.5 shrink-0" />}
             <span>{focusMode === 'sovereign' ? 'Focus' : 'Dastastic'}</span>
           </button>
@@ -2606,8 +2612,11 @@ export default function Home() {
       )}</AnimatePresence>
       {!data ? (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl lg:max-w-4xl w-full space-y-6 md:space-y-10 z-10 px-4 pt-20 md:pt-24 pb-20">
-          <header className="text-center space-y-4 md:space-y-8 relative">
-            <h1 className="prism-brand text-4xl sm:text-6xl md:text-9xl font-black text-[var(--fg)] leading-[1.2] tracking-tight italic">Dassah&apos;s <span className="prism-text brand-prism">Prism</span></h1>
+          <header className="text-center space-y-4 md:space-y-6 relative">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/35 bg-blue-500/15 px-4 py-1.5 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-blue-300 shadow-[0_0_24px_rgba(59,130,246,0.2)]">
+              <Sparkles size={12} className="text-cyan-400" /> Dassah&apos;s Prism Engine · Powered by The Prism Engine
+            </div>
+            <h1 className="prism-brand text-4xl sm:text-6xl md:text-9xl font-black text-[var(--fg)] leading-[1.2] tracking-tight italic">Prism <span className="prism-text brand-prism">Focus</span></h1>
             <RefractiveTagline />
           </header>
           <NeuralRefractionSlider />

@@ -10,7 +10,11 @@
     "test:shadow": "node scripts/test-shadow-boundary.mjs && node --experimental-strip-types scripts/test-shadow-production.mjs",
     "test:acceptance": "node scripts/test-ui-contrast.mjs",
     "test:contracts": "node scripts/test-upload-tts-contracts.mjs",
-    "test:benchmarks": "node scripts/test-prism-benchmarks.mjs"
+    "test:benchmarks": "node scripts/test-prism-benchmarks.mjs",
+    "test:four-tier": "node --experimental-strip-types scripts/test-four-tier-contract.mjs",
+    "test:redteam": "node --experimental-strip-types scripts/test-redteam-guard.mjs",
+    "test:groq-live": "node --experimental-strip-types scripts/test-groq-live-smoke.mjs",
+    "test:e2e": "node --experimental-strip-types scripts/test-e2e-four-tier.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -7,6 +7,8 @@ type Usage = {
   totalTokens: number;
   provider: string;
   model: string;
+  tier?: string;
+  label?: string;
 };
 
 export function AIUsageControl({
@@ -16,17 +18,28 @@ export function AIUsageControl({
   onPreferenceChange?: (value: ProviderPreference) => void;
   usage: Usage;
 }) {
-  const isLocalFallback = usage.provider === 'local';
+  const isLocalFallback =
+    usage.provider === 'local'
+    || usage.model === 'local-fallback'
+    || usage.tier === 'tier4';
+
+  const lowerModel = (usage.model || '').toLowerCase();
   const providerLabel =
-    usage.provider === 'groq'
-      ? 'Groq'
-      : usage.provider === 'openrouter'
-        ? 'OpenRouter'
-        : usage.provider === 'gemini'
-          ? 'Gemini'
-          : isLocalFallback
-            ? 'Local'
-            : 'Auto';
+    usage.label
+      ? usage.label
+      : isLocalFallback
+        ? 'Local Fallback'
+        : usage.tier === 'tier1' || lowerModel.includes('gpt-oss-20b')
+          ? 'Groq · Tier 1'
+          : usage.tier === 'tier2' || lowerModel.includes('gpt-oss-120b')
+            ? 'Groq · Tier 2'
+            : usage.provider === 'groq'
+              ? 'Groq · Tier 1'
+              : usage.provider === 'gemini' || usage.tier === 'tier3'
+                ? 'Gemini'
+                : usage.provider === 'openrouter' || usage.tier === 'pool'
+                  ? 'OpenRouter · Pool'
+                  : 'Auto ∞';
 
   const badgeClass = isLocalFallback
     ? 'bg-emerald-500/20 text-emerald-300'
@@ -38,7 +51,7 @@ export function AIUsageControl({
     <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-glass)] px-2.5 py-1.5 text-[var(--fg)] shadow-lg backdrop-blur-xl">
       <a
         href="/engine"
-        title="Open The Prism Engine Hub (Auto-Cascade: Groq → OpenRouter → Gemini → Local)"
+        title="Open Dassah's Prism Engine Hub · Powered by The Prism Engine (Infinite-Loop Autonomous Orchestrator ∞)"
         className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--fg)] hover:text-blue-400 transition-colors"
       >
         <Sparkles size={14} className={isLocalFallback ? 'text-emerald-400' : 'text-blue-400'} />
@@ -49,7 +62,11 @@ export function AIUsageControl({
       </a>
       <div
         className="flex min-w-0 items-center gap-1 border-l border-[var(--color-border)] pl-2"
-        title={isLocalFallback ? 'Unlimited Local Prism used (0 tokens spent)' : `${providerLabel} · ${usage.model || 'auto cascade ready'} (${usage.totalTokens.toLocaleString()} session tokens)`}
+        title={
+          isLocalFallback
+            ? 'The Prism Engine · Local Structural Refraction active (0 tokens spent)'
+            : `The Prism Engine · Infinite-Loop Autonomous Orchestrator ∞ (${usage.totalTokens.toLocaleString()} session tokens)`
+        }
       >
         <Coins size={12} className="text-amber-400 shrink-0" />
         <span className="text-[8px] font-black uppercase tracking-wider text-amber-300 sm:text-[9px]">

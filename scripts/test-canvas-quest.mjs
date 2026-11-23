@@ -205,8 +205,8 @@ test('Prism Engine Launchpad (/engine), Prism Play (/canvas), and Dassah\'s Pris
   assert.match(enginePage, /Turning Dread into Play/);
   assert.match(enginePage, /href="\/"/);
   assert.match(enginePage, /href="\/canvas"/);
-  assert.match(enginePage, /Groq LPU/);
-  assert.match(enginePage, /Unlimited Local Prism/);
+  assert.match(enginePage, /openai\/gpt-oss-20b|Groq/);
+  assert.match(enginePage, /Local Structural Refraction/);
 
   assert.match(canvasPage, /Turning Dread into Play/);
   assert.match(canvasPage, /href="\/engine"/);
