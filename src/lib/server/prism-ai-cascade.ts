@@ -272,7 +272,8 @@ function explicitOpenRouterModel(provider: ProviderPreference): string | undefin
  * Tier 1: Groq LPU (blazing fast, free tier)
  * Tier 2: OpenRouter free multi-model cascade
  * Tier 3: Google Gemini 2.0 Flash
- * (Tier 4: Caller falls back cleanly to Unlimited Local Prism — 0 tokens, 100% uptime)
+ * Tier 4: Caller falls back cleanly to local structural refraction when remote
+ * providers are unavailable; output is intentionally bounded and may be less complete.
  */
 export async function callPrismCompletion(
   prompt: string,

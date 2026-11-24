@@ -1058,9 +1058,9 @@ export default function PrismEnginePortalPage() {
           </div>
         </section>
 
-        {/* Under-the-Hood 3-Stage Engine Ignition Chamber: The Prism Engine ∞ */}
+        {/* Under-the-Hood provider-fallback orchestration chamber */}
         <motion.section
-          aria-label="The Prism Engine Infinite-Loop Autonomous Orchestrator"
+          aria-label="Prism Engine provider fallback orchestration"
           data-engine-telemetry="Tier 1 · Tier 2 · Groq · Local Structural Refraction"
           onViewportEnter={() => {
             if (!engineIgnited) igniteEngineSequence();
@@ -1181,7 +1181,7 @@ export default function PrismEnginePortalPage() {
                 transition={{ duration: 0.65, delay: 1.4 }}
                 className="text-xs sm:text-sm font-black uppercase tracking-[0.16em] bg-gradient-to-r from-sky-300 via-violet-300 to-emerald-300 bg-clip-text text-transparent"
               >
-                The Prism Engine ∞ · Autonomous Self-Healing Intelligence
+                The Prism Engine · Bounded Provider Fallback
               </motion.p>
 
               <motion.p
@@ -1195,7 +1195,7 @@ export default function PrismEnginePortalPage() {
                 transition={{ duration: 0.65, delay: 1.85 }}
                 className={`text-xs sm:text-sm leading-relaxed ${muted}`}
               >
-                Proprietary Infinite-Loop Orchestration with guaranteed <strong>Local Structural Refraction</strong> continuity. Adapts in real time so your flow never breaks.
+                A measured provider cascade with <strong>Local Structural Refraction</strong> when remote providers are unavailable. Results remain subject to provider limits, timeouts, and source quality.
               </motion.p>
             </div>
           </div>

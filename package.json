@@ -14,7 +14,8 @@
     "test:four-tier": "node --experimental-strip-types scripts/test-four-tier-contract.mjs",
     "test:redteam": "node --experimental-strip-types scripts/test-redteam-guard.mjs",
     "test:groq-live": "node --experimental-strip-types scripts/test-groq-live-smoke.mjs",
-    "test:e2e": "node --experimental-strip-types scripts/test-e2e-four-tier.mjs"
+    "test:e2e": "node --experimental-strip-types scripts/test-e2e-four-tier.mjs",
+    "test:release-trust": "node scripts/test-release-trust.mjs"
   },
   "dependencies": {
     "@google/genai": "^3.6.1",

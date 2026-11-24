@@ -8,6 +8,7 @@ import {
 } from '@/features/scripture/serverAuth';
 
 export const dynamic = 'force-dynamic';
+const isProductionRuntime = String(process.env.NODE_ENV) === 'production';
 
 export async function GET(req: Request) {
   const session = await verifyPrismWordSession(req);
@@ -16,6 +17,7 @@ export async function GET(req: Request) {
     email: session.authorized ? session.email : undefined,
     rejectedEmail: !session.authorized && session.statusCode === 403 ? session.email : undefined,
     supabaseConfigured: isSupabaseAuthConfigured(),
+    localUnlockAvailable: !isProductionRuntime && !isSupabaseAuthConfigured(),
     mode: session.mode,
     allowedHint: 'Private sanctuary access only',
     reason: session.reason,
@@ -24,6 +26,14 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    // Typing an allowlisted email is not proof of mailbox ownership. In
+    // production, require the verified Supabase/Google path instead.
+    if (isProductionRuntime || isSupabaseAuthConfigured()) {
+      return NextResponse.json(
+        { error: 'Verified Google sign-in is required for private Prism Word access.' },
+        { status: 403 },
+      );
+    }
     const body = (await req.json()) as { email?: unknown };
     const email = normalizePrismWordEmail(body?.email);
 
@@ -42,7 +52,7 @@ export async function POST(req: Request) {
     res.cookies.set(LOCAL_SESSION_COOKIE_NAME, token, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProductionRuntime,
       path: '/',
       maxAge: 14 * 24 * 60 * 60,
     });
@@ -57,7 +67,7 @@ export async function DELETE() {
   res.cookies.set(LOCAL_SESSION_COOKIE_NAME, '', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProductionRuntime,
     path: '/',
     maxAge: 0,
   });

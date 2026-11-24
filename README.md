@@ -1,4 +1,16 @@
-This is **Dassah's Prism**, an ADHD-friendly document simplifier that turns overwhelming noise into clear, actionable focus. It is built with [Next.js](https://nextjs.org).
+# Dassah's Prism
+
+Dassah's Prism is an ADHD-friendly document-refraction workspace that turns dense material into a clearer summary, readable segments, optional metaphors, and a concrete next action. It is built with [Next.js](https://nextjs.org).
+
+The product boundaries are deliberate:
+
+- `/` — Prism Focus, the main document workspace.
+- `/canvas` — Prism Play, a separate learning and momentum experience.
+- `/engine` — the product-family gateway and capability overview.
+- `/scripture` — Prism Word, a separate Scripture study and worship surface.
+- Prism Lens and Ask DJ remain distinct helpers inside the main product; Lens assists with difficult words/images, while Ask DJ answers questions.
+
+AI output is a guide, not guaranteed truth. Review important facts and keep secrets and highly sensitive personal data out of submitted material.
 
 ## Source and Android APK
 
@@ -24,18 +36,27 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The application uses the App Router under `src/app`. Copy `.env.example` for the main application configuration. Prism Word's private family route additionally requires server-only `PRISM_WORD_ALLOWED_EMAILS` and `PRISM_WORD_SESSION_SECRET`; never expose either through a `NEXT_PUBLIC_` variable.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Safe defaults keep `PRISM_FOUR_TIER_ENABLED=false` and `PRISM_SHADOW_MODE=false`. The existing OpenRouter/Gemini baseline, quota accounting, fallback behavior, and local structural fallback should be treated as the release baseline until a separately reviewed promotion is approved.
 
-## Learn More
+Install and validate locally:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm ci
+npm run test:release-trust
+npm run lint
+npm run build
+npm run test:shadow
+npm run test:acceptance
+npm run test:contracts
+npm run test:four-tier
+npm run test:redteam
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing and security
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See [SECURITY.md](SECURITY.md) before reporting a vulnerability or handling provider credentials. Do not commit `.env.local`, private documents, session secrets, or API keys.
 
 ## Deploy on Vercel
 

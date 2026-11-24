@@ -1346,11 +1346,16 @@ export default function Home() {
     if (!feedbackInput.trim()) return;
 
     try {
-      await fetch('/api/feedback', {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedback: feedbackInput, userId: user?.id, email: user?.email })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ feedback: feedbackInput, type: 'feedback' })
       });
+      if (!response.ok) throw new Error('Feedback could not be saved.');
       setFeedbackSuccess(true);
       setTimeout(() => {
         setShowFeedback(false);

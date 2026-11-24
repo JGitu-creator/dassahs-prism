@@ -1,0 +1,33 @@
+name: Prism CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: Validate application and safety contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PRISM_SHADOW_MODE: 'false'
+      PRISM_FOUR_TIER_ENABLED: 'false'
+      PRISM_REQUIRE_AUTH_FOR_AI: 'false'
+      PRISM_ENFORCE_USER_CREDITS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test:release-trust
+      - run: npm run test:shadow
+      - run: npm run test:acceptance
+      - run: npm run test:contracts
+      - run: npm run test:four-tier
+      - run: npm run test:redteam

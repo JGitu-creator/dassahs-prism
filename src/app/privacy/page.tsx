@@ -6,22 +6,22 @@ export default function PrivacyPolicy() {
       <div className="max-w-3xl mx-auto space-y-12">
         <header className="space-y-4 border-b border-white/10 pb-8">
           <h1 className="text-4xl font-black text-white italic">Privacy Policy</h1>
-          <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Dassah's Prism | Effective April 2026</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Dassah's Prism | Effective November 2026</p>
         </header>
 
         <section className="space-y-4">
           <h2 className="text-xl font-bold text-white uppercase tracking-tight">1. Cognitive Focus</h2>
-          <p>Dassah's Prism is built on the principle that your thoughts and data are your own. We do not sell, rent, or trade your neural profiles or refracted data to third parties.</p>
+          <p>Dassah's Prism is a document-refraction and learning workspace. It is not a medical, diagnostic, or therapeutic service. Do not submit passwords, payment details, government identifiers, or other information you would not want processed by the selected service.</p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-xl font-bold text-white uppercase tracking-tight">2. Data Processing</h2>
-          <p>We use Google Gemini AI models to process your inputs. This data is handled according to Google's standard enterprise data protection protocols. We only store history if you choose to "Anchor to Vault" by signing in.</p>
+          <p>Depending on the active route and configuration, submitted content may be processed by server-side providers such as Google Gemini, Groq, or OpenRouter. Provider processing is subject to the applicable provider terms and retention practices. Prism keeps only the records needed for the feature you use, such as signed-in history, feedback, or saved workspace items; private-session and local-fallback paths are intended to avoid new history writes but are not a guarantee that upstream processing never occurs.</p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-xl font-bold text-white uppercase tracking-tight">3. User Rights</h2>
-          <p>You have the absolute right to erasure. You can request the deletion of your account and all associated history at any time through the "Neural Identity" settings.</p>
+          <p>You may request deletion of account-linked Prism records. Deletion does not automatically erase provider-side logs or records retained under a provider's own terms. The current public build does not promise instant or universal erasure from every system, so contact the project maintainer with the account email and the records you want reviewed.</p>
         </section>
 
         <footer className="pt-12 border-t border-white/10">

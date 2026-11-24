@@ -171,13 +171,12 @@ function sanitizeApprovedModel(candidate: string | undefined, fallback: string):
 }
 
 /**
- * Infinite-Tier Orchestrator activation check.
- * Enabled ON by default (Groq Tier 1 -> Groq Tier 2 -> Gemini 2.0 Flash -> OpenRouter Free Pool -> Local Refraction).
- * Operators can explicitly disable via PRISM_FOUR_TIER_ENABLED=false as an emergency kill-switch.
+ * Experimental capability-matrix routing activation check.
+ * The proven baseline remains the default. Operators must explicitly opt in
+ * with PRISM_FOUR_TIER_ENABLED=true after reviewing the exact deployment.
  */
 export function isFourTierEnabled(env: Record<string, string | undefined> = process.env): boolean {
   const raw = env.PRISM_FOUR_TIER_ENABLED;
-  if (raw === undefined) return true;
   return raw === 'true';
 }
 

@@ -43,7 +43,7 @@ export function AIUsageControl({
                   ? 'Mistral AI'
                   : usage.provider === 'openrouter' || usage.tier === 'pool'
                     ? 'OpenRouter · Free'
-                    : 'Auto ∞';
+                    : 'Auto fallback';
 
   const badgeClass = isLocalFallback
     ? 'bg-emerald-500/20 text-emerald-300'
@@ -59,7 +59,7 @@ export function AIUsageControl({
     <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-glass)] px-2.5 py-1.5 text-[var(--fg)] shadow-lg backdrop-blur-xl">
       <a
         href="/engine"
-        title="Open Dassah's Prism Engine Hub · Powered by The Prism Engine (Infinite-Loop Autonomous Orchestrator ∞)"
+        title="Open Dassah's Prism Engine Hub · Powered by a bounded provider fallback"
         className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--fg)] hover:text-blue-400 transition-colors"
       >
         <Sparkles size={14} className={isLocalFallback ? 'text-emerald-400' : 'text-blue-400'} />
@@ -73,12 +73,12 @@ export function AIUsageControl({
         title={
           isLocalFallback
             ? 'The Prism Engine · Local Structural Refraction active (0 tokens spent)'
-            : `The Prism Engine · Infinite-Loop Autonomous Orchestrator ∞ (${usage.totalTokens.toLocaleString()} session tokens)`
+            : `The Prism Engine · bounded provider fallback (${usage.totalTokens.toLocaleString()} session tokens)`
         }
       >
         <Coins size={12} className="text-amber-400 shrink-0" />
         <span className="text-[8px] font-black uppercase tracking-wider text-amber-300 sm:text-[9px]">
-          Unlimited
+          Usage
         </span>
       </div>
     </div>
