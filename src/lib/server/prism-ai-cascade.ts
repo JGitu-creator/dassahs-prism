@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
-import { tokenLogger } from '../tokenLogger';
-import { getOpenRouterChatCompletionsUrl } from './openrouter';
+import { tokenLogger } from '../tokenLogger.ts';
+import { getOpenRouterChatCompletionsUrl } from './openrouter.ts';
 import {
   emptyUsage,
   usageFromGroq,
