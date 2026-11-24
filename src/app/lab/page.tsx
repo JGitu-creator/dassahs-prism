@@ -22,7 +22,7 @@ import {
 type SensoryAtmosphere = 'calm' | 'vibrant' | 'contrast';
 
 type ActiveModule = {
-  id: 'focus' | 'play' | 'engine';
+  id: 'focus' | 'play' | 'word';
   code: string;
   name: string;
   role: string;
@@ -76,17 +76,17 @@ const ACTIVE_MODULES: ActiveModule[] = [
     icon: <Gamepad2 size={20} />,
   },
   {
-    id: 'engine',
-    code: 'PE',
-    name: 'The Prism Engine',
-    role: 'Autonomous Self-Healing Core',
-    tagline: 'Infinite-loop multi-provider orchestration with zero secret leaks and honest local continuity.',
-    href: '/engine',
-    cta: 'Inspect Engine Hub',
-    accentHex: '#a78bfa',
-    glowRgba: 'rgba(167, 139, 250, 0.28)',
-    pills: ['Best-First Cascade', 'Zero Secret Leaks', 'Local Continuity', 'Free Forever'],
-    icon: <InfinityIcon size={20} />,
+    id: 'word',
+    code: 'PW',
+    name: 'Prism Word',
+    role: 'Bionic & Plain-Prose Reading',
+    tagline: 'Anchor every word with Bionic Shield and Neuro-Mirror plain prose so dense paragraphs never stall your eyes.',
+    href: '/',
+    cta: 'Open Prism Word',
+    accentHex: '#a3e635',
+    glowRgba: 'rgba(163, 230, 53, 0.25)',
+    pills: ['Bionic Shield', 'Plain Prose', 'Tap-to-Lens', 'Zero Symbol Clutter'],
+    icon: <Sparkles size={20} />,
   },
 ];
 
@@ -130,10 +130,9 @@ const ORBIT_MODULES: OrbitModule[] = [
 export default function PrismLabKineticPage() {
   const [darkMode, setDarkMode] = useState(true);
   const [atmosphere, setAtmosphere] = useState<SensoryAtmosphere>('calm');
-  const [activeId, setActiveId] = useState<'focus' | 'play' | 'engine'>('focus');
+  const [activeId, setActiveId] = useState<'focus' | 'play' | 'word'>('focus');
   const [orbitId, setOrbitId] = useState<'forge' | 'echo' | 'guild' | null>('forge');
   const [pointer, setPointer] = useState({ x: 50, y: 30 });
-  const [tourRunning, setTourRunning] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -144,37 +143,6 @@ export default function PrismLabKineticPage() {
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
-
-  // 30-second kinetic tour cycling through PF -> PP -> PE -> Forge
-  useEffect(() => {
-    if (!tourRunning) return;
-    const steps: Array<() => void> = [
-      () => {
-        setActiveId('focus');
-        setOrbitId('forge');
-      },
-      () => {
-        setActiveId('play');
-        setOrbitId('echo');
-      },
-      () => {
-        setActiveId('engine');
-        setOrbitId('guild');
-      },
-    ];
-    let step = 0;
-    steps[0]();
-    const timer = setInterval(() => {
-      step += 1;
-      if (step >= steps.length) {
-        setTourRunning(false);
-        clearInterval(timer);
-        return;
-      }
-      steps[step]();
-    }, 2400);
-    return () => clearInterval(timer);
-  }, [tourRunning]);
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (reducedMotion) return;
@@ -291,19 +259,6 @@ export default function PrismLabKineticPage() {
 
           <button
             type="button"
-            onClick={() => setTourRunning((r) => !r)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all ${
-              tourRunning
-                ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300'
-                : `${hairline} bg-current/[0.04] hover:border-blue-400/50`
-            }`}
-          >
-            <Compass size={13} />
-            {tourRunning ? 'Touring...' : 'Ignite Tour'}
-          </button>
-
-          <button
-            type="button"
             onClick={() => setDarkMode((d) => !d)}
             aria-label="Toggle Light or Dark Mode"
             className={`rounded-full border p-2 transition-colors ${hairline} bg-current/[0.04] hover:border-blue-400/50`}
@@ -330,13 +285,13 @@ export default function PrismLabKineticPage() {
             </span>
           </h1>
 
-          {/* Kinetic Refraction Laser Hairline */}
-          <div className="relative mx-auto h-px w-64 overflow-hidden bg-current/15 sm:w-96">
+          {/* Kinetic Faint Lime Horizontal Pulse */}
+          <div className="relative mx-auto h-[2px] w-64 overflow-hidden rounded-full bg-lime-400/15 sm:w-96">
             {!reducedMotion && (
               <motion.div
                 animate={{ x: ['-100%', '200%'] }}
                 transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-                className="h-full w-1/2 bg-gradient-to-r from-transparent via-cyan-400 to-transparent"
+                className="h-full w-1/2 bg-gradient-to-r from-transparent via-lime-400/75 to-transparent shadow-[0_0_12px_rgba(163,230,53,0.45)]"
               />
             )}
           </div>
@@ -352,8 +307,8 @@ export default function PrismLabKineticPage() {
             <span className={`text-[11px] font-black uppercase tracking-[0.24em] ${muted}`}>
               Active Modules · Tap or Hover to Illuminate
             </span>
-            <span className="text-[11px] font-bold text-cyan-400">
-              PF · PP · PE
+            <span className="text-[11px] font-bold text-lime-400/90">
+              PF · PP · PW
             </span>
           </div>
 
