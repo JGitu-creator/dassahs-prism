@@ -19,15 +19,13 @@ export function isSupabaseAuthConfigured(): boolean {
 }
 
 function getLocalSigningSecret(): string {
-  const configured =
-    process.env.PRISM_WORD_SESSION_SECRET?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    process.env.GEMINI_API_KEY?.trim() ||
-    'prism-word-local-sanctuary-key';
+  const configured = process.env.PRISM_WORD_SESSION_SECRET?.trim() || '';
+  if (!configured) return '';
   return crypto.createHash('sha256').update(configured).digest('hex');
 }
 
 export function signLocalSession(email: string): string {
+  if (!getLocalSigningSecret()) throw new Error('PRISM_WORD_SESSION_SECRET is not configured');
   const normalized = normalizePrismWordEmail(email);
   const exp = Date.now() + SESSION_MAX_AGE_MS;
   const payload = Buffer.from(JSON.stringify({ email: normalized, exp }), 'utf8').toString('base64url');
@@ -39,6 +37,7 @@ export function signLocalSession(email: string): string {
 }
 
 export function verifyLocalSessionToken(token: string | undefined): string | null {
+  if (!getLocalSigningSecret()) return null;
   if (!token || !token.includes('.')) return null;
   const [payload, providedSig] = token.split('.', 2);
   if (!payload || !providedSig) return null;

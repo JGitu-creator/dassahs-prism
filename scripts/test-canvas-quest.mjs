@@ -176,7 +176,7 @@ test('Unified 4-tier Prism Engine AI cascade powers both /api/simplify and /api/
   const chatRoute = await readFile(new URL('../src/app/api/chat/route.ts', import.meta.url), 'utf8');
   const envExample = await readFile(new URL('../.env.example', import.meta.url), 'utf8');
 
-  // Infinite-Tier Cascade: Groq -> OpenRouter Free -> Gemini 3.5 Flash-Lite -> Unlimited Local Prism
+  // Bounded fallback cascade: Groq -> OpenRouter Free -> Gemini -> local structural refraction
   assert.match(cascade, /openai\/gpt-oss-20b/);
   assert.match(cascade, /nvidia\/nemotron-3-ultra-550b-a55b:free/);
   assert.match(cascade, /baidu\/ernie-5\.5-flash-preview:free/);
@@ -214,4 +214,3 @@ test('Prism Engine Launchpad (/engine), Prism Play (/canvas), and Dassah\'s Pris
   assert.match(mainPage, /href="\/canvas"/);
   assert.match(mainPage, /href="\/engine"/);
 });
-

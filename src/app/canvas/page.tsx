@@ -2077,7 +2077,7 @@ export default function CanvasPrismPlayPage() {
                           : darkMode ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-[#dfd7c7] text-[#1e293b]'
                       }`}
                     >
-                      {localOnlyMode ? 'Unlimited Local Prism: ON' : 'Auto AI + Unlimited Fallback'}
+                      {localOnlyMode ? 'Local structural fallback: ON' : 'Auto AI + local fallback'}
                     </button>
                   </div>
                 </div>

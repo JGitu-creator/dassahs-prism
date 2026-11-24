@@ -1,4 +1,4 @@
-// Dassah's Prism: Neural Bridge — background service worker (v1.4.0)
+// Dassah's Prism: Neural Bridge — background service worker (v1.6.0)
 
 // v1.4.0: sessionStorage handoff instead of URL params
 // Documents are no longer encoded into `?text=` (length limits, leaks into

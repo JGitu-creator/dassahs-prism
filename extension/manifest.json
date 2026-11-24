@@ -1,9 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Dassah's Prism: Neural Bridge",
-  "version": "1.5.1",
-  "description": "Refract overwhelming noise into clear, actionable focus. Your cognitive architecture, optimized.",
-  "permissions": ["activeTab", "scripting", "contextMenus", "notifications"],
+  "version": "1.6.0",
+  "description": "Refract selected or explicitly captured page content into clear, actionable focus.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "notifications"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Dassah's Prism",
@@ -20,15 +25,5 @@
   },
   "background": {
     "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
-  ],
-  "host_permissions": [
-    "https://dassahs-prism.vercel.app/*",
-    "http://localhost:3000/*"
-  ]
+  }
 }

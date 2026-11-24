@@ -1,9 +1,13 @@
-export const ALLOWED_PRISM_WORD_EMAILS = [
-  'phidotaxis@gmail.com',
-  'chanhadassah@gmail.com',
-] as const;
-
-const ALLOWED_SET = new Set<string>(ALLOWED_PRISM_WORD_EMAILS);
+/**
+ * Private Prism Word accounts are configured in the server environment, never
+ * committed to the public repository or returned as a public allowlist.
+ */
+export function getAllowedPrismWordEmails(): string[] {
+  return (process.env.PRISM_WORD_ALLOWED_EMAILS || '')
+    .split(',')
+    .map((email) => normalizePrismWordEmail(email))
+    .filter(Boolean);
+}
 
 /**
  * Normalizes and validates whether an email belongs strictly to the two
@@ -15,7 +19,7 @@ export function normalizePrismWordEmail(email: unknown): string {
 
 export function isAllowedPrismWordEmail(email: unknown): boolean {
   const normalized = normalizePrismWordEmail(email);
-  return Boolean(normalized && ALLOWED_SET.has(normalized));
+  return Boolean(normalized && getAllowedPrismWordEmails().includes(normalized));
 }
 
 /**

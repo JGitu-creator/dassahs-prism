@@ -12,6 +12,7 @@ interface AuthState {
   email?: string;
   rejectedEmail?: string;
   supabaseConfigured: boolean;
+  localUnlockAvailable: boolean;
   reason?: string;
 }
 
@@ -19,6 +20,7 @@ export function PrismWordPrivateGate() {
   const [auth, setAuth] = useState<AuthState>({
     status: 'checking',
     supabaseConfigured: false,
+    localUnlockAvailable: false,
   });
   const [emailInput, setEmailInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -33,6 +35,7 @@ export function PrismWordPrivateGate() {
         setAuth({
           status: 'locked',
           supabaseConfigured: false,
+          localUnlockAvailable: false,
           reason: 'Please sign in with an authorised family account.',
         });
         return;
@@ -42,6 +45,7 @@ export function PrismWordPrivateGate() {
         email?: string;
         rejectedEmail?: string;
         supabaseConfigured?: boolean;
+        localUnlockAvailable?: boolean;
         reason?: string;
       };
 
@@ -50,18 +54,21 @@ export function PrismWordPrivateGate() {
           status: 'authorized',
           email: data.email,
           supabaseConfigured: Boolean(data.supabaseConfigured),
+          localUnlockAvailable: Boolean(data.localUnlockAvailable),
         });
       } else if (data.rejectedEmail) {
         setAuth({
           status: 'forbidden',
           rejectedEmail: data.rejectedEmail,
           supabaseConfigured: Boolean(data.supabaseConfigured),
+          localUnlockAvailable: Boolean(data.localUnlockAvailable),
           reason: data.reason || 'This private sanctuary is restricted to authorised family accounts only.',
         });
       } else {
         setAuth({
           status: 'locked',
           supabaseConfigured: Boolean(data.supabaseConfigured),
+          localUnlockAvailable: Boolean(data.localUnlockAvailable),
           reason: data.reason,
         });
       }
@@ -123,6 +130,7 @@ export function PrismWordPrivateGate() {
         status: 'authorized',
         email: data.email,
         supabaseConfigured: prev.supabaseConfigured,
+        localUnlockAvailable: prev.localUnlockAvailable,
       }));
     } catch {
       setErrorMsg('Connection interrupted while checking access. Please try again.');
@@ -162,6 +170,7 @@ export function PrismWordPrivateGate() {
       setAuth((prev) => ({
         status: 'locked',
         supabaseConfigured: prev.supabaseConfigured,
+        localUnlockAvailable: prev.localUnlockAvailable,
       }));
     } finally {
       setSubmitting(false);
@@ -247,15 +256,20 @@ export function PrismWordPrivateGate() {
                   Continue with Authorised Google Account
                 </button>
 
-                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                {!auth.localUnlockAvailable && (
+                  <p className="rounded-xl border border-slate-800 bg-black/35 px-3.5 py-2.5 text-xs text-slate-300">
+                    Private Prism Word access uses verified Google sign-in when authentication is configured.
+                  </p>
+                )}
+                {auth.localUnlockAvailable && <div className="flex items-center gap-2 text-[11px] text-slate-400">
                   <span className="h-px flex-1 bg-slate-800" />
                   <span>or unlock with authorised email</span>
                   <span className="h-px flex-1 bg-slate-800" />
-                </div>
+                </div>}
               </>
             )}
 
-            <form onSubmit={handleLocalSubmit} className="space-y-3">
+            {auth.localUnlockAvailable && <form onSubmit={handleLocalSubmit} className="space-y-3">
               <div>
                 <label htmlFor="sanctuary-email" className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-300">
                   Authorised Family Email
@@ -278,7 +292,7 @@ export function PrismWordPrivateGate() {
                 {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
                 Unlock Private Sanctuary
               </button>
-            </form>
+            </form>}
 
             {errorMsg && (
               <p role="alert" className="rounded-xl border border-rose-500/40 bg-rose-950/35 px-3.5 py-2.5 text-xs text-rose-100">
