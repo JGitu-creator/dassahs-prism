@@ -14,6 +14,7 @@ import {
   Layers,
   Lock,
   Moon,
+  Music,
   RotateCcw,
   ShieldCheck,
   Sparkles,
@@ -94,6 +95,30 @@ const MINI_PLAY_QUEST_DECK = [
   },
 ];
 
+const MINI_WORD_LENS_STAGES = [
+  {
+    stage: 'Stage 1 of 3 · Read',
+    badge: '7 Translations',
+    title: 'Side by Side Scripture',
+    body: 'Compare ESV, NIV, NLT, Amplified, NASB, The Message, and KJV together in calm, readable typography.',
+    highlight: 'Psalm 23:1 · The Lord is my shepherd',
+  },
+  {
+    stage: 'Stage 2 of 3 · Study',
+    badge: 'Hebrew & Greek',
+    title: 'Deep Exegesis & Ask DJ',
+    body: 'Uncover original language roots, historical context, and tap any word for instant cross reference clarity.',
+    highlight: 'Ra’ah · Present, watchful shepherd',
+  },
+  {
+    stage: 'Stage 3 of 3 · Live',
+    badge: 'Worship & Puzzles',
+    title: 'Worship Studio & Obedience',
+    body: 'Turn each passage into original worship tracks, strategy Scripture puzzles, and weekly Sunday check ins.',
+    highlight: 'From study notes to lived faith',
+  },
+];
+
 const INFINITY_PATH_D =
   'M24 10C15 10 9 15.2 9 22C9 28.8 15 34 24 34C33 34 39 22 44 22C49 22 55 10 64 10C73 10 79 15.2 79 22C79 28.8 73 34 64 34C55 34 49 22 44 22C39 22 33 10 24 10Z';
 
@@ -104,11 +129,13 @@ export default function PrismEnginePortalPage() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [activePrototype, setActivePrototype] = useState<string | null>(null);
 
-  // Unique Choreography States for Prism Focus (Refraction Flip) & Prism Play (Playable Quest Deck)
+  // Unique Choreography States for Prism Focus (Refraction Flip), Prism Play (Playable Quest Deck) & Prism Word (Sanctuary Lens)
   const [focusFlipped, setFocusFlipped] = useState(false);
   const [focusBeamKey, setFocusBeamKey] = useState(0);
   const [playCardIndex, setPlayCardIndex] = useState(0);
   const [playXpEarned, setPlayXpEarned] = useState(25);
+  const [wordStageIndex, setWordStageIndex] = useState(0);
+  const [wordLightKey, setWordLightKey] = useState(0);
 
   // Under-the-Hood Engine Ignition State (waits until scrolled into view, and re-runs on hover/click)
   const [engineIgnited, setEngineIgnited] = useState(false);
@@ -161,6 +188,11 @@ export default function PrismEnginePortalPage() {
     });
   };
 
+  const advanceWordStage = () => {
+    setWordStageIndex((prev) => (prev + 1) % MINI_WORD_LENS_STAGES.length);
+    setWordLightKey((k) => k + 1);
+  };
+
   const pageBg = darkMode
     ? 'bg-[#040712] text-slate-100'
     : 'bg-[#f4f0e7] text-[#172133]';
@@ -173,6 +205,7 @@ export default function PrismEnginePortalPage() {
     : 'bg-[#ece5d8] border-[#d6ccb9] text-[#243040]';
 
   const activePlayCard = MINI_PLAY_QUEST_DECK[playCardIndex];
+  const activeWordStage = MINI_WORD_LENS_STAGES[wordStageIndex];
 
   return (
     <div
@@ -360,15 +393,17 @@ export default function PrismEnginePortalPage() {
           >
             <strong className={darkMode ? 'text-white' : 'text-slate-900'}>Refract the Noise. Unlock Your Mind.</strong>{' '}
             Powered by <strong className={darkMode ? 'text-cyan-300' : 'text-blue-700'}>The Prism Engine</strong> for
-            deep document clarity in{' '}
-            <strong className={darkMode ? 'text-sky-300' : 'text-blue-700'}>Prism Focus</strong> and
-            gamified study quests in{' '}
-            <strong className={darkMode ? 'text-emerald-300' : 'text-emerald-700'}>Prism Play</strong>.
+            clear document focus in{' '}
+            <strong className={darkMode ? 'text-sky-300' : 'text-blue-700'}>Prism Focus</strong>,{' '}
+            coursework quests in{' '}
+            <strong className={darkMode ? 'text-emerald-300' : 'text-emerald-700'}>Prism Play</strong>, and{' '}
+            Scripture study in{' '}
+            <strong className={darkMode ? 'text-purple-300' : 'text-purple-700'}>Prism Word</strong>.
           </motion.p>
         </section>
 
-        {/* Dual Unique Choreographed Portal Cards */}
-        <section aria-label="Prism Engine workspaces" className="grid grid-cols-1 lg:grid-cols-2 gap-7 sm:gap-9">
+        {/* Triple Workspace Portal Stage */}
+        <section aria-label="Prism Engine workspaces" className="grid grid-cols-1 lg:grid-cols-3 gap-7 sm:gap-8">
           {/* PORTAL 1: PRISM FOCUS — 3D Flip Entrance + Crisp Staggered Prism Word Reveal */}
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, rotateY: -22, y: 24 }}
@@ -683,6 +718,194 @@ export default function PrismEnginePortalPage() {
               className="relative z-10 inline-flex items-center justify-between rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 px-6 py-4 text-sm font-black text-white shadow-[0_14px_35px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 active:scale-[0.98]"
             >
               <span>Launch Prism Play</span>
+              <ArrowRight size={18} className="transition-transform group-hover:translate-x-1.5" />
+            </Link>
+          </motion.div>
+
+          {/* PORTAL 3: PRISM WORD — Minimalist Sanctuary Bible Study, Worship & Strategy */}
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, rotateY: 22, y: 24 }}
+            animate={{ opacity: 1, rotateY: 0, y: 0 }}
+            whileHover={reducedMotion ? undefined : { y: -8, scale: 1.01 }}
+            transition={{ type: 'spring', stiffness: 240, damping: 22, delay: 0.12 }}
+            style={{ transformPerspective: 1200 }}
+            className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-7 ${
+              darkMode
+                ? 'bg-gradient-to-br from-[#160e36]/90 via-[#0d0a24]/90 to-[#06060d]/95 border-purple-400/25 hover:border-purple-400/60 shadow-[0_30px_90px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] hover:shadow-[0_36px_110px_rgba(147,51,234,0.28),inset_0_1px_0_rgba(192,132,252,0.3)]'
+                : 'bg-gradient-to-br from-white/95 via-[#f7f4ff]/95 to-[#f0ebff]/90 border-purple-300/60 hover:border-purple-500/70 shadow-[0_24px_70px_rgba(147,51,234,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
+            }`}
+          >
+            {/* Unique Sanctuary Light Sweep Across Prism Word */}
+            {!reducedMotion && (
+              <motion.div
+                key={`word-light-${wordLightKey}`}
+                initial={{ y: '110%', opacity: 0.85 }}
+                animate={{ y: '-120%', opacity: 0 }}
+                transition={{ duration: 1.25, ease: 'easeOut' }}
+                className="pointer-events-none absolute inset-x-0 h-1/2 -skew-y-6 bg-gradient-to-t from-transparent via-purple-400/25 to-amber-300/20 z-20"
+              />
+            )}
+
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/70 to-transparent" />
+            <motion.div
+              animate={
+                reducedMotion
+                  ? undefined
+                  : { scale: [1, 1.14, 1], opacity: [0.55, 0.9, 0.55] }
+              }
+              transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="pointer-events-none absolute -right-14 -top-14 h-56 w-56 rounded-full bg-purple-500/25 blur-3xl transition-transform duration-500 group-hover:scale-125"
+            />
+
+            <div className="space-y-5 relative z-10">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/25 to-blue-500/20 text-purple-300 border border-purple-400/35 shadow-[0_0_24px_rgba(168,85,247,0.25)]">
+                  <BookOpen size={25} />
+                </span>
+                <button
+                  type="button"
+                  onClick={advanceWordStage}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    darkMode
+                      ? 'bg-purple-500/20 border-purple-400/40 text-purple-200 hover:bg-purple-500/30'
+                      : 'bg-purple-100 border-purple-300 text-purple-800 hover:bg-purple-200'
+                  }`}
+                >
+                  <Sparkles size={11} />
+                  <span>Illuminate Lens</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <h2 className="prism-brand text-4xl sm:text-5xl font-black tracking-tight italic leading-[1.1]">
+                    Prism{' '}
+                    <span
+                      className={`inline-block pr-2 bg-clip-text text-transparent ${
+                        darkMode
+                          ? 'bg-gradient-to-r from-blue-300 via-purple-300 to-violet-400 drop-shadow-[0_0_20px_rgba(168,85,247,0.45)]'
+                          : 'bg-gradient-to-r from-blue-700 via-purple-700 to-violet-700'
+                      }`}
+                    >
+                      Word
+                    </span>
+                  </h2>
+                  <span className={`text-xs font-black italic ${darkMode ? 'text-purple-200' : 'text-purple-700'}`}>
+                    Turning Reading into Living.
+                  </span>
+                </div>
+
+                {/* Illuminated 3-Stage Bible Study Progress Bar */}
+                <div className="grid grid-cols-3 gap-1.5 w-full pt-0.5">
+                  {MINI_WORD_LENS_STAGES.map((item, idx) => (
+                    <div
+                      key={item.stage}
+                      className={`h-1.5 rounded-full overflow-hidden border ${
+                        darkMode ? 'bg-purple-950/60 border-purple-400/20' : 'bg-purple-100 border-purple-200'
+                      }`}
+                    >
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-blue-400 via-purple-400 to-amber-300"
+                        initial={false}
+                        animate={{
+                          width: idx <= wordStageIndex ? '100%' : '0%',
+                          opacity: idx <= wordStageIndex ? 1 : 0.25,
+                        }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Interactive Sanctuary Lens Card right inside the Prism Word tile */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeWordStage.stage}
+                  initial={reducedMotion ? false : { opacity: 0, y: 14, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -14, scale: 0.98 }}
+                  transition={{ duration: 0.28 }}
+                  className={`rounded-2xl border p-4 space-y-2.5 ${
+                    darkMode
+                      ? 'border-purple-400/30 bg-[#0c0820]/85 shadow-inner'
+                      : 'border-purple-200 bg-white shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
+                    <span className={darkMode ? 'text-purple-300' : 'text-purple-700'}>
+                      {activeWordStage.stage}
+                    </span>
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 ${
+                        darkMode
+                          ? 'bg-amber-500/15 border-amber-400/35 text-amber-200'
+                          : 'bg-amber-50 border-amber-300 text-amber-800'
+                      }`}
+                    >
+                      {activeWordStage.badge}
+                    </span>
+                  </div>
+                  <p className={`text-sm font-black ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                    {activeWordStage.title}
+                  </p>
+                  <p className={`text-xs leading-relaxed ${muted}`}>
+                    {activeWordStage.body}
+                  </p>
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <span className={`text-[11px] font-bold ${darkMode ? 'text-amber-200' : 'text-purple-700'}`}>
+                      {activeWordStage.highlight}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={advanceWordStage}
+                      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-black transition-all cursor-pointer active:scale-95 ${
+                        darkMode
+                          ? 'bg-purple-500/20 hover:bg-purple-500/35 border-purple-400/40 text-purple-200'
+                          : 'bg-purple-100 hover:bg-purple-200 border-purple-300 text-purple-800'
+                      }`}
+                    >
+                      {wordStageIndex < MINI_WORD_LENS_STAGES.length - 1 ? (
+                        <>
+                          <Sparkles size={12} />
+                          <span>Next Lens</span>
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw size={12} />
+                          <span>Replay Lens</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { icon: BookOpen, label: 'Multi Version Bible' },
+                  { icon: Music, label: 'Worship Deck and Studio' },
+                  { icon: Gamepad2, label: 'Strategy Puzzles' },
+                ].map((tag) => (
+                  <span
+                    key={tag.label}
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
+                      darkMode
+                        ? 'bg-purple-500/[0.08] border-purple-400/20 text-slate-200 group-hover:border-purple-400/35'
+                        : 'bg-white/80 border-purple-200/80 text-slate-700'
+                    }`}
+                  >
+                    <tag.icon size={13} className="text-purple-400" /> {tag.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <Link
+              href="/scripture"
+              className="relative z-10 inline-flex items-center justify-between rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-4 text-sm font-black text-white shadow-[0_14px_35px_rgba(147,51,234,0.35),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all hover:from-blue-500 hover:via-purple-500 hover:to-violet-500 active:scale-[0.98]"
+            >
+              <span>Launch Prism Word</span>
               <ArrowRight size={18} className="transition-transform group-hover:translate-x-1.5" />
             </Link>
           </motion.div>
