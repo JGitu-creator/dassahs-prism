@@ -23,13 +23,6 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (isSupabaseAuthConfigured() || process.env.VERCEL === '1') {
-    return NextResponse.json(
-      { error: 'Direct email sign in is disabled when Supabase authentication is active.' },
-      { status: 400 },
-    );
-  }
-
   try {
     const body = (await req.json()) as { email?: unknown };
     const email = normalizePrismWordEmail(body?.email);
@@ -49,6 +42,7 @@ export async function POST(req: Request) {
     res.cookies.set(LOCAL_SESSION_COOKIE_NAME, token, {
       httpOnly: true,
       sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 14 * 24 * 60 * 60,
     });
@@ -63,6 +57,7 @@ export async function DELETE() {
   res.cookies.set(LOCAL_SESSION_COOKIE_NAME, '', {
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: 0,
   });

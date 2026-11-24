@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Lock, Mail, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { PrismWordClient } from './PrismWordClient';
 import { PrismWordIcon } from './PrismWordIcon';
@@ -23,7 +23,6 @@ export function PrismWordPrivateGate() {
   const [emailInput, setEmailInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const checkServerAuth = useCallback(async (accessToken?: string) => {
     try {
@@ -120,11 +119,11 @@ export function PrismWordPrivateGate() {
         return;
       }
       setEmailInput('');
-      setAuth({
+      setAuth((prev) => ({
         status: 'authorized',
         email: data.email,
-        supabaseConfigured: false,
-      });
+        supabaseConfigured: prev.supabaseConfigured,
+      }));
     } catch {
       setErrorMsg('Connection interrupted while checking access. Please try again.');
     } finally {
@@ -140,6 +139,9 @@ export function PrismWordPrivateGate() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/scripture`,
+          queryParams: {
+            prompt: 'select_account',
+          },
         },
       });
       if (error) setErrorMsg(error.message);
@@ -150,36 +152,11 @@ export function PrismWordPrivateGate() {
     }
   };
 
-  const handleMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput.trim() || submitting) return;
-    setSubmitting(true);
-    setErrorMsg(null);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: emailInput.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/scripture`,
-        },
-      });
-      if (error) {
-        setErrorMsg(error.message);
-      } else {
-        setMagicLinkSent(true);
-      }
-    } catch {
-      setErrorMsg('Unable to send sign in link right now.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleSignOut = async () => {
     setSubmitting(true);
     try {
       await fetch('/api/scripture/auth', { method: 'DELETE' });
       await supabase.auth.signOut().catch(() => {});
-      setMagicLinkSent(false);
       setEmailInput('');
       setErrorMsg(null);
       setAuth((prev) => ({
@@ -259,8 +236,8 @@ export function PrismWordPrivateGate() {
               </p>
             </div>
 
-            {auth.supabaseConfigured ? (
-              <div className="space-y-3">
+            {auth.supabaseConfigured && (
+              <>
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
@@ -272,61 +249,36 @@ export function PrismWordPrivateGate() {
 
                 <div className="flex items-center gap-2 text-[11px] text-slate-400">
                   <span className="h-px flex-1 bg-slate-800" />
-                  <span>or email sign in link</span>
+                  <span>or unlock with authorised email</span>
                   <span className="h-px flex-1 bg-slate-800" />
                 </div>
-
-                <form onSubmit={handleMagicLink} className="space-y-2">
-                  <input
-                    type="email"
-                    required
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="Enter your authorised email address"
-                    className="w-full rounded-xl border border-slate-700 bg-black/60 px-3.5 py-2.5 text-xs text-white placeholder-slate-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!emailInput.trim() || submitting}
-                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-[#101223] px-4 py-2.5 text-xs font-medium text-slate-100 hover:border-purple-400/50 disabled:opacity-50"
-                  >
-                    <Mail className="h-3.5 w-3.5" />
-                    Send Private Sign In Link
-                  </button>
-                </form>
-
-                {magicLinkSent && (
-                  <p className="rounded-xl border border-emerald-500/35 bg-emerald-950/30 p-3 text-xs text-emerald-100">
-                    If this address is authorised, check your inbox for the private sign in link.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <form onSubmit={handleLocalSubmit} className="space-y-3">
-                <div>
-                  <label htmlFor="sanctuary-email" className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-300">
-                    Authorised Family Email
-                  </label>
-                  <input
-                    id="sanctuary-email"
-                    type="email"
-                    required
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="Enter your authorised email to unlock"
-                    className="w-full rounded-xl border border-slate-700 bg-black/60 px-3.5 py-2.5 text-xs text-white placeholder-slate-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={!emailInput.trim() || submitting}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2.5 text-xs font-medium text-white shadow-md shadow-purple-950/50 transition hover:opacity-95 disabled:opacity-50"
-                >
-                  {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
-                  Unlock Private Sanctuary
-                </button>
-              </form>
+              </>
             )}
+
+            <form onSubmit={handleLocalSubmit} className="space-y-3">
+              <div>
+                <label htmlFor="sanctuary-email" className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                  Authorised Family Email
+                </label>
+                <input
+                  id="sanctuary-email"
+                  type="email"
+                  required
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="Enter your authorised email to unlock"
+                  className="w-full rounded-xl border border-slate-700 bg-black/60 px-3.5 py-2.5 text-xs text-white placeholder-slate-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/40"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!emailInput.trim() || submitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-[#101223] px-4 py-2.5 text-xs font-medium text-slate-100 hover:border-purple-400/50 transition disabled:opacity-50"
+              >
+                {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                Unlock Private Sanctuary
+              </button>
+            </form>
 
             {errorMsg && (
               <p role="alert" className="rounded-xl border border-rose-500/40 bg-rose-950/35 px-3.5 py-2.5 text-xs text-rose-100">

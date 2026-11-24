@@ -96,7 +96,19 @@ export async function verifyPrismWordSession(req: Request): Promise<{
   const cookieHeader = req.headers.get('cookie');
   const supabaseConfigured = isSupabaseAuthConfigured();
 
-  // Path 1: Supabase JWT authentication when configured (mandatory on Vercel)
+  // Path 1: Signed HttpOnly sanctuary session cookie (works seamlessly on both localhost and Vercel)
+  const localToken = parseCookieValue(cookieHeader, LOCAL_SESSION_COOKIE_NAME);
+  const localEmail = verifyLocalSessionToken(localToken);
+  if (localEmail) {
+    return {
+      authorized: true,
+      email: localEmail,
+      mode: 'local-session',
+      statusCode: 200,
+    };
+  }
+
+  // Path 2: Supabase JWT authentication (Google OAuth / bearer token)
   if (supabaseConfigured) {
     const authHeader = req.headers.get('authorization');
     const bearer = authHeader?.toLowerCase().startsWith('bearer ')
@@ -151,28 +163,6 @@ export async function verifyPrismWordSession(req: Request): Promise<{
         reason: 'Unable to verify sign in session right now. Please try again.',
       };
     }
-  }
-
-  // On Vercel without Supabase env configured, fail closed rather than falling back to local cookies
-  if (process.env.VERCEL === '1') {
-    return {
-      authorized: false,
-      mode: 'supabase',
-      statusCode: 401,
-      reason: 'Private authentication must be configured before accessing Prism Word online.',
-    };
-  }
-
-  // Path 2: Signed HttpOnly local session cookie for localhost private workstation
-  const localToken = parseCookieValue(cookieHeader, LOCAL_SESSION_COOKIE_NAME);
-  const localEmail = verifyLocalSessionToken(localToken);
-  if (localEmail) {
-    return {
-      authorized: true,
-      email: localEmail,
-      mode: 'local-session',
-      statusCode: 200,
-    };
   }
 
   return {
