@@ -1,25 +1,82 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
   Code2,
   Compass,
   FileText,
   Gamepad2,
-  Infinity as InfinityIcon,
   Moon,
+  Pause,
+  Play,
   Radio,
   Sparkles,
   Sun,
   Users,
   Wind,
+  X,
   Zap,
 } from 'lucide-react';
 
 type SensoryAtmosphere = 'calm' | 'vibrant' | 'contrast';
+type TourSection = 'hero' | 'active' | 'orbit' | 'core';
+
+type TourChapter = {
+  id: string;
+  section: TourSection;
+  title: string;
+  caption: string;
+  activeModule?: 'focus' | 'play' | 'word';
+  orbitModule?: 'forge' | 'echo' | 'guild';
+};
+
+const TOUR_CHAPTERS: TourChapter[] = [
+  {
+    id: 'vision',
+    section: 'hero',
+    title: 'The Vision',
+    caption: 'Designed for ADHD and neurodivergent clarity. Zero clutter, calm pacing, instant signal.',
+  },
+  {
+    id: 'pf',
+    section: 'active',
+    activeModule: 'focus',
+    title: 'PF · Prism Focus',
+    caption: 'Strips 80% of textbook or policy noise into a 2-second TLDR, vivid metaphor, and one clear next step.',
+  },
+  {
+    id: 'pp',
+    section: 'active',
+    activeModule: 'play',
+    title: 'PP · Prism Play',
+    caption: 'Turns overwhelming study decks into 1-card-at-a-time interactive quests with real XP momentum.',
+  },
+  {
+    id: 'pw',
+    section: 'active',
+    activeModule: 'word',
+    title: 'PW · Prism Word',
+    caption: 'Anchors every word with Bionic Shield and plain prose so dense paragraphs never stall your eyes.',
+  },
+  {
+    id: 'orbit',
+    section: 'orbit',
+    orbitModule: 'forge',
+    title: 'In Orbit · Prism Forge',
+    caption: 'Watch dormant roadmap capsules ignite from closed prototypes into live features inside Prism Focus.',
+  },
+  {
+    id: 'core',
+    section: 'core',
+    title: 'Autonomous Self-Healing Core',
+    caption: 'If one AI provider slows down or hits a limit, the engine quietly heals itself in milliseconds.',
+  },
+];
 
 type ActiveModule = {
   id: 'focus' | 'play' | 'word';
@@ -135,6 +192,17 @@ export default function PrismLabKineticPage() {
   const [pointer, setPointer] = useState({ x: 50, y: 30 });
   const [reducedMotion, setReducedMotion] = useState(false);
 
+  const [tourActive, setTourActive] = useState(false);
+  const [tourIndex, setTourIndex] = useState(0);
+  const [tourAutoPlay, setTourAutoPlay] = useState(true);
+
+  const heroRef = useRef<HTMLElement | null>(null);
+  const activeRef = useRef<HTMLElement | null>(null);
+  const orbitRef = useRef<HTMLElement | null>(null);
+  const coreRef = useRef<HTMLElement | null>(null);
+
+  const currentChapter = tourActive ? TOUR_CHAPTERS[tourIndex] : null;
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -143,6 +211,51 @@ export default function PrismLabKineticPage() {
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
+
+  // Sync active module & scroll smoothly to spotlighted section during Full Tour
+  useEffect(() => {
+    if (!tourActive) return;
+    const chapter = TOUR_CHAPTERS[tourIndex];
+    if (!chapter) return;
+
+    if (chapter.activeModule) setActiveId(chapter.activeModule);
+    if (chapter.orbitModule) setOrbitId(chapter.orbitModule);
+
+    const targetMap: Record<TourSection, HTMLElement | null> = {
+      hero: heroRef.current,
+      active: activeRef.current,
+      orbit: orbitRef.current,
+      core: coreRef.current,
+    };
+    const el = targetMap[chapter.section];
+    if (el) {
+      el.scrollIntoView({
+        behavior: reducedMotion ? 'auto' : 'smooth',
+        block: 'center',
+      });
+    }
+  }, [tourActive, tourIndex, reducedMotion]);
+
+  // Auto-advance Full Tour chapters when playing
+  useEffect(() => {
+    if (!tourActive || !tourAutoPlay) return;
+    const timer = setInterval(() => {
+      setTourIndex((prev) => {
+        if (prev >= TOUR_CHAPTERS.length - 1) {
+          setTourAutoPlay(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 3400);
+    return () => clearInterval(timer);
+  }, [tourActive, tourAutoPlay]);
+
+  const startFullTour = () => {
+    setTourIndex(0);
+    setTourAutoPlay(true);
+    setTourActive(true);
+  };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (reducedMotion) return;
@@ -259,6 +372,19 @@ export default function PrismLabKineticPage() {
 
           <button
             type="button"
+            onClick={() => (tourActive ? setTourActive(false) : startFullTour())}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all ${
+              tourActive
+                ? 'border-lime-400 bg-lime-400/20 text-lime-300 shadow-[0_0_20px_rgba(163,230,53,0.28)]'
+                : `${hairline} bg-current/[0.04] hover:border-lime-400/50`
+            }`}
+          >
+            <Compass size={13} className="text-lime-400" />
+            <span>{tourActive ? 'Tour Active' : 'Take the 30-Second Tour'}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setDarkMode((d) => !d)}
             aria-label="Toggle Light or Dark Mode"
             className={`rounded-full border p-2 transition-colors ${hairline} bg-current/[0.04] hover:border-blue-400/50`}
@@ -268,9 +394,14 @@ export default function PrismLabKineticPage() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-6xl space-y-16 px-5 pb-24 pt-8 sm:px-8">
+      <main className="relative z-10 mx-auto max-w-6xl space-y-16 px-5 pb-32 pt-8 sm:px-8">
         {/* Editorial Hero (Weightless Antigravity x Mistral Precision) */}
-        <section className="mx-auto max-w-4xl space-y-6 text-center">
+        <section
+          ref={heroRef}
+          className={`mx-auto max-w-4xl space-y-6 text-center transition-all duration-500 rounded-3xl p-4 ${
+            currentChapter && currentChapter.section !== 'hero' ? 'opacity-35 scale-[0.98]' : 'opacity-100'
+          }`}
+        >
           <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-bold tracking-wide ${hairline} bg-current/[0.03] backdrop-blur-xl`}>
             <Wind size={13} className="text-cyan-400" />
             <span>Built for ADHD & neurodivergent clarity</span>
@@ -302,7 +433,13 @@ export default function PrismLabKineticPage() {
         </section>
 
         {/* Active Product Monoliths: Compact Icon+Name -> Kinetic Expanded Tile */}
-        <section aria-label="Active Prism Ecosystem" className="space-y-6">
+        <section
+          ref={activeRef}
+          aria-label="Active Prism Ecosystem"
+          className={`space-y-6 transition-all duration-500 ${
+            currentChapter && currentChapter.section !== 'active' ? 'opacity-35 scale-[0.99]' : 'opacity-100'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <span className={`text-[11px] font-black uppercase tracking-[0.24em] ${muted}`}>
               Active Modules · Tap or Hover to Illuminate
@@ -421,7 +558,13 @@ export default function PrismLabKineticPage() {
         </section>
 
         {/* In Orbit: Closed Icon Capsules -> Illuminated Functional Tiles */}
-        <section aria-label="In Orbit Roadmap" className="space-y-5">
+        <section
+          ref={orbitRef}
+          aria-label="In Orbit Roadmap"
+          className={`space-y-5 transition-all duration-500 ${
+            currentChapter && currentChapter.section !== 'orbit' ? 'opacity-35 scale-[0.99]' : 'opacity-100'
+          }`}
+        >
           <div className="flex items-center justify-between">
             <span className={`text-[11px] font-black uppercase tracking-[0.24em] ${muted}`}>
               In Orbit · Dormant Icon to Illuminated Tile
@@ -522,7 +665,17 @@ export default function PrismLabKineticPage() {
         </section>
 
         {/* Bottom Kinetic Infinity Core Chamber */}
-        <section className={`relative overflow-hidden rounded-[2rem] border p-8 text-center backdrop-blur-2xl ${hairline} bg-current/[0.02]`}>
+        <section
+          ref={coreRef}
+          className={`relative overflow-hidden rounded-[2rem] border p-8 text-center backdrop-blur-2xl transition-all duration-500 ${hairline} bg-current/[0.02] ${
+            currentChapter && currentChapter.section !== 'core' ? 'opacity-35 scale-[0.99]' : 'opacity-100'
+          }`}
+          style={{
+            boxShadow:
+              currentChapter?.section === 'core' ? '0 0 60px -10px rgba(56,189,248,0.35)' : undefined,
+            borderColor: currentChapter?.section === 'core' ? 'rgba(56,189,248,0.5)' : undefined,
+          }}
+        >
           <div className="mx-auto flex max-w-2xl flex-col items-center space-y-4">
             <motion.div
               animate={reducedMotion ? undefined : { scale: [1, 1.06, 1] }}
@@ -540,6 +693,92 @@ export default function PrismLabKineticPage() {
           </div>
         </section>
       </main>
+
+      {/* Floating 30-Second Guided Tour HUD */}
+      <AnimatePresence>
+        {tourActive && currentChapter && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            className="fixed inset-x-0 bottom-5 z-50 mx-auto w-[calc(100%-2rem)] max-w-2xl px-2"
+          >
+            <div className={`rounded-3xl border p-4 shadow-2xl backdrop-blur-2xl ${hairline} ${darkMode ? 'bg-[#070b18]/92 text-slate-100' : 'bg-[#faf7f0]/95 text-[#141c2b]'}`}>
+              {/* Progress Hairline */}
+              <div className="mb-3 h-1 w-full overflow-hidden rounded-full bg-current/10">
+                <motion.div
+                  animate={{ width: `${((tourIndex + 1) / TOUR_CHAPTERS.length) * 100}%` }}
+                  transition={{ duration: 0.35 }}
+                  className="h-full rounded-full bg-gradient-to-r from-lime-400 via-cyan-400 to-violet-400"
+                />
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-lime-400">
+                      Step {tourIndex + 1} / {TOUR_CHAPTERS.length}
+                    </span>
+                    <span className="text-xs font-black tracking-tight">
+                      {currentChapter.title}
+                    </span>
+                  </div>
+                  <p className={`text-xs leading-relaxed ${muted}`}>
+                    {currentChapter.caption}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setTourAutoPlay((p) => !p)}
+                    aria-label={tourAutoPlay ? 'Pause Tour' : 'Resume Tour'}
+                    className={`rounded-full border p-2 transition-colors ${hairline} hover:border-lime-400/50`}
+                  >
+                    {tourAutoPlay ? <Pause size={13} /> : <Play size={13} />}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={tourIndex === 0}
+                    onClick={() => {
+                      setTourAutoPlay(false);
+                      setTourIndex((i) => Math.max(0, i - 1));
+                    }}
+                    aria-label="Previous Step"
+                    className={`rounded-full border p-2 transition-colors disabled:opacity-30 ${hairline} hover:border-cyan-400/50`}
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTourAutoPlay(false);
+                      if (tourIndex >= TOUR_CHAPTERS.length - 1) {
+                        setTourActive(false);
+                      } else {
+                        setTourIndex((i) => i + 1);
+                      }
+                    }}
+                    aria-label="Next Step"
+                    className="inline-flex items-center gap-1 rounded-full bg-lime-400 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-950 hover:bg-lime-300 transition-colors"
+                  >
+                    <span>{tourIndex >= TOUR_CHAPTERS.length - 1 ? 'Done' : 'Next'}</span>
+                    <ChevronRight size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTourActive(false)}
+                    aria-label="Close Tour"
+                    className={`rounded-full border p-2 transition-colors ${hairline} hover:border-rose-400/50`}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
