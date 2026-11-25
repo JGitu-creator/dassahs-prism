@@ -1444,8 +1444,8 @@ export default function PrismEnginePortalPage() {
             About the Prism
           </button>
           <a
-            href="/dassahs-prism-extension.zip"
-            download
+            href="/dassahs-prism-engine-extension.zip"
+            download="dassahs-prism-engine-extension.zip"
             className="mt-2 px-6 py-2 bg-emerald-500/10 border border-emerald-500/25 rounded-full text-[8px] font-black uppercase tracking-widest text-emerald-500 hover:opacity-85 transition-all"
           >
             Browser Extension
