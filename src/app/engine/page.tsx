@@ -8,7 +8,7 @@ import {
   BookOpen,
   Brain,
   CheckCircle2,
-  Code2,
+  Flame,
   Gamepad2,
   Headphones,
   Layers,
@@ -25,17 +25,10 @@ import {
   Video,
   Zap,
 } from 'lucide-react';
+import { LivingIchthysFooter } from '@/components/prism/LivingIchthysFooter';
+import { AboutPrismModal } from '@/components/prism/AboutPrismModal';
 
 const FUTURE_EXPANSIONS = [
-  {
-    name: 'Prism Forge',
-    parentApp: 'Prism Focus',
-    badge: 'Live on /forge',
-    href: '/forge',
-    accent: 'cyan',
-    icon: Code2,
-    description: 'Translates cryptic terminal stack traces and dense code documentation into visual LEGO brick logic.',
-  },
   {
     name: 'Prism Echo',
     parentApp: 'Prism Play',
@@ -122,25 +115,25 @@ const MINI_WORD_LENS_STAGES = [
 
 const MINI_FORGE_LEGO_STAGES = [
   {
-    stage: 'Brick 1 of 3 · Fault Trace',
-    badge: 'Stack Trace → LEGOs',
-    title: 'Isolate the Crashing Frame',
-    body: 'Paste any red terminal stack trace or TypeError to snap the failure chain into colour-coded root-cause bricks.',
-    highlight: 'TypeError · Guard Clause Brick Identified',
+    stage: 'Step 1 of 3 · Take a Breath',
+    badge: 'Errors & Formulas',
+    title: 'Melt Tech & Formula Panic',
+    body: 'Drop in a broken Excel formula, angry red website error, or confusing class assignment — nothing is ruined.',
+    highlight: 'Plain-English Before & After Translation',
   },
   {
-    stage: 'Brick 2 of 3 · Visual Logic',
-    badge: 'Code → Data Flow',
-    title: 'Snap-Together Code Architecture',
-    body: 'Deconstruct dense async functions, loops, and docs into physical LEGO analogies with 1-click defensive fixes.',
-    highlight: '4 Snap-Together Bricks + Real-World Analogy',
+    stage: 'Step 2 of 3 · Visual Blocks',
+    badge: 'Zero Jargon',
+    title: 'Snap-Together Everyday Logic',
+    body: 'See what came unplugged in everyday words with a real-life analogy and a ready-to-copy working fix.',
+    highlight: '1-Click Fix + Safety Check',
   },
   {
-    stage: 'Brick 3 of 3 · Sandbox CLI',
-    badge: 'Terminal & Ask DJ',
-    title: 'CLI Safety Shield & Pair Quest',
-    body: 'Inspect every shell flag for destructive risk, clear guided debugging quests for XP, and pair-program with Ask DJ.',
-    highlight: 'Token Safety Shield + Local Blueprint Vault',
+    stage: 'Step 3 of 3 · Stacked Vault',
+    badge: 'ADHD Support',
+    title: 'Smart 5-Stack Tiles & Ask DJ',
+    body: 'Stay supported with Brown Noise, gentle focus sprints, Ask DJ, and smart 5-stack window tiles that fan open on hover.',
+    highlight: 'Auto-Named Searchable Vault Stacks',
   },
 ];
 
@@ -149,12 +142,13 @@ const INFINITY_PATH_D =
 
 export default function PrismEnginePortalPage() {
   const [darkMode, setDarkMode] = useState(true);
+  const [showAbout, setShowAbout] = useState(false);
   const [mouse, setMouse] = useState({ x: 50, y: 35 });
   const [hasInteracted, setHasInteracted] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [activePrototype, setActivePrototype] = useState<string | null>(null);
 
-  // Unique Choreography States for Prism Focus (Refraction Flip), Prism Play (Playable Quest Deck), Prism Word (Sanctuary Lens) & Prism Forge (LEGO Workbench)
+  // Unique Choreography States for Prism Focus (Refraction Flip), Prism Play (Playable Quest Deck), Prism Word (Sanctuary Lens) & Prism Forge (Molten Amber Blocks)
   const [focusFlipped, setFocusFlipped] = useState(false);
   const [focusBeamKey, setFocusBeamKey] = useState(0);
   const [playCardIndex, setPlayCardIndex] = useState(0);
@@ -227,14 +221,14 @@ export default function PrismEnginePortalPage() {
 
   const pageBg = darkMode
     ? 'bg-[#040712] text-slate-100'
-    : 'bg-[#f4f0e7] text-[#172133]';
-  const muted = darkMode ? 'text-slate-400' : 'text-[#526071]';
+    : 'bg-[#eae2d3] text-[#172133]';
+  const muted = darkMode ? 'text-slate-400' : 'text-[#4e5b6c]';
   const cardSurface = darkMode
     ? 'bg-[#0b1224]/75 border-white/12 hover:border-blue-400/50 shadow-[0_30px_90px_rgba(0,0,0,0.55)]'
-    : 'bg-[#faf7f0]/90 border-[#d6ccb9] hover:border-blue-500/60 shadow-[0_24px_70px_rgba(23,33,51,0.09)]';
+    : 'bg-[#f3ede0]/92 border-[#cfc3ad] hover:border-blue-600/50 shadow-[0_20px_60px_rgba(23,33,51,0.08)]';
   const pillSurface = darkMode
     ? 'bg-white/[0.06] border-white/12 text-slate-200'
-    : 'bg-[#ece5d8] border-[#d6ccb9] text-[#243040]';
+    : 'bg-[#e2d8c5] border-[#cfc3ad] text-[#243040]';
 
   const activePlayCard = MINI_PLAY_QUEST_DECK[playCardIndex];
   const activeWordStage = MINI_WORD_LENS_STAGES[wordStageIndex];
@@ -243,6 +237,14 @@ export default function PrismEnginePortalPage() {
   return (
     <div
       onPointerMove={handlePointerMove}
+      style={
+        {
+          '--fg': darkMode ? '#f1f5f9' : '#172133',
+          '--bg': darkMode ? '#040712' : '#eae2d3',
+          '--color-glass': darkMode ? 'rgba(11, 18, 36, 0.80)' : 'rgba(243, 237, 224, 0.92)',
+          '--color-border': darkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(207, 195, 173, 0.9)',
+        } as React.CSSProperties
+      }
       className={`relative min-h-screen overflow-hidden transition-colors duration-500 ${pageBg}`}
     >
       {/* Background: Lightweight & Fast on Mobile, Full Living Kinetic Prism Universe on Desktop */}
@@ -432,8 +434,8 @@ export default function PrismEnginePortalPage() {
             <strong className={darkMode ? 'text-emerald-300' : 'text-emerald-700'}>Prism Play</strong>,{' '}
             Scripture study in{' '}
             <strong className={darkMode ? 'text-purple-300' : 'text-purple-700'}>Prism Word</strong>, and{' '}
-            LEGO code logic in{' '}
-            <strong className={darkMode ? 'text-cyan-300' : 'text-cyan-700'}>Prism Forge</strong>.
+            tech &amp; formula calm in{' '}
+            <strong className={darkMode ? 'text-amber-300' : 'text-amber-800'}>Prism Forge</strong>.
           </motion.p>
         </section>
 
@@ -449,7 +451,7 @@ export default function PrismEnginePortalPage() {
             className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-7 ${
               darkMode
                 ? 'bg-gradient-to-br from-[#0e1936]/90 via-[#0a1228]/85 to-[#070d1f]/90 border-blue-400/25 hover:border-blue-400/60 shadow-[0_30px_90px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] hover:shadow-[0_36px_110px_rgba(37,99,235,0.28),inset_0_1px_0_rgba(147,197,253,0.3)]'
-                : 'bg-gradient-to-br from-white/95 via-[#f6f9ff]/95 to-[#edf3ff]/90 border-blue-300/60 hover:border-blue-500/70 shadow-[0_24px_70px_rgba(37,99,235,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
+                : 'bg-gradient-to-br from-[#f3ede0]/96 via-[#ede5d6]/95 to-[#e5dccb]/92 border-blue-500/35 hover:border-blue-600/60 shadow-[0_20px_60px_rgba(37,99,235,0.08)]'
             }`}
           >
             {/* Animated Spectral Laser Sweep Across Prism Focus */}
@@ -478,7 +480,7 @@ export default function PrismEnginePortalPage() {
                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                       darkMode
                         ? 'bg-sky-500/20 border-sky-400/40 text-sky-200 hover:bg-sky-500/30'
-                        : 'bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200'
+                        : 'bg-blue-600/15 border-blue-500/35 text-blue-900 hover:bg-blue-600/25'
                     }`}
                   >
                     <Sparkles size={11} />
@@ -496,7 +498,7 @@ export default function PrismEnginePortalPage() {
                       className={`inline-block pr-2 bg-clip-text text-transparent ${
                         darkMode
                           ? 'bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.45)]'
-                          : 'bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600'
+                          : 'bg-gradient-to-r from-blue-800 via-blue-700 to-indigo-700'
                       }`}
                     >
                       Focus
@@ -515,11 +517,11 @@ export default function PrismEnginePortalPage() {
                         transition={{ duration: 0.4, delay: idx * 0.08 }}
                         className={
                           word === '→'
-                            ? 'text-xs font-black text-sky-400/80 px-0.5'
+                            ? 'text-xs font-black text-sky-500 px-0.5'
                             : `rounded-lg border px-2 py-0.5 text-[11px] font-black ${
                                 darkMode
                                   ? 'border-sky-400/30 bg-sky-500/15 text-sky-200'
-                                  : 'border-blue-200 bg-blue-50 text-blue-800'
+                                  : 'border-blue-500/30 bg-[#e6dece] text-blue-900'
                               }`
                         }
                       >
@@ -541,7 +543,7 @@ export default function PrismEnginePortalPage() {
                     transition={{ duration: 0.28 }}
                     className="space-y-4"
                   >
-                    <p className={`text-sm sm:text-base font-bold italic ${darkMode ? 'text-sky-300' : 'text-blue-700'}`}>
+                    <p className={`text-sm sm:text-base font-bold italic ${darkMode ? 'text-sky-300' : 'text-blue-800'}`}>
                       Turn overwhelming noise into clear focus in seconds.
                     </p>
                     <p className={`text-sm leading-relaxed ${muted}`}>
@@ -558,10 +560,10 @@ export default function PrismEnginePortalPage() {
                           className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
                             darkMode
                               ? 'bg-blue-500/[0.08] border-blue-400/20 text-slate-200 group-hover:border-blue-400/35'
-                              : 'bg-white/80 border-blue-200/80 text-slate-700'
+                              : 'bg-[#e6dece] border-blue-500/25 text-slate-800'
                           }`}
                         >
-                          <tag.icon size={13} className="text-blue-400" /> {tag.label}
+                          <tag.icon size={13} className="text-blue-500" /> {tag.label}
                         </span>
                       ))}
                     </div>
@@ -584,12 +586,12 @@ export default function PrismEnginePortalPage() {
                         className={`rounded-2xl border p-3.5 ${
                           darkMode
                             ? 'border-blue-400/25 bg-blue-950/40'
-                            : 'border-blue-200 bg-white'
+                            : 'border-blue-500/30 bg-[#ebe3d3]'
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <span className={`h-2 w-2 rounded-full bg-gradient-to-r ${beam.color}`} />
-                          <span className={`text-xs font-black uppercase tracking-wider ${darkMode ? 'text-sky-300' : 'text-blue-700'}`}>
+                          <span className={`text-xs font-black uppercase tracking-wider ${darkMode ? 'text-sky-300' : 'text-blue-800'}`}>
                             {beam.tag}
                           </span>
                         </div>
@@ -620,7 +622,7 @@ export default function PrismEnginePortalPage() {
             className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-7 ${
               darkMode
                 ? 'bg-gradient-to-br from-[#082221]/90 via-[#07181d]/85 to-[#061119]/90 border-emerald-400/25 hover:border-emerald-400/60 shadow-[0_30px_90px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] hover:shadow-[0_36px_110px_rgba(16,185,129,0.26),inset_0_1px_0_rgba(110,231,183,0.3)]'
-                : 'bg-gradient-to-br from-white/95 via-[#f2fcf8]/95 to-[#e8f8f2]/90 border-emerald-300/60 hover:border-emerald-500/70 shadow-[0_24px_70px_rgba(16,185,129,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
+                : 'bg-gradient-to-br from-[#f3ede0]/96 via-[#ece5d5]/95 to-[#e3dcc9]/92 border-emerald-600/35 hover:border-emerald-600/60 shadow-[0_20px_60px_rgba(16,185,129,0.08)]'
             }`}
           >
             <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
@@ -636,10 +638,10 @@ export default function PrismEnginePortalPage() {
                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider ${
                       darkMode
                         ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-200'
-                        : 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                        : 'bg-emerald-600/15 border-emerald-600/35 text-emerald-900'
                     }`}
                   >
-                    <Trophy size={12} className="text-amber-400" />
+                    <Trophy size={12} className="text-amber-500" />
                     <span>Live Play Mode · {playXpEarned} XP</span>
                   </span>
                 </div>
@@ -653,21 +655,21 @@ export default function PrismEnginePortalPage() {
                       className={`inline-block pr-2 bg-clip-text text-transparent ${
                         darkMode
                           ? 'bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.45)]'
-                          : 'bg-gradient-to-r from-emerald-700 via-teal-600 to-cyan-600'
+                          : 'bg-gradient-to-r from-emerald-800 via-teal-700 to-cyan-700'
                       }`}
                     >
                       Play
                     </span>
                   </h2>
-                  <span className={`text-xs font-black italic ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                  <span className={`text-xs font-black italic ${darkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>
                     Turning Dread into Play.
                   </span>
                 </div>
 
                 {/* Live Mini XP Progress Bar inside the Prism Play tile */}
-                <div className="w-full h-1.5 rounded-full bg-emerald-950/60 overflow-hidden border border-emerald-400/20">
+                <div className={`w-full h-1.5 rounded-full overflow-hidden border ${darkMode ? 'bg-emerald-950/60 border-emerald-400/20' : 'bg-[#dfd6c3] border-emerald-600/25'}`}>
                   <motion.div
-                    className="h-full bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300"
+                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400"
                     initial={{ width: '33%' }}
                     animate={{ width: `${((playCardIndex + 1) / MINI_PLAY_QUEST_DECK.length) * 100}%` }}
                     transition={{ type: 'spring', stiffness: 260, damping: 24 }}
@@ -686,14 +688,14 @@ export default function PrismEnginePortalPage() {
                   className={`rounded-2xl border p-4 space-y-2.5 ${
                     darkMode
                       ? 'border-emerald-400/30 bg-[#051517]/80 shadow-inner'
-                      : 'border-emerald-300 bg-white shadow-sm'
+                      : 'border-emerald-600/30 bg-[#ebe3d3] shadow-sm'
                   }`}
                 >
                   <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
-                    <span className={darkMode ? 'text-emerald-300' : 'text-emerald-700'}>
+                    <span className={darkMode ? 'text-emerald-300' : 'text-emerald-800'}>
                       {activePlayCard.cardNo}
                     </span>
-                    <span className="rounded-full bg-amber-500/20 border border-amber-400/40 px-2.5 py-0.5 text-amber-300">
+                    <span className={`rounded-full border px-2.5 py-0.5 ${darkMode ? 'bg-amber-500/20 border-amber-400/40 text-amber-300' : 'bg-amber-500/15 border-amber-600/35 text-amber-900'}`}>
                       {activePlayCard.xp}
                     </span>
                   </div>
@@ -704,13 +706,17 @@ export default function PrismEnginePortalPage() {
                     {activePlayCard.body}
                   </p>
                   <div className="flex items-center justify-between pt-1">
-                    <span className={`text-[11px] font-bold ${darkMode ? 'text-teal-300' : 'text-teal-700'}`}>
+                    <span className={`text-[11px] font-bold ${darkMode ? 'text-teal-300' : 'text-teal-800'}`}>
                       ✨ {activePlayCard.boost}
                     </span>
                     <button
                       type="button"
                       onClick={advancePlayQuestCard}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-400/40 px-3 py-1.5 text-[11px] font-black text-emerald-200 transition-all cursor-pointer active:scale-95"
+                      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-black transition-all cursor-pointer active:scale-95 ${
+                        darkMode
+                          ? 'bg-emerald-500/20 hover:bg-emerald-500/35 border-emerald-400/40 text-emerald-200'
+                          : 'bg-emerald-600/15 hover:bg-emerald-600/25 border-emerald-600/40 text-emerald-900'
+                      }`}
                     >
                       {playCardIndex < MINI_PLAY_QUEST_DECK.length - 1 ? (
                         <>
@@ -739,10 +745,10 @@ export default function PrismEnginePortalPage() {
                     className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
                       darkMode
                         ? 'bg-emerald-500/[0.08] border-emerald-400/20 text-slate-200 group-hover:border-emerald-400/35'
-                        : 'bg-white/80 border-emerald-200/80 text-slate-700'
+                        : 'bg-[#e6dece] border-emerald-600/25 text-slate-800'
                     }`}
                   >
-                    <tag.icon size={13} className="text-emerald-400" /> {tag.label}
+                    <tag.icon size={13} className="text-emerald-500" /> {tag.label}
                   </span>
                 ))}
               </div>
@@ -767,7 +773,7 @@ export default function PrismEnginePortalPage() {
             className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-7 ${
               darkMode
                 ? 'bg-gradient-to-br from-[#160e36]/90 via-[#0d0a24]/90 to-[#06060d]/95 border-purple-400/25 hover:border-purple-400/60 shadow-[0_30px_90px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] hover:shadow-[0_36px_110px_rgba(147,51,234,0.28),inset_0_1px_0_rgba(192,132,252,0.3)]'
-                : 'bg-gradient-to-br from-white/95 via-[#f7f4ff]/95 to-[#f0ebff]/90 border-purple-300/60 hover:border-purple-500/70 shadow-[0_24px_70px_rgba(147,51,234,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
+                : 'bg-gradient-to-br from-[#f3ede0]/96 via-[#ece4d6]/95 to-[#e4dbcb]/92 border-purple-500/35 hover:border-purple-600/60 shadow-[0_20px_60px_rgba(147,51,234,0.08)]'
             }`}
           >
             {/* Unique Sanctuary Light Sweep Across Prism Word */}
@@ -794,7 +800,7 @@ export default function PrismEnginePortalPage() {
 
             <div className="space-y-5 relative z-10">
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/25 to-blue-500/20 text-purple-300 border border-purple-400/35 shadow-[0_0_24px_rgba(168,85,247,0.25)]">
+                <span className="inline-flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/25 to-blue-500/20 text-purple-400 border border-purple-400/35 shadow-[0_0_24px_rgba(168,85,247,0.25)]">
                   <BookOpen size={25} />
                 </span>
                 <button
@@ -803,7 +809,7 @@ export default function PrismEnginePortalPage() {
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                     darkMode
                       ? 'bg-purple-500/20 border-purple-400/40 text-purple-200 hover:bg-purple-500/30'
-                      : 'bg-purple-100 border-purple-300 text-purple-800 hover:bg-purple-200'
+                      : 'bg-purple-600/15 border-purple-500/35 text-purple-900 hover:bg-purple-600/25'
                   }`}
                 >
                   <Sparkles size={11} />
@@ -819,13 +825,13 @@ export default function PrismEnginePortalPage() {
                       className={`inline-block pr-2 bg-clip-text text-transparent ${
                         darkMode
                           ? 'bg-gradient-to-r from-blue-300 via-purple-300 to-violet-400 drop-shadow-[0_0_20px_rgba(168,85,247,0.45)]'
-                          : 'bg-gradient-to-r from-blue-700 via-purple-700 to-violet-700'
+                          : 'bg-gradient-to-r from-blue-800 via-purple-800 to-violet-800'
                       }`}
                     >
                       Word
                     </span>
                   </h2>
-                  <span className={`text-xs font-black italic ${darkMode ? 'text-purple-200' : 'text-purple-700'}`}>
+                  <span className={`text-xs font-black italic ${darkMode ? 'text-purple-200' : 'text-purple-800'}`}>
                     Turning Reading into Living.
                   </span>
                 </div>
@@ -836,7 +842,7 @@ export default function PrismEnginePortalPage() {
                     <div
                       key={item.stage}
                       className={`h-1.5 rounded-full overflow-hidden border ${
-                        darkMode ? 'bg-purple-950/60 border-purple-400/20' : 'bg-purple-100 border-purple-200'
+                        darkMode ? 'bg-purple-950/60 border-purple-400/20' : 'bg-[#dfd6c3] border-purple-500/25'
                       }`}
                     >
                       <motion.div
@@ -864,18 +870,18 @@ export default function PrismEnginePortalPage() {
                   className={`rounded-2xl border p-4 space-y-2.5 ${
                     darkMode
                       ? 'border-purple-400/30 bg-[#0c0820]/85 shadow-inner'
-                      : 'border-purple-200 bg-white shadow-sm'
+                      : 'border-purple-500/30 bg-[#ebe3d3] shadow-sm'
                   }`}
                 >
                   <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
-                    <span className={darkMode ? 'text-purple-300' : 'text-purple-700'}>
+                    <span className={darkMode ? 'text-purple-300' : 'text-purple-800'}>
                       {activeWordStage.stage}
                     </span>
                     <span
                       className={`rounded-full border px-2.5 py-0.5 ${
                         darkMode
                           ? 'bg-amber-500/15 border-amber-400/35 text-amber-200'
-                          : 'bg-amber-50 border-amber-300 text-amber-800'
+                          : 'bg-amber-500/15 border-amber-600/35 text-amber-900'
                       }`}
                     >
                       {activeWordStage.badge}
@@ -888,7 +894,7 @@ export default function PrismEnginePortalPage() {
                     {activeWordStage.body}
                   </p>
                   <div className="flex items-center justify-between gap-2 pt-1">
-                    <span className={`text-[11px] font-bold ${darkMode ? 'text-amber-200' : 'text-purple-700'}`}>
+                    <span className={`text-[11px] font-bold ${darkMode ? 'text-amber-200' : 'text-purple-800'}`}>
                       {activeWordStage.highlight}
                     </span>
                     <button
@@ -897,7 +903,7 @@ export default function PrismEnginePortalPage() {
                       className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-black transition-all cursor-pointer active:scale-95 ${
                         darkMode
                           ? 'bg-purple-500/20 hover:bg-purple-500/35 border-purple-400/40 text-purple-200'
-                          : 'bg-purple-100 hover:bg-purple-200 border-purple-300 text-purple-800'
+                          : 'bg-purple-600/15 hover:bg-purple-600/25 border-purple-500/40 text-purple-900'
                       }`}
                     >
                       {wordStageIndex < MINI_WORD_LENS_STAGES.length - 1 ? (
@@ -927,10 +933,10 @@ export default function PrismEnginePortalPage() {
                     className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
                       darkMode
                         ? 'bg-purple-500/[0.08] border-purple-400/20 text-slate-200 group-hover:border-purple-400/35'
-                        : 'bg-white/80 border-purple-200/80 text-slate-700'
+                        : 'bg-[#e6dece] border-purple-500/25 text-slate-800'
                     }`}
                   >
-                    <tag.icon size={13} className="text-purple-400" /> {tag.label}
+                    <tag.icon size={13} className="text-purple-500" /> {tag.label}
                   </span>
                 ))}
               </div>
@@ -945,7 +951,7 @@ export default function PrismEnginePortalPage() {
             </Link>
           </motion.div>
 
-          {/* PORTAL 4: PRISM FORGE — Visual LEGO Brick Code & Stack Trace Refractor */}
+          {/* PORTAL 4: PRISM FORGE — Warm Molten Amber & Copper-Gold Everyday Tech, Formulas & Code Calm */}
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, rotateY: 22, y: 24 }}
             animate={{ opacity: 1, rotateY: 0, y: 0 }}
@@ -954,8 +960,8 @@ export default function PrismEnginePortalPage() {
             style={{ transformPerspective: 1200 }}
             className={`group relative overflow-hidden rounded-[2.5rem] border p-8 sm:p-10 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-7 ${
               darkMode
-                ? 'bg-gradient-to-br from-[#071f2c]/90 via-[#061522]/90 to-[#040c16]/95 border-cyan-400/25 hover:border-cyan-400/60 shadow-[0_30px_90px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] hover:shadow-[0_36px_110px_rgba(34,211,238,0.28),inset_0_1px_0_rgba(103,232,249,0.3)]'
-                : 'bg-gradient-to-br from-white/95 via-[#f2fbff]/95 to-[#e6f7fd]/90 border-cyan-300/60 hover:border-cyan-500/70 shadow-[0_24px_70px_rgba(8,145,178,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
+                ? 'bg-gradient-to-br from-[#291708]/90 via-[#1d1106]/90 to-[#110a04]/95 border-amber-400/25 hover:border-amber-400/65 shadow-[0_30px_90px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] hover:shadow-[0_36px_110px_rgba(245,158,11,0.26),inset_0_1px_0_rgba(251,191,36,0.3)]'
+                : 'bg-gradient-to-br from-[#f3ede0]/96 via-[#eee4d2]/95 to-[#e6d9c2]/92 border-amber-600/35 hover:border-amber-600/65 shadow-[0_20px_60px_rgba(180,83,9,0.09)]'
             }`}
           >
             {!reducedMotion && (
@@ -964,29 +970,29 @@ export default function PrismEnginePortalPage() {
                 initial={{ x: '-115%', opacity: 0.9 }}
                 animate={{ x: '220%', opacity: 0 }}
                 transition={{ duration: 1.25, ease: 'easeOut' }}
-                className="pointer-events-none absolute inset-y-0 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent z-20"
+                className="pointer-events-none absolute inset-y-0 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-amber-300/30 to-transparent z-20"
               />
             )}
 
-            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/70 to-transparent" />
-            <div className="pointer-events-none absolute -right-14 -top-14 h-56 w-56 rounded-full bg-cyan-500/25 blur-3xl transition-all duration-500 group-hover:scale-125 group-hover:opacity-100 opacity-70" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/75 to-transparent" />
+            <div className="pointer-events-none absolute -right-14 -top-14 h-56 w-56 rounded-full bg-amber-500/25 blur-3xl transition-all duration-500 group-hover:scale-125 group-hover:opacity-100 opacity-70" />
 
             <div className="space-y-5 relative z-10">
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/25 to-teal-500/20 text-cyan-300 border border-cyan-400/35 shadow-[0_0_24px_rgba(34,211,238,0.25)]">
-                  <Code2 size={25} />
+                <span className="inline-flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/25 to-orange-500/20 text-amber-400 border border-amber-400/35 shadow-[0_0_24px_rgba(245,158,11,0.25)]">
+                  <Flame size={25} />
                 </span>
                 <button
                   type="button"
                   onClick={advanceForgeStage}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                     darkMode
-                      ? 'bg-cyan-500/20 border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/30'
-                      : 'bg-cyan-100 border-cyan-300 text-cyan-800 hover:bg-cyan-200'
+                      ? 'bg-amber-500/20 border-amber-400/40 text-amber-200 hover:bg-amber-500/30'
+                      : 'bg-amber-600/15 border-amber-600/35 text-amber-900 hover:bg-amber-600/25'
                   }`}
                 >
                   <Sparkles size={11} />
-                  <span>Snap Next LEGO Brick</span>
+                  <span>Preview Next Step</span>
                 </button>
               </div>
 
@@ -997,29 +1003,29 @@ export default function PrismEnginePortalPage() {
                     <span
                       className={`inline-block pr-2 bg-clip-text text-transparent ${
                         darkMode
-                          ? 'bg-gradient-to-r from-cyan-300 via-teal-300 to-emerald-400 drop-shadow-[0_0_20px_rgba(34,211,238,0.45)]'
-                          : 'bg-gradient-to-r from-cyan-700 via-teal-600 to-emerald-600'
+                          ? 'bg-gradient-to-r from-amber-200 via-amber-400 to-orange-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.45)]'
+                          : 'bg-gradient-to-r from-amber-800 via-orange-700 to-amber-900'
                       }`}
                     >
                       Forge
                     </span>
                   </h2>
-                  <span className={`text-xs font-black italic ${darkMode ? 'text-cyan-200' : 'text-cyan-700'}`}>
-                    Turning Errors into LEGOs.
+                  <span className={`text-xs font-black italic ${darkMode ? 'text-amber-200' : 'text-amber-800'}`}>
+                    Calming Tech, Formulas &amp; Code.
                   </span>
                 </div>
 
-                {/* 3-Brick Assembly Progress Bar */}
+                {/* 3-Step Molten Amber Progress Bar */}
                 <div className="grid grid-cols-3 gap-1.5 w-full pt-0.5">
                   {MINI_FORGE_LEGO_STAGES.map((item, idx) => (
                     <div
                       key={item.stage}
                       className={`h-1.5 rounded-full overflow-hidden border ${
-                        darkMode ? 'bg-cyan-950/60 border-cyan-400/20' : 'bg-cyan-100 border-cyan-200'
+                        darkMode ? 'bg-amber-950/60 border-amber-400/20' : 'bg-[#dfd6c3] border-amber-600/25'
                       }`}
                     >
                       <motion.div
-                        className="h-full bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-300"
+                        className="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300"
                         initial={false}
                         animate={{
                           width: idx <= forgeStageIndex ? '100%' : '0%',
@@ -1032,7 +1038,7 @@ export default function PrismEnginePortalPage() {
                 </div>
               </div>
 
-              {/* Interactive Mini LEGO Workbench Preview Card */}
+              {/* Interactive Mini Forge Preview Card */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeForgeStage.stage}
@@ -1042,19 +1048,19 @@ export default function PrismEnginePortalPage() {
                   transition={{ duration: 0.28 }}
                   className={`rounded-2xl border p-4 space-y-2.5 ${
                     darkMode
-                      ? 'border-cyan-400/30 bg-[#04121b]/85 shadow-inner'
-                      : 'border-cyan-200 bg-white shadow-sm'
+                      ? 'border-amber-400/30 bg-[#180e05]/85 shadow-inner'
+                      : 'border-amber-600/30 bg-[#ebe3d3] shadow-sm'
                   }`}
                 >
                   <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
-                    <span className={darkMode ? 'text-cyan-300' : 'text-cyan-700'}>
+                    <span className={darkMode ? 'text-amber-300' : 'text-amber-800'}>
                       {activeForgeStage.stage}
                     </span>
                     <span
                       className={`rounded-full border px-2.5 py-0.5 ${
                         darkMode
-                          ? 'bg-emerald-500/15 border-emerald-400/35 text-emerald-200'
-                          : 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                          ? 'bg-orange-500/15 border-orange-400/35 text-amber-200'
+                          : 'bg-amber-500/15 border-amber-600/35 text-amber-900'
                       }`}
                     >
                       {activeForgeStage.badge}
@@ -1067,7 +1073,7 @@ export default function PrismEnginePortalPage() {
                     {activeForgeStage.body}
                   </p>
                   <div className="flex items-center justify-between gap-2 pt-1">
-                    <span className={`text-[11px] font-bold ${darkMode ? 'text-cyan-200' : 'text-cyan-700'}`}>
+                    <span className={`text-[11px] font-bold ${darkMode ? 'text-amber-200' : 'text-amber-900'}`}>
                       {activeForgeStage.highlight}
                     </span>
                     <button
@@ -1075,19 +1081,19 @@ export default function PrismEnginePortalPage() {
                       onClick={advanceForgeStage}
                       className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-black transition-all cursor-pointer active:scale-95 ${
                         darkMode
-                          ? 'bg-cyan-500/20 hover:bg-cyan-500/35 border-cyan-400/40 text-cyan-200'
-                          : 'bg-cyan-100 hover:bg-cyan-200 border-cyan-300 text-cyan-800'
+                          ? 'bg-amber-500/20 hover:bg-amber-500/35 border-amber-400/40 text-amber-200'
+                          : 'bg-amber-600/15 hover:bg-amber-600/25 border-amber-600/40 text-amber-900'
                       }`}
                     >
                       {forgeStageIndex < MINI_FORGE_LEGO_STAGES.length - 1 ? (
                         <>
                           <Sparkles size={12} />
-                          <span>Next Brick</span>
+                          <span>Next Step</span>
                         </>
                       ) : (
                         <>
                           <RotateCcw size={12} />
-                          <span>Replay Bricks</span>
+                          <span>Replay Steps</span>
                         </>
                       )}
                     </button>
@@ -1097,19 +1103,19 @@ export default function PrismEnginePortalPage() {
 
               <div className="flex flex-wrap gap-2">
                 {[
-                  { icon: Code2, label: 'Stack Trace → LEGOs' },
-                  { icon: Layers, label: 'CLI Token Shield' },
-                  { icon: Sparkles, label: 'Ask DJ Pair Quest' },
+                  { icon: Flame, label: 'Errors & Formulas' },
+                  { icon: Layers, label: '5-Stack Window Vault' },
+                  { icon: Headphones, label: 'ADHD Calm Dock' },
                 ].map((tag) => (
                   <span
                     key={tag.label}
                     className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
                       darkMode
-                        ? 'bg-cyan-500/[0.08] border-cyan-400/20 text-slate-200 group-hover:border-cyan-400/35'
-                        : 'bg-white/80 border-cyan-200/80 text-slate-700'
+                        ? 'bg-amber-500/[0.08] border-amber-400/20 text-slate-200 group-hover:border-amber-400/35'
+                        : 'bg-[#e6dece] border-amber-600/25 text-slate-800'
                     }`}
                   >
-                    <tag.icon size={13} className="text-cyan-400" /> {tag.label}
+                    <tag.icon size={13} className="text-amber-500" /> {tag.label}
                   </span>
                 ))}
               </div>
@@ -1117,7 +1123,7 @@ export default function PrismEnginePortalPage() {
 
             <Link
               href="/forge"
-              className="relative z-10 inline-flex items-center justify-between rounded-2xl bg-gradient-to-r from-cyan-600 via-teal-500 to-emerald-600 px-6 py-4 text-sm font-black text-white shadow-[0_14px_35px_rgba(34,211,238,0.35),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all hover:from-cyan-500 hover:via-teal-400 hover:to-emerald-500 active:scale-[0.98]"
+              className="relative z-10 inline-flex items-center justify-between rounded-2xl bg-gradient-to-r from-amber-600 via-orange-500 to-amber-500 px-6 py-4 text-sm font-black text-white shadow-[0_14px_35px_rgba(245,158,11,0.35),inset_0_1px_0_rgba(255,255,255,0.28)] transition-all hover:from-amber-500 hover:via-orange-400 hover:to-amber-400 active:scale-[0.98]"
             >
               <span>Launch Prism Forge</span>
               <ArrowRight size={18} className="transition-transform group-hover:translate-x-1.5" />
@@ -1125,13 +1131,13 @@ export default function PrismEnginePortalPage() {
           </motion.div>
         </section>
 
-        {/* In Orbit · The Prism Roadmap (Classified Prototype Constellation — Blurred Until Hovered/Tapped!) */}
+        {/* In Orbit · The Prism Roadmap (Upcoming R&D Expansions Only) */}
         <section aria-label="In Orbit · The Prism Roadmap" className="space-y-5 pt-2">
           <div className="flex flex-wrap items-center justify-between gap-3 px-1">
             <div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-2.5 w-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_#22d3ee]" />
-                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-cyan-400">
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-cyan-500">
                   In Orbit · The Prism Roadmap
                 </h3>
               </div>
@@ -1140,50 +1146,38 @@ export default function PrismEnginePortalPage() {
               </p>
             </div>
             <span className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-[10px] font-black uppercase tracking-wider ${pillSurface}`}>
-              <Sparkles size={11} className="text-cyan-400" /> Roadmap
+              <Sparkles size={11} className="text-cyan-500" /> Roadmap
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {FUTURE_EXPANSIONS.map((item) => {
               const isRevealed = activePrototype === item.name;
               const edgeGlow =
-                item.accent === 'cyan'
-                  ? 'via-cyan-400/75'
-                  : item.accent === 'amber'
+                item.accent === 'amber'
                   ? 'via-amber-400/75'
                   : 'via-purple-400/75';
               const hoverBorder =
-                item.accent === 'cyan'
-                  ? 'hover:border-cyan-400/50'
-                  : item.accent === 'amber'
+                item.accent === 'amber'
                   ? 'hover:border-amber-400/50'
                   : 'hover:border-purple-400/50';
               const neonText =
-                item.accent === 'cyan'
-                  ? darkMode
-                    ? 'text-cyan-300 drop-shadow-[0_0_14px_rgba(34,211,238,0.65)]'
-                    : 'text-cyan-700'
-                  : item.accent === 'amber'
+                item.accent === 'amber'
                   ? darkMode
                     ? 'text-amber-300 drop-shadow-[0_0_14px_rgba(251,191,36,0.65)]'
-                    : 'text-amber-700'
+                    : 'text-amber-800'
                   : darkMode
-                  ? 'text-purple-300 drop-shadow-[0_0_14px_rgba(192,132,252,0.65)]'
-                  : 'text-purple-700';
+                    ? 'text-purple-300 drop-shadow-[0_0_14px_rgba(192,132,252,0.65)]'
+                    : 'text-purple-800';
 
               const hoverNeonClass =
-                item.accent === 'cyan'
-                  ? darkMode
-                    ? 'group-hover:text-cyan-300 group-hover:drop-shadow-[0_0_14px_rgba(34,211,238,0.65)]'
-                    : 'group-hover:text-cyan-700'
-                  : item.accent === 'amber'
+                item.accent === 'amber'
                   ? darkMode
                     ? 'group-hover:text-amber-300 group-hover:drop-shadow-[0_0_14px_rgba(251,191,36,0.65)]'
-                    : 'group-hover:text-amber-700'
+                    : 'group-hover:text-amber-800'
                   : darkMode
-                  ? 'group-hover:text-purple-300 group-hover:drop-shadow-[0_0_14px_rgba(192,132,252,0.65)]'
-                  : 'group-hover:text-purple-700';
+                    ? 'group-hover:text-purple-300 group-hover:drop-shadow-[0_0_14px_rgba(192,132,252,0.65)]'
+                    : 'group-hover:text-purple-800';
 
               return (
                 <motion.button
@@ -1195,7 +1189,7 @@ export default function PrismEnginePortalPage() {
                   className={`group relative text-left overflow-hidden rounded-[2rem] border p-6 backdrop-blur-3xl transition-all duration-300 flex flex-col justify-between gap-5 cursor-pointer ${hoverBorder} ${
                     darkMode
                       ? 'bg-[#050914]/85 border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.10)]'
-                      : 'bg-white/85 border-slate-200/90 shadow-[0_14px_40px_rgba(0,0,0,0.05)]'
+                      : 'bg-[#f3ede0]/92 border-[#cfc3ad] shadow-[0_14px_40px_rgba(23,33,51,0.06)]'
                   }`}
                 >
                   <div className={`pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent ${edgeGlow} to-transparent opacity-60 group-hover:opacity-100 transition-opacity`} />
@@ -1204,9 +1198,7 @@ export default function PrismEnginePortalPage() {
                     className={`pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full blur-2xl transition-opacity duration-500 ${
                       isRevealed ? 'opacity-100' : 'opacity-25 group-hover:opacity-100'
                     } ${
-                      item.accent === 'cyan'
-                        ? 'bg-cyan-500/25'
-                        : item.accent === 'amber'
+                      item.accent === 'amber'
                         ? 'bg-amber-500/25'
                         : 'bg-purple-500/25'
                     }`}
@@ -1216,16 +1208,14 @@ export default function PrismEnginePortalPage() {
                     <div className="flex items-center justify-between gap-2">
                       <span
                         className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-transform duration-300 group-hover:scale-105 ${
-                          item.accent === 'cyan'
-                            ? 'bg-cyan-500/15 border-cyan-400/35 text-cyan-400'
-                            : item.accent === 'amber'
-                            ? 'bg-amber-500/15 border-amber-400/35 text-amber-400'
-                            : 'bg-purple-500/15 border-purple-400/35 text-purple-400'
+                          item.accent === 'amber'
+                            ? 'bg-amber-500/15 border-amber-400/35 text-amber-500'
+                            : 'bg-purple-500/15 border-purple-400/35 text-purple-500'
                         }`}
                       >
                         <item.icon size={19} />
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/[0.06] px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-300">
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${pillSurface}`}>
                         <Lock size={9} /> {item.badge}
                       </span>
                     </div>
@@ -1258,11 +1248,11 @@ export default function PrismEnginePortalPage() {
                     </div>
                   </div>
 
-                  <div className="relative z-10 w-full pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] font-bold">
-                    <span className="uppercase tracking-[0.18em] text-slate-400">
+                  <div className="relative z-10 w-full pt-2.5 border-t border-black/10 dark:border-white/[0.06] flex items-center justify-between text-[10px] font-bold">
+                    <span className={`uppercase tracking-[0.18em] ${muted}`}>
                       {isRevealed ? 'Decrypted' : 'Classified Prototype'}
                     </span>
-                    <span className="text-cyan-400/80 group-hover:text-cyan-300 transition-colors">
+                    <span className="text-cyan-500 group-hover:text-cyan-400 transition-colors">
                       {isRevealed ? 'Tap to veil' : 'Hover / Tap to reveal'}
                     </span>
                   </div>
@@ -1393,7 +1383,11 @@ export default function PrismEnginePortalPage() {
                     : { opacity: 0, y: 10, filter: 'blur(6px)' }
                 }
                 transition={{ duration: 0.65, delay: 1.4 }}
-                className="text-xs sm:text-sm font-black uppercase tracking-[0.16em] bg-gradient-to-r from-sky-300 via-violet-300 to-emerald-300 bg-clip-text text-transparent"
+                className={`text-xs sm:text-sm font-black uppercase tracking-[0.16em] bg-clip-text text-transparent ${
+                  darkMode
+                    ? 'bg-gradient-to-r from-sky-300 via-violet-300 to-emerald-300'
+                    : 'bg-gradient-to-r from-blue-800 via-purple-800 to-emerald-800'
+                }`}
               >
                 The Prism Engine ∞ · Autonomous Self-Healing Intelligence
               </motion.p>
@@ -1428,12 +1422,38 @@ export default function PrismEnginePortalPage() {
             <span className={`inline-flex items-center gap-1.5 rounded-2xl border px-4 py-2.5 text-xs font-black ${pillSurface}`}>
               <ShieldCheck size={15} className="text-emerald-500" /> Zero Secret Leaks · Free Forever
             </span>
-            <span className="text-[10px] font-bold text-cyan-400/80 px-1">
+            <span className="text-[10px] font-bold text-cyan-500 px-1">
               Tap chamber anytime to replay engine ignition
             </span>
           </motion.div>
         </motion.section>
       </main>
+
+      {/* Engine Hub Footer: Hosts LivingIchthysFooter + About the Prism + Browser Extension */}
+      <footer className="relative z-10 w-full py-12 px-4 border-t border-black/10 dark:border-white/5 flex flex-col items-center gap-4 text-center opacity-85 hover:opacity-100 transition-opacity">
+        <LivingIchthysFooter focusMode="dastastic" />
+        <p className={`max-w-xl text-[10px] leading-relaxed ${muted}`}>
+          Privacy first: remove passwords, API keys, identity numbers, and private medical or financial details before sending material for AI refraction.
+        </p>
+        <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4">
+          <button
+            type="button"
+            onClick={() => setShowAbout(true)}
+            className={`mt-2 px-6 py-2 border rounded-full text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer ${pillSurface}`}
+          >
+            About the Prism
+          </button>
+          <a
+            href="/dassahs-prism-engine-extension.zip"
+            download="dassahs-prism-engine-extension.zip"
+            className="mt-2 px-6 py-2 bg-emerald-500/10 border border-emerald-500/25 rounded-full text-[8px] font-black uppercase tracking-widest text-emerald-500 hover:opacity-85 transition-all"
+          >
+            Browser Extension
+          </a>
+        </div>
+      </footer>
+
+      <AboutPrismModal isOpen={showAbout} onClose={() => setShowAbout(false)} darkMode={darkMode} />
     </div>
   );
 }

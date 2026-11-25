@@ -45,6 +45,10 @@ import { ProgressPrism } from '@/components/prism/ProgressPrism';
 import { ReadAloud } from '@/components/prism/ReadAloud';
 import { NeuralMicroBreak } from '@/components/prism/NeuralMicroBreak';
 import { PrismWeaver } from '@/components/prism/PrismWeaver';
+import { PrismFooter } from '@/components/prism/PrismFooter';
+import { PrismSwitcherPopover } from '@/components/prism/PrismSwitcherPopover';
+import { PrismTourOverlay, type TourStep } from '@/components/prism/PrismTourOverlay';
+import { useEngageShortcut } from '@/components/prism/useEngageShortcut';
 import {
   NeuralIdentityDrawer,
   QuickBrainCheckIn,
@@ -105,100 +109,128 @@ interface ColorTheme {
 const COLOR_THEMES: Record<ColorThemeId, ColorTheme> = {
   midnight: {
     id: 'midnight',
-    label: 'Midnight Focus',
-    swatch: '#2563eb',
-    darkBg: 'bg-[#070d1d] text-slate-100',
-    darkCard: 'bg-[#0f172a]/85 border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.45)]',
-    darkInner: 'bg-[#080f21]/85 border-white/10 text-slate-100',
-    darkGlowA: 'bg-blue-600/15',
-    darkGlowB: 'bg-cyan-500/10',
-    lightBg: 'bg-[#f3efe6] text-[#1e293b]',
-    lightCard: 'bg-[#faf7f0]/95 border-[#dfd8c8] shadow-[0_18px_50px_rgba(30,41,59,0.07)]',
-    lightInner: 'bg-[#f1ece1] border-[#ddd6c5] text-[#1e293b]',
-    lightText: 'text-[#1e293b]',
-    lightMuted: 'text-[#526071]',
-    lightGlowA: 'bg-amber-300/20',
-    lightGlowB: 'bg-blue-300/15',
-    accentBg: 'bg-blue-600 hover:bg-blue-500',
-    accentText: 'text-blue-500',
+    label: 'Starlight Study',
+    swatch: '#4f46e5',
+    darkBg: 'bg-[#090d22] text-indigo-50',
+    darkCard: 'bg-[#12193a]/90 border-indigo-400/25 shadow-[0_24px_80px_rgba(0,0,0,0.45)]',
+    darkInner: 'bg-[#0b1029]/85 border-indigo-400/15 text-indigo-50',
+    darkGlowA: 'bg-indigo-600/18',
+    darkGlowB: 'bg-sky-500/12',
+    lightBg: 'bg-[#e6e3ee] text-[#1c1a30]',
+    lightCard: 'bg-[#f1eff7]/95 border-[#c6c1d9] shadow-[0_18px_50px_rgba(28,26,48,0.08)]',
+    lightInner: 'bg-[#dedae8] border-[#bfb9d4] text-[#1c1a30]',
+    lightText: 'text-[#1c1a30]',
+    lightMuted: 'text-[#4c4866]',
+    lightGlowA: 'bg-indigo-400/15',
+    lightGlowB: 'bg-sky-400/15',
+    accentBg: 'bg-indigo-600 hover:bg-indigo-500',
+    accentText: 'text-indigo-400',
   },
   silk: {
     id: 'silk',
-    label: 'Hadassah Silk',
+    label: 'Emerald Arcade',
     swatch: '#059669',
     darkBg: 'bg-[#041d16] text-emerald-50',
-    darkCard: 'bg-[#082c22]/85 border-emerald-400/15 shadow-[0_24px_80px_rgba(0,0,0,0.45)]',
+    darkCard: 'bg-[#082c22]/90 border-emerald-400/25 shadow-[0_24px_80px_rgba(0,0,0,0.45)]',
     darkInner: 'bg-[#052119]/85 border-emerald-400/15 text-emerald-50',
     darkGlowA: 'bg-emerald-500/15',
     darkGlowB: 'bg-teal-400/10',
-    lightBg: 'bg-[#ecf3ee] text-[#143025]',
-    lightCard: 'bg-[#f5faf6]/95 border-[#cde0d2] shadow-[0_18px_50px_rgba(20,48,37,0.07)]',
-    lightInner: 'bg-[#e7f1ea] border-[#c8dccd] text-[#143025]',
-    lightText: 'text-[#143025]',
-    lightMuted: 'text-[#3d6051]',
-    lightGlowA: 'bg-emerald-300/20',
-    lightGlowB: 'bg-teal-200/20',
+    lightBg: 'bg-[#e3ebe2] text-[#064e3b]',
+    lightCard: 'bg-[#edf3ec]/95 border-[#bdd3c3] shadow-[0_18px_50px_rgba(20,48,37,0.08)]',
+    lightInner: 'bg-[#dce7dd] border-[#b7ceb9] text-[#064e3b]',
+    lightText: 'text-[#064e3b]',
+    lightMuted: 'text-[#2d5444]',
+    lightGlowA: 'bg-emerald-400/15',
+    lightGlowB: 'bg-teal-300/15',
     accentBg: 'bg-emerald-600 hover:bg-emerald-500',
     accentText: 'text-emerald-500',
   },
   gold: {
     id: 'gold',
-    label: 'Golden Glow',
-    swatch: '#d97706',
-    darkBg: 'bg-[#141008] text-amber-50',
-    darkCard: 'bg-[#20190d]/85 border-amber-400/15 shadow-[0_24px_80px_rgba(0,0,0,0.5)]',
-    darkInner: 'bg-[#171209]/85 border-amber-400/15 text-amber-50',
-    darkGlowA: 'bg-amber-500/15',
-    darkGlowB: 'bg-orange-400/10',
-    lightBg: 'bg-[#f6efe1] text-[#352612]',
-    lightCard: 'bg-[#fcf8ee]/95 border-[#e3d6bc] shadow-[0_18px_50px_rgba(53,38,18,0.07)]',
-    lightInner: 'bg-[#f2e8d4] border-[#ded0b4] text-[#352612]',
-    lightText: 'text-[#352612]',
-    lightMuted: 'text-[#6c5534]',
-    lightGlowA: 'bg-amber-300/25',
-    lightGlowB: 'bg-yellow-200/20',
-    accentBg: 'bg-amber-600 hover:bg-amber-500',
-    accentText: 'text-amber-500',
+    label: 'Sunbeam Sprint',
+    swatch: '#ca8a04',
+    darkBg: 'bg-[#161206] text-yellow-50',
+    darkCard: 'bg-[#231d0a]/90 border-yellow-400/25 shadow-[0_24px_80px_rgba(0,0,0,0.5)]',
+    darkInner: 'bg-[#1a1507]/85 border-yellow-400/15 text-yellow-50',
+    darkGlowA: 'bg-yellow-500/15',
+    darkGlowB: 'bg-amber-400/10',
+    lightBg: 'bg-[#eee6ce] text-[#35290d]',
+    lightCard: 'bg-[#f6f0dc]/95 border-[#d8cba5] shadow-[0_18px_50px_rgba(53,41,13,0.08)]',
+    lightInner: 'bg-[#e8dec0] border-[#d1c296] text-[#35290d]',
+    lightText: 'text-[#35290d]',
+    lightMuted: 'text-[#5e4f28]',
+    lightGlowA: 'bg-yellow-400/20',
+    lightGlowB: 'bg-amber-300/15',
+    accentBg: 'bg-yellow-600 hover:bg-yellow-500',
+    accentText: 'text-yellow-500',
   },
   ocean: {
     id: 'ocean',
-    label: 'Ocean Calm',
-    swatch: '#0891b2',
-    darkBg: 'bg-[#061820] text-cyan-50',
-    darkCard: 'bg-[#0c2632]/85 border-cyan-400/15 shadow-[0_24px_80px_rgba(0,0,0,0.45)]',
-    darkInner: 'bg-[#081d26]/85 border-cyan-400/15 text-cyan-50',
+    label: 'Lagoon Drift',
+    swatch: '#06b6d4',
+    darkBg: 'bg-[#051a22] text-cyan-50',
+    darkCard: 'bg-[#0a2936]/90 border-cyan-400/25 shadow-[0_24px_80px_rgba(0,0,0,0.45)]',
+    darkInner: 'bg-[#07202a]/85 border-cyan-400/15 text-cyan-50',
     darkGlowA: 'bg-cyan-500/15',
-    darkGlowB: 'bg-sky-500/10',
-    lightBg: 'bg-[#ebf3f5] text-[#12303c]',
-    lightCard: 'bg-[#f4f9fa]/95 border-[#cadde2] shadow-[0_18px_50px_rgba(18,48,60,0.07)]',
-    lightInner: 'bg-[#e4eff2] border-[#c4d8de] text-[#12303c]',
-    lightText: 'text-[#12303c]',
-    lightMuted: 'text-[#3e606e]',
-    lightGlowA: 'bg-cyan-300/20',
-    lightGlowB: 'bg-sky-200/20',
+    darkGlowB: 'bg-teal-400/12',
+    lightBg: 'bg-[#e0ecef] text-[#0e323d]',
+    lightCard: 'bg-[#ebf4f6]/95 border-[#b8d2d9] shadow-[0_18px_50px_rgba(14,50,61,0.08)]',
+    lightInner: 'bg-[#d6e7eb] border-[#aecbd3] text-[#0e323d]',
+    lightText: 'text-[#0e323d]',
+    lightMuted: 'text-[#305763]',
+    lightGlowA: 'bg-cyan-400/15',
+    lightGlowB: 'bg-teal-300/15',
     accentBg: 'bg-cyan-600 hover:bg-cyan-500',
-    accentText: 'text-cyan-500',
+    accentText: 'text-cyan-400',
   },
   grace: {
     id: 'grace',
-    label: 'Electric Grace',
-    swatch: '#e11d48',
-    darkBg: 'bg-[#180b10] text-rose-50',
-    darkCard: 'bg-[#261219]/85 border-rose-400/15 shadow-[0_24px_80px_rgba(0,0,0,0.45)]',
-    darkInner: 'bg-[#1c0d13]/85 border-rose-400/15 text-rose-50',
-    darkGlowA: 'bg-rose-500/15',
-    darkGlowB: 'bg-amber-400/10',
-    lightBg: 'bg-[#f5ecee] text-[#3a1824]',
-    lightCard: 'bg-[#fbf6f7]/95 border-[#e3cdd2] shadow-[0_18px_50px_rgba(58,24,36,0.07)]',
-    lightInner: 'bg-[#f1e5e8] border-[#dfc6cc] text-[#3a1824]',
-    lightText: 'text-[#3a1824]',
-    lightMuted: 'text-[#6e4050]',
-    lightGlowA: 'bg-rose-300/20',
-    lightGlowB: 'bg-amber-200/20',
-    accentBg: 'bg-rose-600 hover:bg-rose-500',
-    accentText: 'text-rose-500',
+    label: 'Berry Spark',
+    swatch: '#db2777',
+    darkBg: 'bg-[#1a0a16] text-pink-50',
+    darkCard: 'bg-[#2a1123]/90 border-pink-400/25 shadow-[0_24px_80px_rgba(0,0,0,0.45)]',
+    darkInner: 'bg-[#200d1b]/85 border-pink-400/15 text-pink-50',
+    darkGlowA: 'bg-pink-500/15',
+    darkGlowB: 'bg-fuchsia-400/12',
+    lightBg: 'bg-[#efe1ea] text-[#3b152c]',
+    lightCard: 'bg-[#f7ecf3]/95 border-[#dabcd0] shadow-[0_18px_50px_rgba(59,21,44,0.08)]',
+    lightInner: 'bg-[#e8d6e2] border-[#d2b0c6] text-[#3b152c]',
+    lightText: 'text-[#3b152c]',
+    lightMuted: 'text-[#643552]',
+    lightGlowA: 'bg-pink-400/15',
+    lightGlowB: 'bg-fuchsia-300/15',
+    accentBg: 'bg-pink-600 hover:bg-pink-500',
+    accentText: 'text-pink-400',
   },
 };
+
+const PLAY_POINTER_TOUR_STEPS: readonly TourStep[] = [
+  {
+    selector: '[data-tour="play-engine-switcher"]',
+    title: 'Switch Prisms Anytime',
+    description: 'Tap Prism Engine here to jump neatly between Focus, Play, Forge, Word, or the main Engine Hub.',
+  },
+  {
+    selector: '[data-tour="play-neural-command"]',
+    title: 'Neural Command & Live Vibes',
+    description: 'Connect Canvas or paste notes, switch quests, and test color vibes with an instant live preview.',
+  },
+  {
+    selector: '[data-tour="play-neural-identity"]',
+    title: 'Your Brain Profile',
+    description: 'Toggle soundscapes, Bionic scanning, RSVP speed-reading, or Low-Battery mode so only what helps you stays visible.',
+  },
+  {
+    selector: '[data-tour="play-refract-btn"]',
+    title: 'Refract Any Study Card',
+    description: 'Turn a dense paragraph into The Tiny Idea, a memorable Metaphor, a Dopamine Boost, and One Small Move.',
+  },
+  {
+    selector: '[data-tour="play-claim-win-btn"]',
+    title: 'Claim Your Win',
+    description: 'Finished reading this one calm card? Tap Claim Win to earn XP and move gently to the next card.',
+  },
+];
 
 const TEXT_SIZE_STYLES: Record<TextSize, string> = {
   small: 'text-base sm:text-[17px] leading-[1.75]',
@@ -305,6 +337,8 @@ export default function CanvasPrismPlayPage() {
   const [connectTab, setConnectTab] = useState<'canvas' | 'paste'>('canvas');
   const [showQuestDrawer, setShowQuestDrawer] = useState(false);
   const [showCommandModal, setShowCommandModal] = useState(false);
+  const [tourTrigger, setTourTrigger] = useState(0);
+  useEngageShortcut(showCommandModal, () => setShowCommandModal(false));
   const [soundStudioOpen, setSoundStudioOpen] = useState(false);
   const [focusStudioOpen, setFocusStudioOpen] = useState(false);
 
@@ -951,23 +985,7 @@ export default function CanvasPrismPlayPage() {
       {/* Full-Width Spacious Top Navigation Bar (mirroring main Dassah's Prism) */}
       <header className="relative z-20 w-full border-b border-black/5 dark:border-white/5 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-8">
-          {/* Left: Brand & Engine Hub */}
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/engine"
-              className={`inline-flex items-center gap-1.5 rounded-2xl border px-3.5 py-2 text-xs font-bold transition-colors ${subtlePill} hover:border-blue-500/50`}
-            >
-              <Sparkles size={13} className="text-cyan-400" /> Prism Engine
-            </Link>
-            <Link
-              href="/"
-              className={`hidden sm:inline-flex items-center gap-1.5 rounded-2xl border px-3 py-2 text-xs font-bold transition-colors ${subtlePill} hover:border-blue-500/50`}
-            >
-              <ArrowLeft size={13} /> Dassah&apos;s Prism
-            </Link>
-          </div>
-
-          {/* Center: Calm Progress Pill */}
+          {/* Left: Calm Progress Pill */}
           <div
             className={`inline-flex items-center gap-2.5 rounded-full border px-4 py-1.5 text-xs font-bold ${subtlePill}`}
             title={profile.shameFreeStreak ? `${daysShownUp} total days shown up (shame-free)` : `Competitive Streak: ${streakDays}d · Personal Best: ${bestStreak}d`}
@@ -984,9 +1002,14 @@ export default function CanvasPrismPlayPage() {
             )}
           </div>
 
-          {/* Right: Separated Spatial Controls (Neural Command · Neural Identity · Theme) */}
-          <div className="flex items-center gap-2.5">
+          {/* Right: Separated Spatial Controls (Prism Switcher · Neural Command · Neural Identity · Theme) */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div data-tour="play-engine-switcher">
+              <PrismSwitcherPopover current="play" darkMode={darkMode} />
+            </div>
+
             <button
+              data-tour="play-neural-command"
               onClick={() => setShowCommandModal(true)}
               className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-xs font-black transition-all hover:border-blue-500/50 ${subtlePill}`}
             >
@@ -996,6 +1019,7 @@ export default function CanvasPrismPlayPage() {
             </button>
 
             <button
+              data-tour="play-neural-identity"
               onClick={() => setShowIdentityDrawer(true)}
               className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-xs font-black transition-all hover:border-amber-400/60 ${subtlePill}`}
             >
@@ -1017,9 +1041,15 @@ export default function CanvasPrismPlayPage() {
 
       {/* Spacious, Uncluttered Center Reading Stage */}
       <div className="relative z-10 mx-auto max-w-3xl px-4 pt-6 pb-36 sm:px-6 sm:pt-8 space-y-6">
-        {/* Signature Prism Play Wordmark & Catchphrase (mirroring Dassah's Prism hero) */}
+        {/* Signature Prism Play Wordmark & Catchphrase (mirroring Prism Focus hero) */}
         {!profile.lowBatteryMode && (
-          <div className="text-center space-y-2.5">
+          <div className="text-center space-y-3">
+            <Link
+              href="/engine"
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-500/35 bg-emerald-500/15 px-4 py-1.5 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.2)] transition-all hover:border-emerald-400/60"
+            >
+              <Sparkles size={12} className="text-emerald-400" /> Dassah&apos;s Prism Engine · Powered by The Prism Engine
+            </Link>
             <h1 className="prism-brand text-4xl sm:text-6xl md:text-7xl font-black tracking-tight italic leading-[1.15]">
               Prism{' '}
               <span className="prism-text brand-prism">
@@ -1336,6 +1366,7 @@ export default function CanvasPrismPlayPage() {
                 {/* Refract with Prism Trigger */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <button
+                    data-tour="play-refract-btn"
                     onClick={() => void handleRefractCard()}
                     disabled={refracting}
                     className={`inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white shadow-lg transition-all active:scale-95 disabled:opacity-60 ${theme.accentBg}`}
@@ -1461,6 +1492,7 @@ export default function CanvasPrismPlayPage() {
                   </button>
 
                   <button
+                    data-tour="play-claim-win-btn"
                     onClick={handleClaimWin}
                     className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-xl transition-all hover:bg-emerald-500 active:scale-95"
                   >
@@ -1940,7 +1972,7 @@ export default function CanvasPrismPlayPage() {
         </div>
       )}
 
-      {/* Dedicated Neural Command Modal (mirroring main Dassah's Prism: Canvas Sync, Quests, Vibes, Chimes & Privacy) */}
+      {/* Dedicated Neural Command Modal (Canvas Sync, Quests, Live Vibes, Chimes & Privacy) */}
       <AnimatePresence>
         {showCommandModal && (
           <div className="fixed inset-0 z-[450] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 sm:p-6">
@@ -1948,17 +1980,25 @@ export default function CanvasPrismPlayPage() {
               initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 12 }}
-              className={`w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2.25rem] border p-6 sm:p-10 space-y-7 shadow-2xl ${
-                darkMode ? 'border-white/15 bg-[#0b1224]/95 text-slate-100' : 'border-[#d6ccb9] bg-[#f8f4eb]/98 text-[#1e293b]'
+              className={`relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2.25rem] border p-6 sm:p-10 space-y-7 shadow-2xl transition-colors duration-300 ${
+                darkMode ? `${theme.darkCard} text-slate-100` : `${theme.lightCard} ${theme.lightText}`
               }`}
+              style={{
+                boxShadow: `0 25px 80px -15px ${theme.swatch}45`,
+              }}
             >
-              <div className="flex items-start justify-between gap-4 border-b border-black/10 dark:border-white/10 pb-5">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-20 right-0 h-52 w-52 rounded-full blur-3xl opacity-40 transition-colors duration-300"
+                style={{ backgroundColor: theme.swatch }}
+              />
+              <div className="relative flex items-start justify-between gap-4 border-b border-black/10 dark:border-white/10 pb-5">
                 <div className="space-y-1">
                   <h2 className="text-2xl font-black italic flex items-center gap-3">
-                    <Compass size={22} className="text-blue-500" /> Neural Command
+                    <Compass size={22} className={theme.accentText} /> Neural Command
                   </h2>
                   <p className={`text-xs sm:text-sm ${mutedText}`}>
-                    Manage your Canvas course, switch quests, pick your color vibe, and control privacy.
+                    Manage your Canvas course, switch quests, preview your color vibe live, and control privacy.
                   </p>
                 </div>
                 <button
@@ -1971,8 +2011,8 @@ export default function CanvasPrismPlayPage() {
               </div>
 
               {/* Section 1: Canvas & Readings */}
-              <section className="space-y-3">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">Canvas &amp; Readings</p>
+              <section className="relative space-y-3">
+                <p className={`text-xs font-black uppercase tracking-[0.2em] ${theme.accentText}`}>Canvas &amp; Readings</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -1983,7 +2023,7 @@ export default function CanvasPrismPlayPage() {
                     className={`rounded-2xl border p-4 text-left transition-all hover:border-blue-500/60 ${subtlePill}`}
                   >
                     <p className="text-sm font-black flex items-center gap-2">
-                      <KeyRound size={15} className="text-blue-500" />
+                      <KeyRound size={15} className={theme.accentText} />
                       {isCanvasConnected ? 'Canvas Connected' : 'Connect Canvas / Paste Notes'}
                     </p>
                     <p className={`mt-1 text-xs leading-relaxed ${mutedText}`}>
@@ -2009,9 +2049,15 @@ export default function CanvasPrismPlayPage() {
                 </div>
               </section>
 
-              {/* Section 2: Visual Vibe & Win Chimes */}
-              <section className="space-y-3">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500">Visual Vibe &amp; Sound Feedback</p>
+              {/* Section 2: Visual Vibe & Win Chimes (Live Preview inside Modal) */}
+              <section className="relative space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-500">Visual Vibe &amp; Sound Feedback</p>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${subtlePill}`}>
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: theme.swatch }} />
+                    Live: {theme.label}
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {(Object.values(COLOR_THEMES) as ColorTheme[]).map((t) => {
                     const active = t.id === colorTheme;
@@ -2024,8 +2070,8 @@ export default function CanvasPrismPlayPage() {
                         className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-xs font-bold transition-all ${
                           active
                             ? darkMode
-                              ? 'border-white/50 bg-white/15 text-white'
-                              : 'border-slate-700/50 bg-[#e2dacb] text-slate-900'
+                              ? 'border-white/50 bg-white/15 text-white shadow-md'
+                              : 'border-slate-700/50 bg-[#e2dacb] text-slate-900 shadow-sm'
                             : `${subtlePill} opacity-85 hover:opacity-100`
                         }`}
                       >
@@ -2057,7 +2103,7 @@ export default function CanvasPrismPlayPage() {
               </section>
 
               {/* Section 3: Privacy & Unlimited Mode */}
-              <section className="space-y-3">
+              <section className="relative space-y-3">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-500">Privacy &amp; Unlimited Reading</p>
                 <div className={`rounded-2xl border p-4 space-y-3 ${subtlePill}`}>
                   <div className="flex items-start gap-2.5 text-xs leading-relaxed">
@@ -2074,7 +2120,7 @@ export default function CanvasPrismPlayPage() {
                       className={`rounded-xl px-3.5 py-1.5 text-xs font-black transition-colors ${
                         localOnlyMode
                           ? 'bg-emerald-600 text-white'
-                          : darkMode ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-[#dfd7c7] text-[#1e293b]'
+                          : darkMode ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-[#dfd7c7] text-[#1c1711]'
                       }`}
                     >
                       {localOnlyMode ? 'Unlimited Local Prism: ON' : 'Auto AI + Unlimited Fallback'}
@@ -2082,10 +2128,40 @@ export default function CanvasPrismPlayPage() {
                   </div>
                 </div>
               </section>
+
+              <div className="relative flex flex-col items-center gap-2 pt-3 border-t border-black/10 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowCommandModal(false)}
+                  className={`rounded-full px-10 py-3 text-[10px] font-black uppercase tracking-[0.35em] text-white shadow-lg transition-all hover:scale-105 ${theme.accentBg}`}
+                >
+                  Engage
+                </button>
+                <span className={`text-[10px] font-semibold ${mutedText}`}>
+                  Click Engage, press Esc, or type &ldquo;engage&rdquo; anywhere to return.
+                </span>
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Identical Prism Footer + Interactive Pointer Tour */}
+      <div className="relative z-10 pb-24">
+        <PrismFooter
+          accent="emerald"
+          onOpenNeuralGuide={() => setTourTrigger((c) => c + 1)}
+        />
+      </div>
+      <PrismTourOverlay
+        storageKey="prism_play_tour_v1"
+        prismName="Prism Play"
+        welcomeMessage="Turning dread into play — one calm card at a time."
+        accent="emerald"
+        steps={PLAY_POINTER_TOUR_STEPS}
+        darkMode={darkMode}
+        manualTriggerCount={tourTrigger}
+      />
     </div>
   );
 }

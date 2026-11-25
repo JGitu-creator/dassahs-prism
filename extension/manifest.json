@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Dassah's Prism: Neural Bridge",
-  "version": "1.5.1",
-  "description": "Refract overwhelming noise into clear, actionable focus. Your cognitive architecture, optimized.",
+  "name": "Dassah's Prism Engine: Smart Bridge",
+  "version": "2.0.0",
+  "description": "Smartly routes Excel/code/errors to Prism Forge, Canvas/Classroom courses to Prism Play, Scripture to Prism Word, and dense articles to Prism Focus.",
   "permissions": ["activeTab", "scripting", "contextMenus", "notifications"],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Dassah's Prism",
+    "default_title": "Dassah's Prism Engine",
     "default_icon": {
       "16": "logo.png",
       "48": "logo.png",

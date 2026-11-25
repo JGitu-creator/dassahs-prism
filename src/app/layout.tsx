@@ -17,8 +17,8 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Dassah's Prism Engine | Prism Focus & Prism Play",
-  description: "Dassah's Prism Engine powered by The Prism Engine. Refract overwhelming noise into clear focus in Prism Focus and turn coursework dread into play in Prism Play.",
+  title: "Dassah's Prism Engine | Prism Focus, Play, Forge & Word",
+  description: "Dassah's Prism Engine powered by The Prism Engine. Refract dense documents in Prism Focus, turn study dread into play in Prism Play, melt scary tech & formula jargon in Prism Forge, and reflect deeply in Prism Word.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://dassahs-prism.vercel.app"),
   alternates: {
     canonical: "https://dassahs-prism.vercel.app",
@@ -38,8 +38,8 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Dassah's Prism Engine | Prism Focus & Prism Play",
-    description: "Built for how your brain actually works. Refract the noise in Prism Focus and turn study dread into play in Prism Play.",
+    title: "Dassah's Prism Engine | Prism Focus, Play, Forge & Word",
+    description: "Built for how your brain actually works — Prism Focus, Prism Play, Prism Forge, and Prism Word.",
     url: "https://dassahs-prism.vercel.app",
     siteName: "Dassah's Prism Engine",
     images: [

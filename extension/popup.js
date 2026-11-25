@@ -1,38 +1,56 @@
-document.getElementById('simplifyBtn').addEventListener('click', async () => {
+async function sendToPrism(overrideTarget) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const statusEl = document.getElementById('status');
-  const btn = document.getElementById('simplifyBtn');
+  const statusEl = document.getElementById("status");
+  const smartBtn = document.getElementById("smartBtn");
 
-  statusEl.innerText = "Capturing Noise...";
-  btn.style.opacity = "0.5";
-  btn.disabled = true;
+  statusEl.innerText = "Capturing page cleanly...";
+  smartBtn.disabled = true;
 
   try {
     const response = await chrome.tabs.sendMessage(tab.id, { action: "extractText" });
-    const text = response.text;
+    if (!response || !response.text) throw new Error("No readable text found on this page.");
 
-    if (!text) throw new Error("Noise not found.");
+    const finalTarget = overrideTarget || response.target || "focus";
+    statusEl.innerText = `Opening Prism ${finalTarget.toUpperCase()}...`;
 
-    statusEl.innerText = "Refracting Web...";
-
-    // v1.5.2: sessionStorage handoff (Canvas pages open directly in /canvas Prism Play)
     await chrome.runtime.sendMessage({
       action: "openPrismWithDocument",
-      text,
+      text: response.text,
+      target: finalTarget,
       source: response.source,
+      reference: response.reference,
       title: response.title,
       url: response.url,
     });
-    window.close(); 
-
+    window.close();
   } catch (err) {
-    if (err.message.includes("Could not establish connection")) {
-      statusEl.innerText = "Please refresh the page to sync.";
-      statusEl.style.color = "#3b82f6";
+    if (err.message && err.message.includes("Could not establish connection")) {
+      statusEl.innerText = "Refresh this tab once to sync the Prism Bridge.";
     } else {
-      statusEl.innerText = "Error: " + err.message;
+      statusEl.innerText = "Error: " + (err.message || "Could not capture tab.");
     }
-    btn.style.opacity = "1";
-    btn.disabled = false;
+    smartBtn.disabled = false;
   }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const statusEl = document.getElementById("status");
+  const smartBtn = document.getElementById("smartBtn");
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const ctx = await chrome.tabs.sendMessage(tab.id, { action: "detectContext" });
+    if (ctx?.label) {
+      statusEl.innerText = `Auto-Detected: ${ctx.label}`;
+      smartBtn.innerText = `Open in ${ctx.label.split(" (")[0]}`;
+    } else {
+      statusEl.innerText = "Ready — Auto-routes to Focus, Play, Forge, or Word";
+    }
+  } catch {
+    statusEl.innerText = "Ready — Pick any Prism below or refresh tab";
+  }
+});
+
+document.getElementById("smartBtn").addEventListener("click", () => sendToPrism(null));
+document.querySelectorAll(".pick-btn").forEach((btn) => {
+  btn.addEventListener("click", () => sendToPrism(btn.getAttribute("data-target")));
 });

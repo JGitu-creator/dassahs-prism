@@ -90,23 +90,30 @@ export interface ForgePresetExample {
 
 export const FORGE_PRESET_EXAMPLES: readonly ForgePresetExample[] = [
   {
+    id: 'excel-vlookup-ref',
+    mode: 'stack_trace',
+    title: 'Broken Excel / Sheet Formula (#REF! / VLOOKUP)',
+    badge: 'Sheet Formula',
+    language: 'Excel / Google Sheets',
+    input: `=VLOOKUP(A2, SalesData!A:C, 4, FALSE)
+Error: #REF! — Function VLOOKUP parameter 3 expects a column index between 1 and 3, but received 4.`,
+  },
+  {
     id: 'react-hydration-trace',
     mode: 'stack_trace',
-    title: 'Next.js Hydration & Undefined Prop Crash',
-    badge: 'Stack Trace',
-    language: 'TypeScript / Next.js',
+    title: 'Angry Red Website Error (Cannot read map)',
+    badge: 'Scary Error',
+    language: 'TypeScript / React',
     input: `Unhandled Runtime Error
 TypeError: Cannot read properties of undefined (reading 'map')
   at CourseDeckList (src/components/CourseDeckList.tsx:28:34)
-  at renderWithHooks (node_modules/react-dom/cjs/react-dom.development.js:16305:18)
-  at mountIndeterminateComponent (node_modules/react-dom/cjs/react-dom.development.js:20074:13)
-Cause: Server returned { data: null, status: 200 } before client state initialized items array.`,
+Cause: The page tried to draw the list before the server finished sending the items.`,
   },
   {
-    id: 'async-race-pipeline',
+    id: 'homework-retry-loop',
     mode: 'code_lego',
-    title: 'Async Queue & Debounced Token Bucket',
-    badge: 'Code to LEGO',
+    title: 'Confusing Class Homework Loop',
+    badge: 'Step-by-Step Code',
     language: 'TypeScript',
     input: `export async function executeWithRetry<T>(
   task: () => Promise<T>,
@@ -118,38 +125,62 @@ Cause: Server returned { data: null, status: 200 } before client state initializ
       return await task();
     } catch (err) {
       if (attempt === retries) throw err;
-      const jitter = Math.random() * 120;
-      await new Promise((r) => setTimeout(r, baseDelayMs * 2 ** attempt + jitter));
+      await new Promise((r) => setTimeout(r, baseDelayMs * 2 ** attempt));
     }
   }
-  throw new Error('Unreachable retry boundary');
+  throw new Error('Could not complete after retries');
 }`,
   },
   {
-    id: 'git-docker-pipeline',
+    id: 'terminal-safety-check',
     mode: 'terminal_cli',
-    title: 'Git Interactive Rebase & Container Log Pipe',
-    badge: 'Terminal CLI',
-    language: 'Bash / Git / Docker',
+    title: 'Check a Computer Command Before Running',
+    badge: 'Command Check',
+    language: 'Terminal CLI / Shell',
     input: `docker compose -f docker-compose.prod.yml logs --tail=150 --follow api-gateway | grep -i -E "error|timeout|502" | tee -a ./logs/gateway-incident.log`,
-  },
-  {
-    id: 'python-tensor-shape',
-    mode: 'stack_trace',
-    title: 'PyTorch Matrix Shape Mismatch Trace',
-    badge: 'Stack Trace',
-    language: 'Python / PyTorch',
-    input: `Traceback (most recent call last):
-  File "train_prism_encoder.py", line 142, in forward_step
-    logits = self.projection(hidden_states)
-  File "torch/nn/modules/linear.py", line 116, in forward
-    return F.linear(input, self.weight, self.bias)
-RuntimeError: mat1 and mat2 shapes cannot be multiplied (32x768 and 512x256)`,
   },
 ] as const;
 
+export function suggestForgeSnippetName(rawInput: string, languageOrTool?: string): string {
+  const text = rawInput.trim();
+  if (/VLOOKUP|XLOOKUP|INDEX\(|MATCH\(|#REF!|#N\/A|#VALUE!/i.test(text)) {
+    const fn = text.match(/\b(VLOOKUP|XLOOKUP|SUMIFS|INDEX|IFERROR)\b/i)?.[1]?.toUpperCase();
+    return fn ? `${fn} Sheet Formula Fix` : 'Spreadsheet Formula Fix';
+  }
+  if (/Cannot read properties of undefined|TypeError:/i.test(text)) {
+    return 'Empty List Crash Fix';
+  }
+  if (/Traceback|RuntimeError|KeyError|ValueError/i.test(text)) {
+    return 'Python Error Translation';
+  }
+  if (/^\s*docker\b/im.test(text)) {
+    return 'Docker Log Command';
+  }
+  if (/^\s*git\b/im.test(text)) {
+    return 'Git Command Safety Check';
+  }
+  if (/^\s*(?:npm|npx|yarn|pnpm)\b/im.test(text)) {
+    return 'Package Command Note';
+  }
+  if (/\bSELECT\b[\s\S]*\bFROM\b/i.test(text)) {
+    return 'SQL Query Breakdown';
+  }
+  const firstMeaningful = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^[=#/*\s]+/, '').trim())
+    .find((l) => l.length >= 4);
+  if (firstMeaningful) {
+    const cleaned = firstMeaningful.slice(0, 32).trim();
+    return cleaned.length < firstMeaningful.length ? `${cleaned}…` : cleaned;
+  }
+  return languageOrTool ? `${languageOrTool} Note` : 'Saved Forge Note';
+}
+
 export function detectLanguageOrTool(rawInput: string, mode: ForgeMode): string {
   const text = rawInput.trim();
+  if (/^=\s*[A-Z]{2,}\(|VLOOKUP|XLOOKUP|SUMIFS|#REF!|#N\/A|#VALUE!|#NAME\?/i.test(text)) {
+    return 'Excel / Google Sheets';
+  }
   if (/Traceback \(most recent call last\)|def\s+\w+|import\s+torch|RuntimeError:/i.test(text)) {
     return 'Python';
   }
@@ -857,10 +888,15 @@ export async function refractWithPrismForge(input: {
     });
   }
 
-  // 2. Call 4-Tier Cascade / Completion
+  // 2. Call Best-First Infinite Cascade (Mistral Pool -> Gemini -> OpenRouter Free Pool -> Groq -> Local)
   try {
     const prompt = buildForgeAiPrompt(rawText, mode);
-    const completion = await callPrismCompletion(prompt, input.preferredProvider || 'auto');
+    const completion = await callPrismCompletion(
+      prompt,
+      input.preferredProvider || 'auto',
+      undefined,
+      true,
+    );
 
     if (
       !completion.text
@@ -938,11 +974,13 @@ export async function askDjForgePairProgrammer(input: {
     .join('\n\n');
 
   try {
+    // Primary: Gemini Interactions SDK (@google/genai with previousInteractionId to save tokens),
+    // cascading automatically to Mistral Pool -> OpenRouter Free Pool -> Groq -> Local
     const result = await callPrismChat(
       question,
       input.history || [],
       systemInstruction,
-      'auto',
+      'gemini',
       input.previousInteractionId,
     );
 

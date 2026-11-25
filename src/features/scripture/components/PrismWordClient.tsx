@@ -37,6 +37,9 @@ import { InteractiveVerseText, ReferenceText } from './ReferenceText';
 import { StudyPlayModal } from './StudyPlayModal';
 import { SystemHealthModal } from './SystemHealthModal';
 import { WorshipStudio } from './WorshipStudio';
+import { PrismFooter } from '@/components/prism/PrismFooter';
+import { PrismSwitcherPopover } from '@/components/prism/PrismSwitcherPopover';
+import { PrismTourOverlay, type TourStep } from '@/components/prism/PrismTourOverlay';
 
 type StudyTab = 'exegesis' | 'reflect' | 'worship';
 type ExegesisSection =
@@ -46,6 +49,29 @@ type ExegesisSection =
   | 'guardrails'
   | 'christ'
   | 'cross-refs';
+
+const WORD_POINTER_TOUR_STEPS: readonly TourStep[] = [
+  {
+    selector: '[data-tour="word-engine-switcher"]',
+    title: 'Switch Prisms Anytime',
+    description: 'Tap Prism Engine here to jump neatly between Word, Focus, Play, Forge, or the main Engine Hub.',
+  },
+  {
+    selector: '[data-tour="word-passage-bar"]',
+    title: 'Jump to Any Passage',
+    description: 'Type a reference, pick Book & Chapter, or tap a quick passage pill to open Scripture immediately.',
+  },
+  {
+    selector: '[data-tour="word-study-play"]',
+    title: 'Study Play Strategy',
+    description: 'Practice memory and context through gentle Bible strategy games whenever you want an engaging break.',
+  },
+  {
+    selector: '[data-tour="word-ask-dj"]',
+    title: 'Ask DJ Study Helper',
+    description: 'Ask a question about any verse, historical background, or cross-reference without leaving your reading.',
+  },
+];
 
 const QUICK_PASSAGES = [
   'Psalm 23:1-6',
@@ -93,6 +119,7 @@ export function PrismWordClient({ userEmail, onSignOut }: PrismWordClientProps) 
   const [bionicScan, setBionicScan] = useState<boolean>(false);
   const [studyPlayOpen, setStudyPlayOpen] = useState<boolean>(false);
   const [healthOpen, setHealthOpen] = useState<boolean>(false);
+  const [tourTrigger, setTourTrigger] = useState<number>(0);
   const [passageRetryNonce, setPassageRetryNonce] = useState<number>(0);
   const [studyRetryNonce, setStudyRetryNonce] = useState<number>(0);
 
@@ -176,6 +203,32 @@ export function PrismWordClient({ userEmail, onSignOut }: PrismWordClientProps) 
     }
     setPassageError(null);
   }, []);
+
+  // Listen for Chrome Extension smart Scripture handoffs
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const consumeWordHandoff = () => {
+      try {
+        const raw = sessionStorage.getItem('prism_word_handoff');
+        if (!raw) return;
+        sessionStorage.removeItem('prism_word_handoff');
+        const payload = JSON.parse(raw) as { reference?: string; text?: string };
+        const candidate = (payload.reference || payload.text || '').trim();
+        if (candidate) {
+          const parsed = parseBibleReference(candidate);
+          if (parsed) {
+            selectPassageReference(parsed.normalized);
+            setShowEntrance(false);
+          }
+        }
+      } catch {
+        // Ignore malformed handoff
+      }
+    };
+    consumeWordHandoff();
+    window.addEventListener('prism:word-handoff', consumeWordHandoff);
+    return () => window.removeEventListener('prism:word-handoff', consumeWordHandoff);
+  }, [selectPassageReference]);
 
   useEffect(() => {
     const weekKey = getSundayWeekKey();
@@ -583,6 +636,10 @@ export function PrismWordClient({ userEmail, onSignOut }: PrismWordClientProps) 
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <div data-tour="word-engine-switcher">
+              <PrismSwitcherPopover current="word" darkMode />
+            </div>
+
             <button
               type="button"
               onClick={() => setHealthOpen(true)}
@@ -612,6 +669,7 @@ export function PrismWordClient({ userEmail, onSignOut }: PrismWordClientProps) 
             </button>
 
             <button
+              data-tour="word-study-play"
               type="button"
               onClick={() => setStudyPlayOpen(true)}
               title="Open challenging Bible strategy games (Connections, Exodus Dispatch, and Master Sudoku)"
@@ -622,6 +680,7 @@ export function PrismWordClient({ userEmail, onSignOut }: PrismWordClientProps) 
             </button>
 
             <button
+              data-tour="word-ask-dj"
               type="button"
               onClick={openGeneralAskDj}
               className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm shadow-purple-950/50 transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-purple-300/70"
@@ -645,7 +704,7 @@ export function PrismWordClient({ userEmail, onSignOut }: PrismWordClientProps) 
         </header>
 
         {/* Clean Passage Selector Bar */}
-        <section className="rounded-2xl border border-slate-800/80 bg-[#0B0C17]/90 px-4 py-3.5 backdrop-blur-xl space-y-3">
+        <section data-tour="word-passage-bar" className="rounded-2xl border border-slate-800/80 bg-[#0B0C17]/90 px-4 py-3.5 backdrop-blur-xl space-y-3">
           <div className="flex flex-wrap items-end gap-3">
             <form onSubmit={handleJumpSubmit} className="flex flex-1 min-w-[220px] items-end gap-2">
               <div className="flex-1">
@@ -1491,6 +1550,22 @@ export function PrismWordClient({ userEmail, onSignOut }: PrismWordClientProps) 
       <SystemHealthModal
         isOpen={healthOpen}
         onClose={() => setHealthOpen(false)}
+      />
+
+      <div className="relative z-10 mt-8">
+        <PrismFooter
+          accent="purple"
+          onOpenNeuralGuide={() => setTourTrigger((c) => c + 1)}
+        />
+      </div>
+      <PrismTourOverlay
+        storageKey="prism_word_tour_v1"
+        prismName="Prism Word"
+        welcomeMessage="Turning reading into living. Peace be with you."
+        accent="purple"
+        steps={WORD_POINTER_TOUR_STEPS}
+        darkMode
+        manualTriggerCount={tourTrigger}
       />
     </div>
   );

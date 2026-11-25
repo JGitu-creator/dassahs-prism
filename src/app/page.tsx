@@ -51,6 +51,10 @@ import { AIUsageControl } from '@/components/AIUsageControl';
 import type { ProviderPreference } from '@/lib/ai-usage';
 import { PrismWeaver } from '@/components/prism/PrismWeaver';
 import { LivingIchthysFooter } from '@/components/prism/LivingIchthysFooter';
+import { PrismFooter } from '@/components/prism/PrismFooter';
+import { PrismTourOverlay, type TourStep } from '@/components/prism/PrismTourOverlay';
+import { useEngageShortcut } from '@/components/prism/useEngageShortcut';
+import { SensorySoundscapeBar } from '@/components/canvas/SensoryAndTools';
 import { supabase } from '@/lib/supabase';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 type ThemeMode = "midnight_sovereign" | "dastastic_neon" | "electric_grace" | "divine_gold" | "hadassah_silk" | "sovereign_pulse";
@@ -63,41 +67,68 @@ interface ThemeConfig {
 }
 const THEMES: Record<string, ThemeConfig> = {
   midnight_sovereign: {
-    name: 'Midnight Focus',
+    name: 'Cobalt Depth',
     icon: Moon,
-    light: { background: '#f8fafc', text: '#172554', accent: '#2563eb', glass: 'rgba(255,255,255,0.9)', border: 'rgba(37, 99, 235, 0.28)', shadow: "rgba(15,23,42,0.08)" },
-    dark: { background: '#020617', text: '#f8fafc', accent: '#3b82f6', glass: 'rgba(30, 41, 59, 0.5)', border: 'rgba(255, 255, 255, 0.1)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#3b82f6', '#8b5cf6', '#06b6d4']
+    light: { background: '#e7e2d6', text: '#14234a', accent: '#1d4ed8', glass: 'rgba(242, 237, 226, 0.92)', border: 'rgba(29, 78, 216, 0.28)', shadow: "rgba(20,35,74,0.08)" },
+    dark: { background: '#03081a', text: '#f8fafc', accent: '#3b82f6', glass: 'rgba(24, 38, 66, 0.55)', border: 'rgba(59, 130, 246, 0.22)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#2563eb', '#6366f1', '#38bdf8']
   },
   electric_grace: {
-    name: 'Electric Grace',
+    name: 'Velvet Crimson',
     icon: Flame,
-    light: { background: '#fff7f8', text: '#881337', accent: '#be123c', glass: 'rgba(255,255,255,0.92)', border: 'rgba(190, 18, 60, 0.28)', shadow: "rgba(76,5,25,0.08)" },
-    dark: { background: '#0f0505', text: '#ffe4e6', accent: '#e11d48', glass: 'rgba(20, 5, 5, 0.5)', border: 'rgba(225, 29, 72, 0.3)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#e11d48', '#fbbf24', '#2dd4bf']
+    light: { background: '#ede2df', text: '#6b122c', accent: '#be123c', glass: 'rgba(245, 236, 233, 0.92)', border: 'rgba(190, 18, 60, 0.28)', shadow: "rgba(76,5,25,0.08)" },
+    dark: { background: '#120609', text: '#ffe4e6', accent: '#e11d48', glass: 'rgba(32, 10, 16, 0.55)', border: 'rgba(225, 29, 72, 0.3)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#e11d48', '#fb7185', '#f59e0b']
   },
   divine_gold: {
-    name: 'Golden Glow',
+    name: 'Parchment Gold',
     icon: Coins,
-    light: { background: '#fffbeb', text: '#78350f', accent: '#b45309', glass: 'rgba(255,255,255,0.92)', border: 'rgba(180, 83, 9, 0.28)', shadow: "rgba(120,53,15,0.08)" },
-    dark: { background: '#000000', text: '#fffbeb', accent: '#fbbf24', glass: 'rgba(251, 191, 36, 0.1)', border: 'rgba(251, 191, 36, 0.4)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#fbbf24', '#f59e0b', '#ffffff']
+    light: { background: '#ede3ce', text: '#5c2808', accent: '#b45309', glass: 'rgba(245, 238, 222, 0.92)', border: 'rgba(180, 83, 9, 0.28)', shadow: "rgba(120,53,15,0.08)" },
+    dark: { background: '#0e0b05', text: '#fffbeb', accent: '#f59e0b', glass: 'rgba(38, 28, 12, 0.55)', border: 'rgba(245, 158, 11, 0.35)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#fbbf24', '#d97706', '#fef3c7']
   },
   hadassah_silk: {
-    name: 'Hadassah Silk',
+    name: 'Cedar Mist',
     icon: Gem,
-    light: { background: '#f0fdf4', text: '#064e3b', accent: '#047857', glass: 'rgba(255,255,255,0.92)', border: 'rgba(4, 120, 87, 0.28)', shadow: "rgba(6,78,59,0.08)" },
-    dark: { background: '#022c22', text: '#ecfdf5', accent: '#10b981', glass: 'rgba(6, 78, 59, 0.4)', border: 'rgba(16, 185, 129, 0.2)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#10b981', '#34d399', '#059669']
+    light: { background: '#e3ebe2', text: '#064e3b', accent: '#047857', glass: 'rgba(237, 243, 236, 0.92)', border: 'rgba(4, 120, 87, 0.28)', shadow: "rgba(6,78,59,0.08)" },
+    dark: { background: '#031f18', text: '#ecfdf5', accent: '#10b981', glass: 'rgba(8, 56, 43, 0.48)', border: 'rgba(16, 185, 129, 0.25)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#10b981', '#2dd4bf', '#059669']
   },
   sovereign_pulse: {
-    name: 'Focus Pulse',
+    name: 'Clarity Violet',
     icon: Orbit,
-    light: { background: '#faf5ff', text: '#3b0764', accent: '#6d28d9', glass: 'rgba(255,255,255,0.92)', border: 'rgba(109, 40, 217, 0.28)', shadow: "rgba(59,7,100,0.08)" },
-    dark: { background: '#2e1065', text: '#f5f3ff', accent: '#8b5cf6', glass: 'rgba(76, 29, 149, 0.4)', border: 'rgba(139, 92, 246, 0.2)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#8b5cf6', '#a78bfa', '#7c3aed']
+    light: { background: '#e8e2ef', text: '#3b0764', accent: '#6d28d9', glass: 'rgba(241, 237, 247, 0.92)', border: 'rgba(109, 40, 217, 0.28)', shadow: "rgba(59,7,100,0.08)" },
+    dark: { background: '#1a0a3a', text: '#f5f3ff', accent: '#8b5cf6', glass: 'rgba(54, 22, 108, 0.48)', border: 'rgba(139, 92, 246, 0.25)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#8b5cf6', '#a78bfa', '#6366f1']
   }
 };
+const FOCUS_POINTER_TOUR_STEPS: readonly TourStep[] = [
+  {
+    selector: '[data-tour="focus-engine-switcher"]',
+    title: 'Switch Prisms Anytime',
+    description: 'Tap Prism Engine here to jump smoothly between Focus, Play, Forge, Word, or the main Engine Hub.',
+  },
+  {
+    selector: '[data-tour="focus-neural-command"]',
+    title: 'Neural Command',
+    description: 'Adjust Bionic scanning, gentle pacing breaks, and how concise or detailed your summary feels.',
+  },
+  {
+    selector: '[data-tour="focus-mode-toggle"]',
+    title: 'Dastastic vs Quiet Focus',
+    description: 'Keep celebratory sparks on in Dastastic mode, or switch to quiet minimal Focus when your eyes need stillness.',
+  },
+  {
+    selector: '[data-tour="focus-sample-pills"]',
+    title: '1-Click Sample Notes',
+    description: 'Not sure what to try first? Tap any sample pill here to fill the box immediately.',
+  },
+  {
+    selector: '[data-tour="focus-discern-btn"]',
+    title: 'Discern Into Clarity',
+    description: 'Press Discern to turn dense PDFs, articles, or notes into short, calm takeaways and one clear next step.',
+  },
+];
 const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#ec4899'];
 const SENSORY_PROFILES = [
   { id: 'Calm', label: 'Calm', description: 'Softer motion, gentler glass, and less visual intensity.' },
@@ -849,6 +880,10 @@ export default function Home() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showNeuralCommand, setShowNeuralCommand] = useState(false);
   const [showNeuralIdentity, setShowNeuralIdentity] = useState(false);
+  const [tourTrigger, setTourTrigger] = useState(0);
+  const [focusSoundStudioOpen, setFocusSoundStudioOpen] = useState(false);
+  useEngageShortcut(showNeuralCommand, () => setShowNeuralCommand(false));
+  useEngageShortcut(showNeuralIdentity, () => setShowNeuralIdentity(false));
   const [showTOS, setShowTOS] = useState(false);
   const [acceptedTOS, setAcceptedTOS] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -895,13 +930,6 @@ export default function Home() {
   });
   useEffect(() => { localStorage.setItem('dassahs_simplicity_level', simplicityLevel); }, [simplicityLevel]);
   useEffect(() => { localStorage.setItem('dassahs_focus_mode', focusMode); }, [focusMode]);
-  useEffect(() => {
-    const hasSeenGuide = localStorage.getItem('hasSeenNeuralGuide');
-    if (!hasSeenGuide) {
-      setTutorialStep(0);
-      setShowTutorial(true);
-    }
-  }, []);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const brownNoiseRef = useRef<any>(null);
   const premiumAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -1262,13 +1290,6 @@ export default function Home() {
       })();
     }
   }, [starredItems, user, vaultReady]);
-  useEffect(() => {
-    if (linkState === 'established' && !localStorage.getItem('hasSeenNeuralGuide')) {
-      setTimeout(() => {
-        setShowTutorial(true);
-      }, 2000);
-    }
-  }, [linkState]);
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user && localStorage.getItem('dassahs_prism_tos_accepted') !== 'true') {
@@ -1896,7 +1917,7 @@ export default function Home() {
   const isDark = themeMode === 'dark' || (themeMode === 'system' && systemIsDark);
   const colors = isDark
     ? (currentTheme.dark || { background: '#000', text: '#fff', accent: '#fff', glass: 'rgba(0,0,0,0.5)', border: 'rgba(255,255,255,0.1)', shadow: 'rgba(0,0,0,0.5)' })
-    : (currentTheme.light || { background: '#fff', text: '#000', accent: '#000', glass: 'rgba(255,255,255,0.5)', border: 'rgba(0,0,0,0.1)', shadow: 'rgba(0,0,0,0.1)' });
+    : (currentTheme.light || { background: '#eae2d3', text: '#1c1711', accent: '#1d4ed8', glass: 'rgba(243,237,224,0.9)', border: 'rgba(28,23,17,0.14)', shadow: 'rgba(28,23,17,0.08)' });
   const themeStyles = `
     :root {
       --color-bg-1: ${colors.background}; --color-bg-2: ${colors.background};
@@ -1905,7 +1926,7 @@ export default function Home() {
       --color-accent: ${colors.accent}; --accent: ${colors.accent};
       --color-glass: ${colors.glass}; --color-border: ${colors.border};
       --color-shadow: ${colors.shadow};
-      --color-glass-rgb: ${isDark ? '15, 23, 42' : '255, 255, 255'};
+      --color-glass-rgb: ${isDark ? '15, 23, 42' : '243, 237, 224'};
       --color-border-rgb: ${isDark ? '148, 163, 184' : '100, 116, 139'};
       --prism-1: ${currentTheme.prism[0]}; --prism-2: ${currentTheme.prism[1]}; --prism-3: ${currentTheme.prism[2]};
     }
@@ -2089,7 +2110,7 @@ export default function Home() {
       )}</AnimatePresence>
       <div className="fixed top-0 left-0 right-0 z-[110] flex justify-center p-2 md:p-6 pointer-events-none">
         <nav className={`pointer-events-auto flex max-w-[calc(100vw-1rem)] overflow-x-auto no-scrollbar items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-2xl md:rounded-3xl bg-[var(--color-glass)] backdrop-blur-3xl border border-[var(--color-border)] shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-700 ${isZenLocked ? 'opacity-0 -translate-y-20' : 'opacity-100'}`}>
-          <button onClick={() => { setShowNeuralCommand(true); }} title="Neural Command" className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-[var(--bg)]/5 text-blue-400 hover:text-[var(--fg)] hover:bg-[var(--bg)]/10 transition-all group">
+          <button data-tour="focus-neural-command" onClick={() => { setShowNeuralCommand(true); }} title="Neural Command" className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-[var(--bg)]/5 text-blue-400 hover:text-[var(--fg)] hover:bg-[var(--bg)]/10 transition-all group">
             <motion.div whileHover={{ scale: 1.2, rotate: 10 }}><Compass size={18} className="md:w-5 md:h-5 transition-transform duration-500" /></motion.div>
           </button>
 
@@ -2109,7 +2130,7 @@ export default function Home() {
             <motion.div whileHover={{ scale: 1.2, rotate: -10 }}><Clock size={18} className="md:w-5 md:h-5 transition-transform" /></motion.div>
           </button>
           <div className="w-[1px] h-6 bg-[var(--bg)]/10 mx-0.5 md:mx-1" />
-          <button onClick={() => { setFocusMode(f => f === "dastastic" ? "sovereign" : "dastastic"); }} title={focusMode === 'sovereign' ? 'Focus mode active — click to switch to Dastastic mode' : 'Dastastic mode active — click to switch to Focus mode'} className={`px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 ${focusMode === 'sovereign' ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'border border-[var(--color-border)] bg-[var(--bg)]/5 text-[var(--fg)]/85 hover:text-[var(--fg)]'}`}>
+          <button data-tour="focus-mode-toggle" onClick={() => { setFocusMode(f => f === "dastastic" ? "sovereign" : "dastastic"); }} title={focusMode === 'sovereign' ? 'Focus mode active — click to switch to Dastastic mode' : 'Dastastic mode active — click to switch to Focus mode'} className={`px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 ${focusMode === 'sovereign' ? 'bg-amber-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'border border-[var(--color-border)] bg-[var(--bg)]/5 text-[var(--fg)]/85 hover:text-[var(--fg)]'}`}>
             {focusMode === 'sovereign' ? <Crown size={13} className="md:w-3.5 md:h-3.5 shrink-0" /> : <Zap size={13} className="md:w-3.5 md:h-3.5 shrink-0" />}
             <span>{focusMode === 'sovereign' ? 'Focus' : 'Dastastic'}</span>
           </button>
@@ -2263,6 +2284,23 @@ export default function Home() {
                             </div>
                           </div>
                           <div className={`w-2 h-2 rounded-full ${brownNoisePlaying ? 'bg-amber-400 animate-pulse' : 'bg-[var(--bg)]/10'}`} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNeuralCommand(false);
+                            setFocusSoundStudioOpen(true);
+                          }}
+                          className="w-full p-5 rounded-2xl border-2 border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-all flex items-center justify-between text-[var(--fg)]"
+                        >
+                          <div className="flex items-center gap-4">
+                            <Sparkles size={20} className="text-blue-400" />
+                            <div className="text-left">
+                              <p className="text-xs font-black text-[var(--fg)] uppercase tracking-widest">Soundscape Studio</p>
+                              <p className="text-[8px] text-[var(--fg)]/75 font-bold uppercase tracking-tight">40Hz · Rain · Spotify · Apple Music · YouTube</p>
+                            </div>
+                          </div>
+                          <ArrowRight size={15} className="text-blue-400" />
                         </button>
                         <button onClick={() => setShowNeuralIdentity(true)} className="w-full p-5 rounded-2xl flex items-center justify-between bg-[var(--color-glass)] text-[var(--fg)] hover:text-[var(--fg)] border border-[var(--color-border)] transition-all" title="Open Voice Settings in Neural Identity">
                           <div className="flex items-center gap-4">
@@ -2452,6 +2490,15 @@ export default function Home() {
                   Delete Saved Cloud &amp; Local Data
                 </button>
               </div>
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNeuralIdentity(false)}
+                  className="px-10 py-3 rounded-full bg-[var(--color-accent)] text-white font-black uppercase tracking-[0.4em] text-[9px] shadow-lg hover:brightness-110 hover:scale-105 transition-all"
+                >
+                  Engage
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -2628,16 +2675,16 @@ export default function Home() {
         </div>
       )}</AnimatePresence>
       {!data ? (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl lg:max-w-4xl w-full space-y-6 md:space-y-10 z-10 px-4 pt-20 md:pt-24 pb-20">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl lg:max-w-4xl w-full space-y-6 md:space-y-10 z-10 px-4 pt-28 md:pt-36 pb-20">
           <header className="text-center space-y-4 md:space-y-6 relative">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/35 bg-blue-500/15 px-4 py-1.5 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-blue-300 shadow-[0_0_24px_rgba(59,130,246,0.2)]">
+            <a href="/engine" className="inline-flex items-center gap-2 rounded-full border border-blue-500/35 bg-blue-500/15 hover:bg-blue-500/25 px-4 py-1.5 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-blue-300 shadow-[0_0_24px_rgba(59,130,246,0.2)] transition-all">
               <Sparkles size={12} className="text-cyan-400" /> Dassah&apos;s Prism Engine · Powered by The Prism Engine
-            </div>
+            </a>
             <h1 className="prism-brand text-4xl sm:text-6xl md:text-9xl font-black text-[var(--fg)] leading-[1.2] tracking-tight italic">Prism <span className="prism-text brand-prism">Focus</span></h1>
             <RefractiveTagline />
           </header>
           <NeuralRefractionSlider />
-          <div className="bg-[var(--color-glass)] backdrop-blur-3xl rounded-[2rem] md:rounded-[3rem] border-2 border-white/20 p-2 md:p-3 shadow-[0_0_50px_rgba(0,0,0,0.3)] overflow-hidden relative group focus-within:border-blue-500/50 hover:border-white/30 transition-all flex flex-col items-center">
+          <div className="bg-[var(--color-glass)] backdrop-blur-3xl rounded-[2rem] md:rounded-[3rem] border-2 border-white/20 p-3 md:p-4 shadow-[0_0_50px_rgba(0,0,0,0.3)] overflow-hidden relative group focus-within:border-blue-500/50 hover:border-white/30 transition-all flex flex-col items-center gap-2">
             <div className="pt-4 md:pt-6 pb-2 relative flex flex-col items-center gap-4">
               <RefractiveNeuralCore loading={loading} inputLength={input.length} isVictorious={false} user={user} mousePos={mousePos} focusMode={focusMode} />
 
@@ -2673,7 +2720,7 @@ export default function Home() {
                 )}
               </div>
             </div>
-            <div className="w-full relative group flex flex-col gap-2">
+            <div className="w-full relative group flex flex-col gap-4">
               {/* Sovereign Goal Input */}
               <div className="px-2 pt-1 sm:px-4">
                 <label htmlFor="focus-objective" className="mb-1.5 block text-[9px] md:text-[10px] font-black uppercase tracking-[0.18em] text-blue-200/80">
@@ -2700,15 +2747,15 @@ export default function Home() {
                 />
               )}
               {!input.trim() && !pendingImage && (
-                <div className="flex flex-wrap items-center gap-2 px-2 pt-1" aria-label="Try a 1-click sample">
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--fg)]/50">Try a sample:</span>
+                <div data-tour="focus-sample-pills" className="flex flex-wrap items-center gap-2.5 px-4 py-3.5 my-1" aria-label="Try a 1-click sample">
+                  <span className="mr-1 text-[9px] font-black uppercase tracking-[0.2em] text-[var(--fg)]/60">Try a sample:</span>
                   <button
                     type="button"
                     onClick={() => {
                       setMissionGoal('Turn these messy lecture notes into a 3-step exam study checklist');
                       setInput('Cognitive Load Theory (Sweller, 1988) distinguishes intrinsic load (task complexity), extraneous load (poor formatting, dense walls of text, unclear instructions), and germane load (schema construction). When working memory capacity is exceeded by extraneous friction, executive function stalls. Bionic anchoring, progressive disclosure, and concrete action checklists reduce extraneous load so learners can focus on meaning and immediate next steps.');
                     }}
-                    className="rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-blue-300 hover:border-blue-400/50 hover:bg-blue-500/20 transition-all"
+                    className="rounded-full border border-blue-500/25 bg-blue-500/10 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-blue-500 dark:text-blue-300 hover:border-blue-400/50 hover:bg-blue-500/20 transition-all"
                   >
                     Messy Lecture Notes
                   </button>
@@ -2718,7 +2765,7 @@ export default function Home() {
                       setMissionGoal('Tell me what broke and the exact command or fix to try first');
                       setInput('Deployment build failed on edge worker: Uncaught ReferenceError: WorkerGlobalScope is not defined when bundling pdfjs-dist legacy build in SSR context. Ensure client-only dynamic import is used inside event handlers and verify that GlobalWorkerOptions.workerSrc points to a same-origin static asset (/pdf.worker.min.mjs) matching the installed package version.');
                     }}
-                    className="rounded-full border border-purple-500/25 bg-purple-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-purple-300 hover:border-purple-400/50 hover:bg-purple-500/20 transition-all"
+                    className="rounded-full border border-purple-500/25 bg-purple-500/10 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-300 hover:border-purple-400/50 hover:bg-purple-500/20 transition-all"
                   >
                     Cryptic IT Error
                   </button>
@@ -2728,7 +2775,7 @@ export default function Home() {
                       setMissionGoal('Extract my deadlines and required actions before Friday');
                       setInput('All remote and hybrid staff must complete the annual Information Security & Acceptable Use attestation in the compliance portal no later than Friday at 17:00 UTC. Prior to submitting the attestation, employees must rotate any personal access tokens older than 90 days, confirm hardware asset tags in the inventory sheet, and upload their signed telework ergonomics checklist to HR Services.');
                     }}
-                    className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-300 hover:border-emerald-400/50 hover:bg-emerald-500/20 transition-all"
+                    className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-300 hover:border-emerald-400/50 hover:bg-emerald-500/20 transition-all"
                   >
                     Dense Work Policy
                   </button>
@@ -2756,6 +2803,7 @@ export default function Home() {
               <button onClick={() => setStoryMode(!storyMode)} title={storyMode ? 'Story Mode' : 'Fact Mode'} className={`p-2 md:p-3 rounded-full border transition-all ${storyMode ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[var(--bg)]/5 border-transparent text-[var(--fg)]'}`}>{storyMode ? <MorphRocket size={16}/> : <Anchor size={16}/>}</button>
               </div>
               <button
+                data-tour="focus-discern-btn"
                 onClick={() => handleSimplify()}
                 disabled={loading || (!input.trim() && !pendingImage)}
                 className="flex-1 min-w-[120px] max-w-[200px] min-h-[44px] bg-gradient-to-r from-fuchsia-600 to-purple-500 hover:from-fuchsia-500 hover:to-purple-400 text-white py-3 md:py-4 rounded-full font-black uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95 text-xs md:text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -3072,18 +3120,46 @@ export default function Home() {
           </motion.div>
         </div>
       )}</AnimatePresence>
-      <footer className="w-full py-12 px-4 border-t border-white/5 z-10 flex flex-col items-center gap-4 text-center opacity-75 hover:opacity-100 transition-opacity">
-        <LivingIchthysFooter focusMode={focusMode} />
-        <p className="max-w-xl text-[10px] leading-relaxed text-[var(--fg)]/70">Privacy first: remove passwords, API keys, identity numbers, and private medical or financial details before sending material for AI refraction.</p>
-        <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-4">
-          <button onClick={() => setShowAbout(true)} className="mt-2 px-6 py-2 bg-[var(--bg)]/5 border border-white/10 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-[var(--fg)] transition-all">About the Prism</button>
-
-          <button onClick={() => { setTutorialStep(0); setShowTutorial(true); }} className="mt-2 px-6 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-[8px] font-black uppercase tracking-widest text-blue-400 hover:text-[var(--fg)] transition-all flex items-center gap-2"><Sparkles size={10}/> Neural Guide</button>
-          <a href="/canvas" className="mt-2 px-6 py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[8px] font-black uppercase tracking-widest text-cyan-400 hover:text-[var(--fg)] transition-all flex items-center gap-2"><BookOpen size={10}/> Prism Play</a>
-          <a href="/engine" className="mt-2 px-6 py-2 bg-purple-500/10 border border-purple-500/20 rounded-full text-[8px] font-black uppercase tracking-widest text-purple-400 hover:text-[var(--fg)] transition-all flex items-center gap-2"><Sparkles size={10}/> Prism Engine</a>
-          <a href="/dassahs-prism-extension.zip" download className="mt-2 px-6 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[8px] font-black uppercase tracking-widest text-emerald-500 hover:text-[var(--fg)] transition-all">Browser Extension</a>
+      {/* Persistent Soundscape Studio Popover (40Hz · Rain · Spotify · Apple Music · YouTube) */}
+      <div
+        className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[260] w-[calc(100%-1.5rem)] max-w-2xl ${
+          focusSoundStudioOpen ? 'block' : 'hidden'
+        }`}
+      >
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setFocusSoundStudioOpen(false)}
+            aria-label="Hide Soundscape Studio"
+            className="absolute right-3 top-3 z-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-glass)] p-1.5 text-[var(--fg)]"
+          >
+            <X size={14} />
+          </button>
+          <SensorySoundscapeBar
+            darkMode={isDark}
+            showSoundtrackPin={true}
+            showGamma40={true}
+            glassCard="apple-glass border-[var(--color-border)] text-[var(--fg)]"
+            subtlePill="bg-[var(--color-glass)] border-[var(--color-border)] text-[var(--fg)]"
+            mutedText="text-[var(--fg)]/70"
+          />
         </div>
-      </footer>
+      </div>
+
+      <PrismFooter
+        focusMode={focusMode}
+        accent="blue"
+        onOpenNeuralGuide={() => setTourTrigger((c) => c + 1)}
+      />
+      <PrismTourOverlay
+        storageKey="hasSeenNeuralGuide"
+        prismName="Prism Focus"
+        welcomeMessage="Refract the noise. Your focus is established."
+        accent="blue"
+        steps={FOCUS_POINTER_TOUR_STEPS}
+        darkMode={isDark}
+        manualTriggerCount={tourTrigger}
+      />
       {isFidgetModeActive && <PrismWeaver completedPulse={completedPulse} focusMode={focusMode} />}
     </main>
     </>

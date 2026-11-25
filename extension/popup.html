@@ -1,138 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8" />
   <style>
-    :root {
-      --prism-blue: #3b82f6;
-      --prism-purple: #8b5cf6;
-      --prism-dark: #0f172a;
-    }
     body {
-      width: 320px;
-      padding: 0;
+      width: 330px;
       margin: 0;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background: var(--prism-dark);
-      color: white;
-      overflow: hidden;
+      background: #0c101b;
+      color: #f8fafc;
     }
     .container {
-      padding: 32px 24px;
-      background: radial-gradient(circle at top right, rgba(59,130,246,0.15), transparent);
+      padding: 22px 18px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 24px;
+      gap: 14px;
+      background: radial-gradient(circle at top right, rgba(59,130,246,0.16), transparent 60%);
     }
-    .logo-circle {
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, var(--prism-blue), var(--prism-purple));
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-style: italic;
-      font-size: 24px;
-      box-shadow: 0 10px 30px rgba(59,130,246,0.4);
-      border: 1px solid rgba(255,255,255,0.2);
+    .logo {
+      width: 46px; height: 46px; border-radius: 14px;
+      background: linear-gradient(135deg, #2563eb, #8b5cf6, #d97706);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-style: italic; font-size: 19px; color: #fff;
+      box-shadow: 0 10px 25px rgba(59,130,246,0.35);
     }
-    .text-area {
-      space-y: 4px;
-    }
-    h1 {
-      font-size: 24px;
-      margin: 0;
-      font-weight: 900;
-      letter-spacing: -0.03em;
-      font-style: italic;
-      background: linear-gradient(to bottom, #fff, #94a3b8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .subtitle {
-      font-size: 10px;
-      color: var(--prism-blue);
-      margin: 4px 0 0 0;
-      text-transform: uppercase;
-      font-weight: 900;
-      letter-spacing: 0.3em;
-    }
+    h1 { margin: 0; font-size: 18px; font-weight: 900; font-style: italic; letter-spacing: -0.02em; }
+    .sub { margin: 2px 0 0; font-size: 9px; font-weight: 900; letter-spacing: 0.24em; text-transform: uppercase; color: #60a5fa; }
     #status {
-      font-size: 9px;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.2em;
-      font-weight: 800;
-      padding: 10px 16px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.05);
+      width: 100%; box-sizing: border-box;
+      font-size: 10px; font-weight: 800; color: #cbd5e1;
+      padding: 9px 12px; border-radius: 12px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
     }
-    button {
-      width: 100%;
-      background: linear-gradient(to right, #2563eb, #4f46e5);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 18px;
-      border-radius: 20px;
-      font-weight: 900;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+    .smart-btn {
+      width: 100%; padding: 14px; border-radius: 16px; border: none;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff; font-weight: 900; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+      cursor: pointer; box-shadow: 0 10px 24px rgba(37,99,235,0.32); transition: transform 0.15s;
     }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 35px rgba(37, 99, 235, 0.4);
-      filter: brightness(1.1);
+    .smart-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .grid {
+      width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     }
-    button:active {
-      transform: translateY(0) scale(0.98);
+    .pick-btn {
+      padding: 9px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04); color: #e2e8f0; font-size: 11px; font-weight: 800;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
     }
+    .pick-btn:hover { background: rgba(255,255,255,0.09); }
+    .pick-focus:hover { border-color: #3b82f6; color: #93c5fd; }
+    .pick-play:hover { border-color: #10b981; color: #6ee7b7; }
+    .pick-forge:hover { border-color: #f59e0b; color: #fcd34d; }
+    .pick-word:hover { border-color: #a855f7; color: #d8b4fe; }
     .footer {
-      padding: 16px;
-      text-align: center;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      background: rgba(0,0,0,0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .footer-text {
-      font-size: 8px;
-      color: #475569;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.4em;
-    }
-    .fish-icon {
-      color: #3b82f6;
+      padding: 12px 14px; border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 9px; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase; color: #94a3b8;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="logo-circle">DP</div>
-    <div class="text-area">
-      <h1>DASSAH&apos;S PRISM</h1>
-      <p class="subtitle">THE NEURAL BRIDGE</p>
+    <div class="logo">DP</div>
+    <div>
+      <h1>DASSAH&apos;S PRISM ENGINE</h1>
+      <p class="sub">SMART 4-PRISM BRIDGE</p>
     </div>
-    
-    <div id="status">NEURAL LINK: STANDBY</div>
-    
-    <button id="simplifyBtn">
-      REFRACT NOISE
-    </button>
+    <div id="status">Detecting best Prism for this page...</div>
+    <button id="smartBtn" class="smart-btn">Smart Send (Auto-Detect)</button>
+    <div class="grid">
+      <button class="pick-btn pick-focus" data-target="focus">Prism Focus</button>
+      <button class="pick-btn pick-play" data-target="play">Prism Play</button>
+      <button class="pick-btn pick-forge" data-target="forge">Prism Forge</button>
+      <button class="pick-btn pick-word" data-target="word">Prism Word</button>
+    </div>
   </div>
   <div class="footer">
-    <div class="footer-text">DJ | PRISM ARCHITECT</div>
-    <svg class="fish-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 7c.35 1 .35 3 0 4-1.14 3.31-5.59 5-10 5H4l5-5-5-5h4c4.41 0 8.86 1.69 10 5Z"/><path d="M16 5c.33.33.67.67 1 1"/><path d="m2 2 5 5"/><path d="m2 22 5-5"/><path d="M17 18c-.33.33-.67.67-1 1"/></svg>
+    <span>JG</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 12c4-8 14-8 19 0l3 3M2 12c4 8 14 8 19 0l3-3"/>
+    </svg>
+    <span>POWERED BY GRACE</span>
   </div>
   <script src="popup.js"></script>
 </body>
