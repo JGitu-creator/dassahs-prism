@@ -730,6 +730,10 @@ export default function PrismForgePage() {
             </span>
           </h1>
 
+          <p className="text-base sm:text-xl font-bold italic tracking-tight text-amber-500">
+            &ldquo;Turning Tech Fear into Calm Clarity.&rdquo;
+          </p>
+
           <p className={`mx-auto max-w-xl text-sm sm:text-base font-medium leading-relaxed ${mutedText}`}>
             Take a breath — nothing is ruined. Paste a broken Excel formula, scary red error, coding homework, or computer command and get calm English in seconds.
           </p>
@@ -1988,7 +1992,7 @@ export default function PrismForgePage() {
       <PrismTourOverlay
         storageKey="prism_forge_tour_v1"
         prismName="Prism Forge"
-        welcomeMessage="Take a breath — no jargon can stop your mind."
+        welcomeMessage="Turning tech fear into calm clarity — nothing is ruined."
         accent="amber"
         steps={FORGE_POINTER_TOUR_STEPS}
         darkMode={darkMode}

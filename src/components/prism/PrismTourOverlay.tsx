@@ -178,7 +178,7 @@ export function PrismTourOverlay({
     setPhase('welcome');
     setTimeout(() => {
       setPhase('idle');
-    }, 1850);
+    }, 3250);
   };
 
   const cardSurface = darkMode
@@ -395,21 +395,23 @@ export function PrismTourOverlay({
         </motion.div>
       )}
 
-      {/* 3. Translucent Prism Icon Swap & Dissolving Welcome Over Normal App Background */}
+      {/* 3. Translucent Prism Icon Swap & Dissolving Welcome Over Gently Blurred Background */}
       {phase === 'welcome' && (
         <motion.div
           key="tour-welcome"
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 1, 0] }}
-          transition={{ duration: 1.8, times: [0, 0.2, 0.65, 1], ease: 'easeInOut' }}
-          className="fixed inset-0 z-[750] pointer-events-none flex items-center justify-center p-6"
+          transition={{ duration: 3.2, times: [0, 0.16, 0.78, 1], ease: 'easeInOut' }}
+          className={`fixed inset-0 z-[750] pointer-events-none flex items-center justify-center p-6 backdrop-blur-md ${
+            darkMode ? 'bg-black/45' : 'bg-[#eae2d3]/65'
+          }`}
         >
           <motion.div
-            initial={{ scale: 0.86, y: 10 }}
-            animate={{ scale: [0.86, 1.03, 1.08], y: [10, 0, -8] }}
-            transition={{ duration: 1.8, ease: 'easeOut' }}
-            className={`relative rounded-[3rem] border px-10 py-8 backdrop-blur-xl text-center space-y-3 bg-gradient-to-b ${style.glow} ${style.border} ${
-              darkMode ? 'bg-[#070d1d]/65 text-white' : 'bg-[#f3ede0]/75 text-[#172133]'
+            initial={{ scale: 0.9, y: 12 }}
+            animate={{ scale: [0.9, 1, 1.02, 1.06], y: [12, 0, 0, -8] }}
+            transition={{ duration: 3.2, times: [0, 0.18, 0.78, 1], ease: 'easeOut' }}
+            className={`relative rounded-[3rem] border px-10 py-9 backdrop-blur-2xl text-center space-y-3.5 shadow-2xl bg-gradient-to-b ${style.glow} ${style.border} ${
+              darkMode ? 'bg-[#070d1d]/80 text-white' : 'bg-[#f3ede0]/90 text-[#1c1711]'
             }`}
           >
             <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-3xl border border-current/25 bg-white/10 shadow-xl">
@@ -418,7 +420,7 @@ export function PrismTourOverlay({
             <h2 className="prism-brand text-2xl sm:text-3xl font-black italic tracking-tight">
               Welcome to {prismName}
             </h2>
-            <p className="text-xs sm:text-sm font-semibold opacity-85 max-w-xs mx-auto">
+            <p className="text-sm sm:text-base font-semibold opacity-90 max-w-sm mx-auto leading-relaxed">
               {welcomeMessage}
             </p>
           </motion.div>

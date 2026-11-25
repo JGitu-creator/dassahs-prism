@@ -67,39 +67,39 @@ interface ThemeConfig {
 }
 const THEMES: Record<string, ThemeConfig> = {
   midnight_sovereign: {
-    name: 'Midnight Focus',
+    name: 'Cobalt Depth',
     icon: Moon,
-    light: { background: '#eae2d3', text: '#172554', accent: '#2563eb', glass: 'rgba(243, 237, 224, 0.92)', border: 'rgba(37, 99, 235, 0.28)', shadow: "rgba(23,33,51,0.08)" },
-    dark: { background: '#020617', text: '#f8fafc', accent: '#3b82f6', glass: 'rgba(30, 41, 59, 0.5)', border: 'rgba(255, 255, 255, 0.1)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#3b82f6', '#8b5cf6', '#06b6d4']
+    light: { background: '#e7e2d6', text: '#14234a', accent: '#1d4ed8', glass: 'rgba(242, 237, 226, 0.92)', border: 'rgba(29, 78, 216, 0.28)', shadow: "rgba(20,35,74,0.08)" },
+    dark: { background: '#03081a', text: '#f8fafc', accent: '#3b82f6', glass: 'rgba(24, 38, 66, 0.55)', border: 'rgba(59, 130, 246, 0.22)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#2563eb', '#6366f1', '#38bdf8']
   },
   electric_grace: {
-    name: 'Electric Grace',
+    name: 'Velvet Crimson',
     icon: Flame,
     light: { background: '#ede2df', text: '#6b122c', accent: '#be123c', glass: 'rgba(245, 236, 233, 0.92)', border: 'rgba(190, 18, 60, 0.28)', shadow: "rgba(76,5,25,0.08)" },
-    dark: { background: '#0f0505', text: '#ffe4e6', accent: '#e11d48', glass: 'rgba(20, 5, 5, 0.5)', border: 'rgba(225, 29, 72, 0.3)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#e11d48', '#fbbf24', '#2dd4bf']
+    dark: { background: '#120609', text: '#ffe4e6', accent: '#e11d48', glass: 'rgba(32, 10, 16, 0.55)', border: 'rgba(225, 29, 72, 0.3)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#e11d48', '#fb7185', '#f59e0b']
   },
   divine_gold: {
-    name: 'Golden Glow',
+    name: 'Parchment Gold',
     icon: Coins,
     light: { background: '#ede3ce', text: '#5c2808', accent: '#b45309', glass: 'rgba(245, 238, 222, 0.92)', border: 'rgba(180, 83, 9, 0.28)', shadow: "rgba(120,53,15,0.08)" },
-    dark: { background: '#000000', text: '#fffbeb', accent: '#fbbf24', glass: 'rgba(251, 191, 36, 0.1)', border: 'rgba(251, 191, 36, 0.4)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#fbbf24', '#f59e0b', '#ffffff']
+    dark: { background: '#0e0b05', text: '#fffbeb', accent: '#f59e0b', glass: 'rgba(38, 28, 12, 0.55)', border: 'rgba(245, 158, 11, 0.35)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#fbbf24', '#d97706', '#fef3c7']
   },
   hadassah_silk: {
-    name: 'Hadassah Silk',
+    name: 'Cedar Mist',
     icon: Gem,
     light: { background: '#e3ebe2', text: '#064e3b', accent: '#047857', glass: 'rgba(237, 243, 236, 0.92)', border: 'rgba(4, 120, 87, 0.28)', shadow: "rgba(6,78,59,0.08)" },
-    dark: { background: '#022c22', text: '#ecfdf5', accent: '#10b981', glass: 'rgba(6, 78, 59, 0.4)', border: 'rgba(16, 185, 129, 0.2)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#10b981', '#34d399', '#059669']
+    dark: { background: '#031f18', text: '#ecfdf5', accent: '#10b981', glass: 'rgba(8, 56, 43, 0.48)', border: 'rgba(16, 185, 129, 0.25)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#10b981', '#2dd4bf', '#059669']
   },
   sovereign_pulse: {
-    name: 'Focus Pulse',
+    name: 'Clarity Violet',
     icon: Orbit,
     light: { background: '#e8e2ef', text: '#3b0764', accent: '#6d28d9', glass: 'rgba(241, 237, 247, 0.92)', border: 'rgba(109, 40, 217, 0.28)', shadow: "rgba(59,7,100,0.08)" },
-    dark: { background: '#2e1065', text: '#f5f3ff', accent: '#8b5cf6', glass: 'rgba(76, 29, 149, 0.4)', border: 'rgba(139, 92, 246, 0.2)', shadow: "rgba(0,0,0,0.4)" },
-    prism: ['#8b5cf6', '#a78bfa', '#7c3aed']
+    dark: { background: '#1a0a3a', text: '#f5f3ff', accent: '#8b5cf6', glass: 'rgba(54, 22, 108, 0.48)', border: 'rgba(139, 92, 246, 0.25)', shadow: "rgba(0,0,0,0.45)" },
+    prism: ['#8b5cf6', '#a78bfa', '#6366f1']
   }
 };
 const FOCUS_POINTER_TOUR_STEPS: readonly TourStep[] = [
