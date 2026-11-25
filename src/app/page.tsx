@@ -54,6 +54,7 @@ import { LivingIchthysFooter } from '@/components/prism/LivingIchthysFooter';
 import { PrismFooter } from '@/components/prism/PrismFooter';
 import { PrismTourOverlay, type TourStep } from '@/components/prism/PrismTourOverlay';
 import { useEngageShortcut } from '@/components/prism/useEngageShortcut';
+import { SensorySoundscapeBar } from '@/components/canvas/SensoryAndTools';
 import { supabase } from '@/lib/supabase';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 type ThemeMode = "midnight_sovereign" | "dastastic_neon" | "electric_grace" | "divine_gold" | "hadassah_silk" | "sovereign_pulse";
@@ -880,6 +881,7 @@ export default function Home() {
   const [showNeuralCommand, setShowNeuralCommand] = useState(false);
   const [showNeuralIdentity, setShowNeuralIdentity] = useState(false);
   const [tourTrigger, setTourTrigger] = useState(0);
+  const [focusSoundStudioOpen, setFocusSoundStudioOpen] = useState(false);
   useEngageShortcut(showNeuralCommand, () => setShowNeuralCommand(false));
   useEngageShortcut(showNeuralIdentity, () => setShowNeuralIdentity(false));
   const [showTOS, setShowTOS] = useState(false);
@@ -2283,6 +2285,23 @@ export default function Home() {
                           </div>
                           <div className={`w-2 h-2 rounded-full ${brownNoisePlaying ? 'bg-amber-400 animate-pulse' : 'bg-[var(--bg)]/10'}`} />
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNeuralCommand(false);
+                            setFocusSoundStudioOpen(true);
+                          }}
+                          className="w-full p-5 rounded-2xl border-2 border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-all flex items-center justify-between text-[var(--fg)]"
+                        >
+                          <div className="flex items-center gap-4">
+                            <Sparkles size={20} className="text-blue-400" />
+                            <div className="text-left">
+                              <p className="text-xs font-black text-[var(--fg)] uppercase tracking-widest">Soundscape Studio</p>
+                              <p className="text-[8px] text-[var(--fg)]/75 font-bold uppercase tracking-tight">40Hz · Rain · Spotify · Apple Music · YouTube</p>
+                            </div>
+                          </div>
+                          <ArrowRight size={15} className="text-blue-400" />
+                        </button>
                         <button onClick={() => setShowNeuralIdentity(true)} className="w-full p-5 rounded-2xl flex items-center justify-between bg-[var(--color-glass)] text-[var(--fg)] hover:text-[var(--fg)] border border-[var(--color-border)] transition-all" title="Open Voice Settings in Neural Identity">
                           <div className="flex items-center gap-4">
                             <MorphSettings size={20} />
@@ -3101,6 +3120,32 @@ export default function Home() {
           </motion.div>
         </div>
       )}</AnimatePresence>
+      {/* Persistent Soundscape Studio Popover (40Hz · Rain · Spotify · Apple Music · YouTube) */}
+      <div
+        className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[260] w-[calc(100%-1.5rem)] max-w-2xl ${
+          focusSoundStudioOpen ? 'block' : 'hidden'
+        }`}
+      >
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setFocusSoundStudioOpen(false)}
+            aria-label="Hide Soundscape Studio"
+            className="absolute right-3 top-3 z-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-glass)] p-1.5 text-[var(--fg)]"
+          >
+            <X size={14} />
+          </button>
+          <SensorySoundscapeBar
+            darkMode={isDark}
+            showSoundtrackPin={true}
+            showGamma40={true}
+            glassCard="apple-glass border-[var(--color-border)] text-[var(--fg)]"
+            subtlePill="bg-[var(--color-glass)] border-[var(--color-border)] text-[var(--fg)]"
+            mutedText="text-[var(--fg)]/70"
+          />
+        </div>
+      </div>
+
       <PrismFooter
         focusMode={focusMode}
         accent="blue"

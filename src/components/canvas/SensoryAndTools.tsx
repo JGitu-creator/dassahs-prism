@@ -54,7 +54,7 @@ export function SensorySoundscapeBar({
   const [volume, setVolume] = useState(0.32);
   const [pinOpen, setPinOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
-  const [pinnedEmbed, setPinnedEmbed] = useState<{ embedUrl: string; provider: 'spotify' | 'youtube' } | null>(null);
+  const [pinnedEmbed, setPinnedEmbed] = useState<{ embedUrl: string; provider: 'spotify' | 'youtube' | 'apple_music' } | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
 
   useEffect(() => () => stopSoundscape(), []);
@@ -82,7 +82,7 @@ export function SensorySoundscapeBar({
     setPinError(null);
     const parsed = parseSoundtrackEmbedUrl(pinInput);
     if (!parsed) {
-      setPinError('Paste a valid public Spotify (open.spotify.com/...) or YouTube link.');
+      setPinError('Paste a valid public Spotify, Apple Music (music.apple.com/...), or YouTube link.');
       return;
     }
     setPinnedEmbed(parsed);
@@ -143,7 +143,7 @@ export function SensorySoundscapeBar({
               className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-bold ${subtlePill}`}
             >
               <Music size={13} className="text-emerald-500" />
-              {pinOpen ? 'Hide Playlist' : 'Pin Spotify / YouTube'}
+              {pinOpen ? 'Hide Player' : 'Spotify · Apple · YouTube'}
             </button>
           )}
         </div>
@@ -156,7 +156,7 @@ export function SensorySoundscapeBar({
               type="url"
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
-              placeholder="Paste a Spotify playlist/track or YouTube Lo-Fi link..."
+              placeholder="Paste a Spotify, Apple Music, or YouTube Lo-Fi link..."
               className={`flex-1 min-w-[200px] rounded-xl border px-3 py-2 text-xs outline-none focus:border-blue-500 ${
                 darkMode ? 'border-white/15 bg-slate-950 text-white' : 'border-[#cfc5b2] bg-[#f3efe6] text-slate-900'
               }`}
@@ -186,8 +186,9 @@ export function SensorySoundscapeBar({
               src={pinnedEmbed.embedUrl}
               title="Pinned focus soundtrack"
               width="100%"
-              height={pinnedEmbed.provider === 'spotify' ? '152' : '180'}
+              height={pinnedEmbed.provider === 'spotify' ? '152' : pinnedEmbed.provider === 'apple_music' ? '175' : '180'}
               allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              sandbox={pinnedEmbed.provider === 'apple_music' ? 'allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation' : undefined}
               loading="lazy"
               className="rounded-2xl border border-black/10 dark:border-white/10"
             />

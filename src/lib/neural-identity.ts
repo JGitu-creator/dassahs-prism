@@ -340,12 +340,12 @@ export function buildProfileFromCheckIn(
 }
 
 /**
- * Safely convert a public Spotify or YouTube link into an embeddable HTTPS iframe URL.
+ * Safely convert a public Spotify, Apple Music, or YouTube link into an embeddable HTTPS iframe URL.
  * Rejects all other domains/protocols to prevent XSS or arbitrary iframe injection.
  */
 export function parseSoundtrackEmbedUrl(rawUrl: string): {
   embedUrl: string;
-  provider: 'spotify' | 'youtube';
+  provider: 'spotify' | 'youtube' | 'apple_music';
 } | null {
   const trimmed = rawUrl.trim();
   if (!trimmed) return null;
@@ -367,6 +367,20 @@ export function parseSoundtrackEmbedUrl(rawUrl: string): {
     return {
       provider: 'spotify',
       embedUrl: `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`,
+    };
+  }
+
+  // Apple Music: music.apple.com/<region>/(album|playlist|station|song)/...
+  if (host === 'music.apple.com' || host === 'embed.music.apple.com') {
+    if (!/^\/[a-z]{2}\/(album|playlist|station|song)\//.test(parsed.pathname) && !/^\/(album|playlist|station|song)\//.test(parsed.pathname)) {
+      return null;
+    }
+    const cleanSearch = parsed.searchParams.get('i')
+      ? `?i=${encodeURIComponent(parsed.searchParams.get('i') || '')}`
+      : '';
+    return {
+      provider: 'apple_music',
+      embedUrl: `https://embed.music.apple.com${parsed.pathname}${cleanSearch}`,
     };
   }
 
