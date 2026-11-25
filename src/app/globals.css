@@ -193,20 +193,15 @@ h1, h2, h3, .prism-brand {
   animation: footer-shimmer-sweep 1.8s ease-in-out forwards;
 }
 
-.light .theme-selector-label {
-  background: rgba(255, 255, 255, 0.92);
-  color: #172554;
-  border-color: rgba(30, 41, 59, 0.28);
-}
 .theme-selector-label {
   background: var(--color-glass);
   color: var(--fg);
   border-color: var(--color-border);
 }
 .light .theme-selector-label {
-  background: rgba(255, 255, 255, 0.92);
-  color: #172554;
-  border-color: rgba(30, 41, 59, 0.28);
+  background: rgba(243, 237, 224, 0.94);
+  color: #1c1711;
+  border-color: rgba(87, 74, 58, 0.28);
 }
 
 .prism-brand .brand-prism {
@@ -351,10 +346,10 @@ h1, h2, h3, .prism-brand {
 /* Contrast contract: every theme has a solid-enough reading surface and a readable text ramp. */
 .light .apple-glass,
 .light .apple-glass-dark {
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #172033;
-  border-color: color-mix(in srgb, var(--color-accent) 28%, #64748b 22%);
-  box-shadow: 0 14px 34px rgba(30, 41, 59, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.86);
+  background-color: rgba(243, 237, 224, 0.92);
+  color: #1c1711;
+  border-color: color-mix(in srgb, var(--color-accent) 26%, #6b5b47 26%);
+  box-shadow: 0 14px 34px rgba(45, 36, 26, 0.09), inset 0 0 0 1px rgba(250, 246, 237, 0.65);
 }
 .dark .apple-glass,
 .dark .apple-glass-dark {
@@ -403,10 +398,10 @@ h1, h2, h3, .prism-brand {
 /* Inputs and interactive boundaries stay visible in either mode. */
 .light input,
 .light textarea,
-.light select { color: #172033; background-color: rgba(255, 255, 255, 0.92); }
+.light select { color: #1c1711; background-color: rgba(235, 227, 211, 0.88); }
 .light select option { background-color: #ffffff; color: #172033; }
 .light input::placeholder,
-.light textarea::placeholder { color: #64748b; opacity: 1; }
+.light textarea::placeholder { color: #5c5042; opacity: 1; }
 .dark input,
 .dark textarea,
 .dark select { color: #f8fafc; }
@@ -422,11 +417,11 @@ select:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-accent)
 
 /* Stable reading surface for the long-form About and Mission Brief modals. */
 .light .contrast-modal {
-  --fg: #0f172a;
-  --color-fg: #0f172a;
-  --color-text: #1e293b;
-  background: rgba(255, 255, 255, 0.97) !important;
-  color: #1e293b !important;
+  --fg: #1c1711;
+  --color-fg: #1c1711;
+  --color-text: #2c241b;
+  background: rgba(243, 237, 224, 0.97) !important;
+  color: #2c241b !important;
   border-color: rgba(59, 130, 246, 0.35) !important;
 }
 .dark .contrast-modal {

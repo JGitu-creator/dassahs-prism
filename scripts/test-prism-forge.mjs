@@ -77,19 +77,29 @@ test('refractWithPrismForge enforces pre-flight safety boundary with zero secret
   assert.match(unsafe.headline, /Protected Boundary/i);
 });
 
-test('Prism Forge UI (/forge), API (/api/forge), and Launchpad (/engine) meet brand & contrast rules', async () => {
+test('Prism Forge UI (/forge), API (/api/forge), and Launchpad (/engine) meet brand, Grace footer, & contrast rules', async () => {
   const forgePage = await readFile(new URL('../src/app/forge/page.tsx', import.meta.url), 'utf8');
   const forgeRoute = await readFile(new URL('../src/app/api/forge/route.ts', import.meta.url), 'utf8');
   const enginePage = await readFile(new URL('../src/app/engine/page.tsx', import.meta.url), 'utf8');
+  const cascadeSrc = await readFile(new URL('../src/lib/server/prism-ai-cascade.ts', import.meta.url), 'utf8');
+
+  const prismFooterSrc = await readFile(new URL('../src/components/prism/PrismFooter.tsx', import.meta.url), 'utf8');
 
   assert.match(forgePage, /Prism/);
   assert.match(forgePage, /Forge/);
-  assert.match(forgePage, /Visual LEGO Brick Logic Assembly/);
+  assert.match(forgePage, /PrismFooter/);
+  assert.match(prismFooterSrc, /LivingIchthysFooter/);
   assert.match(forgePage, /Guided Debugging Quest/);
   assert.match(forgePage, /Ask DJ/);
   assert.match(forgePage, /Local Structural Refraction/);
+  assert.doesNotMatch(forgePage, /Built with Christian founder purpose/i);
   assert.doesNotMatch(forgePage, /\b(sovereign|divine)\b/i);
   assert.doesNotMatch(forgePage, /bg-\[var\(--bg\)\]\s+text-black/);
+
+  // Verify Best-First Infinite Cascade (Mistral Pool -> Gemini -> OpenRouter Free Pool -> Groq -> Local)
+  assert.match(cascadeSrc, /MISTRAL_FALLBACK_MODELS/);
+  assert.match(cascadeSrc, /getMistralModelList/);
+  assert.match(cascadeSrc, /getOpenRouterModelList/);
 
   assert.match(forgeRoute, /refractWithPrismForge/);
   assert.match(forgeRoute, /askDjForgePairProgrammer/);
@@ -99,3 +109,4 @@ test('Prism Forge UI (/forge), API (/api/forge), and Launchpad (/engine) meet br
   assert.match(enginePage, /href="\/forge"/);
   assert.match(enginePage, /Launch Prism Forge/);
 });
+
