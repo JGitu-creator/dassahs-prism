@@ -4,6 +4,7 @@ import { getOpenRouterChatCompletionsUrl } from './openrouter.ts';
 import {
   emptyUsage,
   usageFromGroq,
+  usageFromMistral,
   usageFromOpenRouter,
   type AiUsage,
   type ProviderPreference,
@@ -21,6 +22,14 @@ export type ImageInput = { data: string; mimeType: string };
 export type ChatTurn = { role: string; text: string };
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
+
+export const MISTRAL_FALLBACK_MODELS = [
+  'mistral-small-latest',
+  'ministral-14b-2512',
+  'mistral-large-latest',
+  'ministral-8b-2512',
+] as const;
 
 export const GROQ_FALLBACK_MODELS = [
   'openai/gpt-oss-20b',
@@ -34,6 +43,14 @@ export const OPENROUTER_FREE_FALLBACK_MODELS = [
   'google/gemma-4-31b-it:free',
   'nvidia/nemotron-3-super-120b-a12b:free',
 ] as const;
+
+export function getMistralModelList(): string[] {
+  const configured = process.env.MISTRAL_MODEL?.trim();
+  return Array.from(new Set([
+    ...(configured ? [configured] : []),
+    ...MISTRAL_FALLBACK_MODELS,
+  ]));
+}
 
 export function getGroqModelList(): string[] {
   const configured = process.env.GROQ_MODEL?.trim();
@@ -54,12 +71,53 @@ export function getOpenRouterModelList(explicitModel?: string): string[] {
 
 export function providerErrorCategory(error: unknown): string {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  if (message.includes('key_missing') || message.includes('no groq') || message.includes('no gemini') || message.includes('no openrouter')) return 'key_missing';
+  if (message.includes('key_missing') || message.includes('no groq') || message.includes('no gemini') || message.includes('no openrouter') || message.includes('no mistral')) return 'key_missing';
   if (/401|403|unauthori|forbidden|api key|permission/.test(message)) return 'key_or_permission';
   if (/404|not found|model/.test(message)) return 'model_unavailable';
   if (/429|quota|rate limit|resource exhausted/.test(message)) return 'quota_or_rate_limit';
   if (/timeout|timed out|abort/.test(message)) return 'timeout';
   return 'provider_error';
+}
+
+async function runMistralChat(
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+  temperature: number,
+  jsonMode = false,
+): Promise<ProviderResult> {
+  const mistralKey = process.env.MISTRAL_API_KEY?.trim();
+  if (!mistralKey) throw new Error('mistral_key_missing');
+
+  let lastError: unknown = new Error('mistral_unavailable');
+  for (const model of getMistralModelList()) {
+    try {
+      const response = await fetch(MISTRAL_API_URL, {
+        method: 'POST',
+        signal: AbortSignal.timeout(20_000),
+        headers: {
+          Authorization: `Bearer ${mistralKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature,
+          max_tokens: 4096,
+          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        }),
+      });
+      if (!response.ok) throw new Error(`Mistral returned ${response.status} for ${model}`);
+      const data = await response.json();
+      const text = String(data?.choices?.[0]?.message?.content || '').trim();
+      if (!text) throw new Error(`Mistral returned empty text for ${model}`);
+      const usage = usageFromMistral(data?.usage, data?.model || model);
+      tokenLogger(usage.model, usage.totalTokens);
+      return { text, usage };
+    } catch (error) {
+      lastError = error;
+      console.warn('[PrismEngine] mistral_model_failed', { model, reason: providerErrorCategory(error) });
+    }
+  }
+  throw lastError;
 }
 
 async function runGroqChat(
@@ -268,11 +326,8 @@ function explicitOpenRouterModel(provider: ProviderPreference): string | undefin
 }
 
 /**
- * Unified 4-Tier Prism Engine Cascade for single-prompt refractions & Prism Lens lookups:
- * Tier 1: Groq LPU (blazing fast, free tier)
- * Tier 2: OpenRouter free multi-model cascade
- * Tier 3: Google Gemini 2.0 Flash
- * (Tier 4: Caller falls back cleanly to Unlimited Local Prism — 0 tokens, 100% uptime)
+ * Automatic text cascade: Mistral -> Gemini -> OpenRouter free pool -> Groq -> local structural fallback.
+ * Vision cascade: Gemini -> approved OpenRouter vision fallback -> local structural fallback.
  */
 export async function callPrismCompletion(
   prompt: string,
@@ -281,6 +336,7 @@ export async function callPrismCompletion(
   jsonMode = false,
 ): Promise<ProviderResult> {
   const tryGroq = () => runGroqChat([{ role: 'user', content: prompt }], 0.2, jsonMode);
+  const tryMistral = () => runMistralChat([{ role: 'user', content: prompt }], 0.2, jsonMode);
   const tryOpenRouter = (explicitModel?: string) => {
     const content = image
       ? [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: `data:${image.mimeType};base64,${image.data}` } }]
@@ -293,28 +349,39 @@ export async function callPrismCompletion(
   let providers: Array<{ name: string; run: () => Promise<ProviderResult> }>;
 
   if (image) {
-    // Vision requests use Gemini & OpenRouter (Groq text models don't accept base64 images)
-    providers = preferredProvider === 'openrouter' || namedOpenRouter
-      ? [{ name: 'openrouter', run: () => tryOpenRouter(namedOpenRouter) }, { name: 'gemini', run: tryGemini }]
-      : [{ name: 'gemini', run: tryGemini }, { name: 'openrouter', run: () => tryOpenRouter() }];
+    // Text-only Mistral/Groq models never receive image payloads.
+    providers = [
+      { name: 'gemini', run: tryGemini },
+      { name: 'openrouter', run: () => tryOpenRouter(namedOpenRouter) },
+    ];
   } else if (preferredProvider === 'gemini') {
     providers = [
       { name: 'gemini', run: tryGemini },
-      { name: 'groq', run: tryGroq },
+      { name: 'mistral', run: tryMistral },
       { name: 'openrouter', run: () => tryOpenRouter() },
+      { name: 'groq', run: tryGroq },
     ];
   } else if (preferredProvider === 'openrouter' || namedOpenRouter) {
     providers = [
       { name: 'openrouter', run: () => tryOpenRouter(namedOpenRouter) },
-      { name: 'groq', run: tryGroq },
+      { name: 'mistral', run: tryMistral },
       { name: 'gemini', run: tryGemini },
+      { name: 'groq', run: tryGroq },
     ];
-  } else {
-    // Default 'auto' and 'groq': Groq -> OpenRouter free cascade -> Gemini
+  } else if (preferredProvider === 'groq') {
     providers = [
       { name: 'groq', run: tryGroq },
-      { name: 'openrouter', run: () => tryOpenRouter() },
+      { name: 'mistral', run: tryMistral },
       { name: 'gemini', run: tryGemini },
+      { name: 'openrouter', run: () => tryOpenRouter() },
+    ];
+  } else {
+    // Automatic text order: Mistral -> Gemini -> OpenRouter -> Groq.
+    providers = [
+      { name: 'mistral', run: tryMistral },
+      { name: 'gemini', run: tryGemini },
+      { name: 'openrouter', run: () => tryOpenRouter() },
+      { name: 'groq', run: tryGroq },
     ];
   }
 
@@ -400,6 +467,7 @@ export async function callPrismChat(
   ];
 
   const tryGroq = () => runGroqChat(openAiMessages, 0.4);
+  const tryMistral = () => runMistralChat(openAiMessages, 0.4);
   const tryOpenRouter = (explicitModel?: string) => runOpenRouterChat(openAiMessages, 0.4, explicitModel);
   const tryGemini = () => runGeminiChat(message, history, systemInstruction, previousInteractionId);
 
@@ -409,20 +477,31 @@ export async function callPrismChat(
   if (preferredProvider === 'gemini') {
     providers = [
       { name: 'gemini', run: tryGemini },
-      { name: 'groq', run: tryGroq },
+      { name: 'mistral', run: tryMistral },
       { name: 'openrouter', run: () => tryOpenRouter() },
+      { name: 'groq', run: tryGroq },
     ];
   } else if (preferredProvider === 'openrouter' || namedOpenRouter) {
     providers = [
       { name: 'openrouter', run: () => tryOpenRouter(namedOpenRouter) },
-      { name: 'groq', run: tryGroq },
+      { name: 'mistral', run: tryMistral },
       { name: 'gemini', run: tryGemini },
+      { name: 'groq', run: tryGroq },
     ];
-  } else {
+  } else if (preferredProvider === 'groq') {
     providers = [
       { name: 'groq', run: tryGroq },
-      { name: 'openrouter', run: () => tryOpenRouter() },
+      { name: 'mistral', run: tryMistral },
       { name: 'gemini', run: tryGemini },
+      { name: 'openrouter', run: () => tryOpenRouter() },
+    ];
+  } else {
+    // Automatic text order: Mistral -> Gemini -> OpenRouter -> Groq.
+    providers = [
+      { name: 'mistral', run: tryMistral },
+      { name: 'gemini', run: tryGemini },
+      { name: 'openrouter', run: () => tryOpenRouter() },
+      { name: 'groq', run: tryGroq },
     ];
   }
 

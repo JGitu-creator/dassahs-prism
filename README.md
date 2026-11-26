@@ -1,4 +1,16 @@
-This is **Dassah's Prism**, an ADHD-friendly document simplifier that turns overwhelming noise into clear, actionable focus. It is built with [Next.js](https://nextjs.org).
+# Dassah's Prism Engine
+
+**Dassah's Prism Engine — Prism Focus, Prism Play, Prism Word & Prism Forge — powered by the Prism Engine.** It helps ADHD and neurodivergent learners and knowledge workers turn overwhelming documents, images, webpages, and goals into clear, actionable next steps. It is built with [Next.js](https://nextjs.org).
+
+The product uses **a resilient provider cascade with local structural fallback when remote providers are unavailable**. Automatic text requests use **Mistral → Gemini → OpenRouter free pool → Groq → local structural fallback**. Vision requests use **Gemini first**, then an approved OpenRouter vision fallback; text-only providers do not receive image payloads. Provider keys remain server-side.
+
+## Product routes
+
+- `/` — Prism Focus, the primary document-refraction workspace.
+- `/canvas` — Prism Play, a focused learning and action-card experience.
+- `/engine` — the product-family hub.
+- `/forge` — Prism Forge, the co-design and building workspace.
+- Prism Word and Prism Lens remain distinct experiences within the broader product family; Ask DJ remains a question tool, not a feedback channel.
 
 ## Source and Android APK
 
