@@ -176,15 +176,13 @@ test('Unified 4-tier Prism Engine AI cascade powers both /api/simplify and /api/
   const chatRoute = await readFile(new URL('../src/app/api/chat/route.ts', import.meta.url), 'utf8');
   const envExample = await readFile(new URL('../.env.example', import.meta.url), 'utf8');
 
-  // Automatic text cascade: Mistral -> Gemini -> OpenRouter Free -> Groq -> local structural fallback
-  assert.match(cascade, /mistral-small-latest/);
+  // Infinite-Tier Cascade: Groq -> OpenRouter Free -> Gemini 3.5 Flash-Lite -> Unlimited Local Prism
   assert.match(cascade, /openai\/gpt-oss-20b/);
   assert.match(cascade, /nvidia\/nemotron-3-ultra-550b-a55b:free/);
   assert.match(cascade, /baidu\/ernie-5\.5-flash-preview:free/);
   assert.match(cascade, /google\/gemma-4-31b-it:free/);
   assert.match(cascade, /gemini-3\.5-flash-lite/);
   assert.match(cascade, /createLocalChatReply/);
-  assert.match(envExample, /Mistral -> Gemini -> OpenRouter free pool -> Groq -> local structural fallback/);
 
   // Both routes use the unified cascade and local fallback
   assert.match(simplifyRoute, /callPrismCompletion/);
@@ -198,21 +196,29 @@ test('Unified 4-tier Prism Engine AI cascade powers both /api/simplify and /api/
   assert.doesNotMatch(envExample, /gsk_[A-Za-z0-9]{10,}/);
 });
 
-test('Prism Engine Launchpad (/engine), Prism Play (/canvas), and Dassah\'s Prism (/) are interconnected', async () => {
+test('Prism Engine Launchpad (/engine), Prism Play (/canvas), Prism Forge (/forge), and Prism Focus (/) are interconnected cleanly', async () => {
   const enginePage = await readFile(new URL('../src/app/engine/page.tsx', import.meta.url), 'utf8');
   const canvasPage = await readFile(new URL('../src/app/canvas/page.tsx', import.meta.url), 'utf8');
   const mainPage = await readFile(new URL('../src/app/page.tsx', import.meta.url), 'utf8');
+  const forgePage = await readFile(new URL('../src/app/forge/page.tsx', import.meta.url), 'utf8');
 
   assert.match(enginePage, /The Prism Engine/);
   assert.match(enginePage, /Turning Dread into Play/);
   assert.match(enginePage, /href="\/"/);
   assert.match(enginePage, /href="\/canvas"/);
-  assert.match(enginePage, /openai\/gpt-oss-20b|Groq/);
+  assert.match(enginePage, /href="\/forge"/);
   assert.match(enginePage, /Local Structural Refraction/);
 
   assert.match(canvasPage, /Turning Dread into Play/);
   assert.match(canvasPage, /href="\/engine"/);
+  assert.match(canvasPage, /Powered by The Prism Engine/);
 
-  assert.match(mainPage, /href="\/canvas"/);
-  assert.match(mainPage, /href="\/engine"/);
+  assert.match(forgePage, /href="\/engine"/);
+  assert.match(forgePage, /Powered by The Prism Engine/);
+  assert.match(forgePage, /PrismFooter/);
+  assert.match(forgePage, /PrismTourOverlay/);
+
+  // Prism Focus footer stays uncluttered (no /canvas or /engine links in footer)
+  assert.match(mainPage, /Powered by The Prism Engine/);
+  assert.doesNotMatch(mainPage, /<a href="\/canvas"/);
 });

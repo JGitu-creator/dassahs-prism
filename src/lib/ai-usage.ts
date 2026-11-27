@@ -167,5 +167,7 @@ export const usageFromMistral = (usage: Record<string, unknown> | undefined, mod
     promptTokens,
     completionTokens,
     totalTokens: Number(usage?.total_tokens || promptTokens + completionTokens),
+    tier: 'pool',
+    label: `Mistral · ${model}`,
   };
 };

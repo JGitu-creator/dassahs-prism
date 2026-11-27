@@ -1,20 +1,50 @@
 # Project Mandates - Dassah's Prism Engine
 
+## 0. Jim's Profile & Working Rules (Global Standard)
+- **User:** Jim — IT Support and Software Engineering Student.
+- **Background:** Hands-on IT support at CWS handling Windows support, device enrollment, and identity management. Building **Dassah's Prism / Mindbridge** (Next.js app for attention & focus challenges) on a MacBook. Starting the Moringa School full stack software engineering bootcamp on November 2, 2026. Actively managing an international job search.
+- **Communication & Execution Rules:**
+  - Start with the challenge or the most useful point, not agreement. Skip warm-ups and filler phrases.
+  - Rate confidence as `[Certain]`, `[Likely]`, or `[Guessing]`, and lead with `[Guessing]` if most of a reply is guessing.
+  - Give the uncomfortable truth first. Name information gaps directly.
+  - Disagree with structure, not character: `'I disagree because [reason]. Here's what I'd do instead: [alternative]. The risk: [downside].'`
+  - Hold a position under pushback unless Jim supplies genuinely new information.
+  - Push toward shipping rather than iterating in a vacuum.
+  - When Jim is frustrated or stuck, acknowledge it as reality, then give the next concrete action without a lecture.
+  - Debug together without blame when something breaks.
+  - When advising on unverified work, frame it as `'Show me [specific thing] so I can advise on it.'`
+
 ## 1. Request Analysis & Model Advice
 For every multi-step request or complex modification, the agent MUST:
 - Provide an account of the request.
 - Estimate the token usage (e.g., Low, Medium, High).
-- Advise on the best model for the task (e.g., Gemini 1.5 Pro for complex reasoning, Flash for speed).
+- Advise on the best model for the task.
 - This analysis must be presented before substantial implementation begins.
+- **Deployment Rule:** Never push to GitHub/Vercel live production without explicit user confirmation first.
 
-## 2. Aesthetic Standards
-- **Style:** Apple Liquid Glass (Advanced Glassmorphism).
-- **Themes:** High contrast between light and dark modes.
-- **Color Integration:** Theme accent colors must be deeply integrated into the UI.
-- **Identity:** Keep the 'Dastastic' brand naming convention and preserve Christian founder purpose and DChan dedication in About/Footer material (do not use 'sovereign' or 'divine' as software/UI feature labels).
+## 2. Aesthetic & Brand Standards
+- **Style:** Apple Liquid Glass (Advanced Glassmorphism) with spacious, calm, uncluttered single-column focus (never squash multiple side-by-side panels together).
+- **Themes:** High contrast between dark obsidian and soft paper light modes.
+- **Navigation & Header Hygiene:**
+  - **Prism Focus (`/`)**: Top hero pill badge `Dassah's Prism Engine · Powered by The Prism Engine`. Footer keeps `About the Prism`, `Neural Guide`, and `Browser Extension` only (no `Prism Play` or `Prism Engine` buttons in the footer).
+  - **Prism Play (`/canvas`) & Prism Forge (`/forge`)**: Top bar stays uncluttered (no `Prism Focus` or `Prism Engine` links in the top header bar). Instead, place the clickable pill badge `Dassah's Prism Engine · Powered by The Prism Engine` (linking to `/engine`) centered right above the main `Prism Play` / `Prism Forge` title, matching `Prism Focus`.
+- **Identity & Footer Signature:**
+  - Keep the `Dastastic` brand naming convention.
+  - Always use the authentic `LivingIchthysFooter` (`JG <Ichthys Fish> | Rooted in Christ | Dedicated to Dchan.`) and `Founded by JGitu · Powered by Grace <Ichthys Fish>` wording. Never write "Built with Christian founder purpose" in UI footers, and never use `"sovereign"` or `"divine"` as software/UI feature labels.
 
 ## 3. Architecture & Ecosystem Mandates (Dassah's Prism Engine)
-- **Pillar I: Intelligence Orchestrator:** Preserve the working infinite-tier capability-matrix routing and strict validation. Automatic text order is Mistral → Gemini → OpenRouter free pool → Groq → local structural fallback. Vision is Gemini-first, followed by an approved OpenRouter vision fallback and local structural fallback where applicable.
-- **Pillar II: Cognitive Gamification:** Ascension Ranks (Novice Observer to Focus Architect), Neural Mission Log, and Vault of Artifacts.
-- **Pillar III: Reactive Visual Artistry:** 'Living' UI elements, Refractive Neural Core (Brain), Snake Lights (mouse-reactive background), morphing iconography, and dynamic Liquid Glassmorphism.
-- **Integrity:** Zero Secret Leaks (all keys in server-side environment variables). Functionality Preservation (simplification logic remains intact). No Regression (migrate existing features). Public reliability wording must remain bounded: **“A resilient provider cascade with local structural fallback when remote providers are unavailable.”**
+- **Pillar I: Best-First Infinite Intelligence Cascade (`src/lib/server/prism-ai-cascade.ts` & `src/lib/server/prism-router.ts`):**
+  - **Refractions & Structured Generation (Prism Focus, Prism Play, Prism Word, Prism Forge):**
+    1. **Mistral AI Open/Free Pool** (task-ranked from 1st best to last: `mistral-small-latest`, `mistral-large-latest`, `ministral-14b-2512`, `ministral-8b-2512` — picks 1st best for the task, falls back to 2nd, 3rd, etc.).
+    2. **Google Gemini** (`gemini-3.5-flash-lite` via `@google/genai` Interactions SDK).
+    3. **OpenRouter Open Free Model Pool** (task-ranked from 1st best to last across verified `:free` models: `nvidia/nemotron-3-ultra-550b-a55b:free`, `baidu/ernie-5.5-flash-preview:free`, `nvidia/nemotron-3.5-super-vl:free`, `google/gemma-4-31b-it:free`, `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3.5-lightning:free` + live runtime `:free` catalog discovery).
+    4. **Groq LPU Pool** (`openai/gpt-oss-120b` / `openai/gpt-oss-20b`).
+    5. **Local Structural Refraction** (bounded 0-token offline fallback when remote providers are unavailable, with the existing credit-refund behavior).
+  - **Ask DJ Conversational Helper (`/api/chat`, `/api/scripture/ask-dj`, `/api/forge`):**
+    1. **Primary:** **Google Gemini Interactions SDK** (`client.interactions.create` via `@google/genai` with `previous_interaction_id` stateful memory to remember conversation turns server-side and save tokens).
+    2. **Fallbacks:** Mistral AI Ranked Pool → OpenRouter Free Model Pool → Groq Pool → Local Offline Guide.
+- **Pillar II: Cognitive Gamification:** Ascension Ranks (`Novice Observer` to `Focus Architect`), Guided Quests, and browser-private Vault of Artifacts.
+- **Pillar III: Reactive Visual Artistry:** 'Living' UI elements, Refractive Neural Core, Snake Lights, morphing Ichthys iconography, and dynamic Liquid Glassmorphism.
+- **Integrity:** Zero Secret Leaks (all keys in `.env.local` / Vercel env vars). Pre-flight (`evaluateSafetyBoundary`) and post-flight (`evaluateOutputSafety`) guards active on all endpoints.
+
+- **Public reliability wording:** “A resilient provider cascade with local structural fallback when remote providers are unavailable.”

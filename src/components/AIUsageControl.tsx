@@ -1,7 +1,8 @@
 'use client';
 
-import { Coins, Sparkles } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import type { ProviderPreference } from '@/lib/ai-usage';
+import { PrismSwitcherPopover } from '@/components/prism/PrismSwitcherPopover';
 
 type Usage = {
   totalTokens: number;
@@ -12,8 +13,6 @@ type Usage = {
 };
 
 export function AIUsageControl({
-  preference = 'auto',
-  onPreferenceChange,
   usage,
 }: {
   preference?: ProviderPreference;
@@ -56,18 +55,19 @@ export function AIUsageControl({
           : 'bg-blue-500/15 text-blue-300';
 
   return (
-    <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-glass)] px-2.5 py-1.5 text-[var(--fg)] shadow-lg backdrop-blur-xl">
-      <a
-        href="/engine"
-        title="Open Dassah's Prism Engine Hub · Powered by The Prism Engine (Infinite-Loop Autonomous Orchestrator ∞)"
-        className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--fg)] hover:text-blue-400 transition-colors"
-      >
-        <Sparkles size={14} className={isLocalFallback ? 'text-emerald-400' : 'text-blue-400'} />
-        <span className="hidden md:inline">Prism Engine</span>
-        <span className={`rounded px-1.5 py-0.5 text-[8px] font-black uppercase ${badgeClass}`}>
-          {providerLabel}
-        </span>
-      </a>
+    <div
+      data-tour="focus-engine-switcher"
+      className="flex min-w-0 shrink-0 items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-glass)] px-2.5 py-1.5 text-[var(--fg)] shadow-lg backdrop-blur-xl"
+    >
+      <PrismSwitcherPopover
+        current="focus"
+        compact
+        badgeNode={
+          <span className={`rounded px-1.5 py-0.5 text-[8px] font-black uppercase ${badgeClass}`}>
+            {providerLabel}
+          </span>
+        }
+      />
       <div
         className="flex min-w-0 items-center gap-1 border-l border-[var(--color-border)] pl-2"
         title={

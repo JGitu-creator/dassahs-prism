@@ -1,10 +1,12 @@
 # Prism Word and DPEngine Developer Handoff (`HANDOFF.md`)
 
-> Updated: 2026-11-23 (Production Readiness Audit)
+> Updated: 2026-11-24 (Unified 4-Workspace & Best-First Infinite Cascade Alignment)
 
 ## 1. Architecture and Boundaries
-- **Unified Portal (`/engine`):** Hosts **Prism Focus** (`/`), **Prism Play** (`/canvas`), and **Prism Word** (`/scripture`) cleanly in a three-card portal layout.
-- **Prism Focus Footer (`src/app/page.tsx`):** Kept uncluttered (no `/scripture` link inside Prism Focus footer).
+- **Unified Portal (`/engine`):** Hosts **Prism Focus** (`/`), **Prism Play** (`/canvas`), **Prism Word** (`/scripture`), and **Prism Forge** (`/forge`) cleanly in a four-card portal layout.
+- **Prism Focus Footer (`src/app/page.tsx`):** Kept uncluttered (only `About the Prism`, `Neural Guide`, and `Browser Extension` — no `/scripture`, `/canvas`, or `/engine` links inside the Prism Focus footer).
+- **Consistent Hero Pill Badge & Clean Headers:** Across **Prism Focus** (`/`), **Prism Play** (`/canvas`), and **Prism Forge** (`/forge`), top headers contain only calm workspace controls (no cross-workspace `Prism Focus` / `Prism Engine` header clutter), while the `Dassah's Prism Engine · Powered by The Prism Engine` pill badge sits centered above the main workspace title and links back to `/engine`.
+- **Footer Signature:** All workspaces use `LivingIchthysFooter` (`JG <Ichthys Fish> | Rooted in Christ | Dedicated to Dchan.`) and `Founded by JGitu · Powered by Grace <Ichthys Fish>`.
 - **Compliance, Privacy, and Access Control (`accessControl.ts`, `serverAuth.ts`, `complianceGuard.ts`, `localVault.ts`):**
   - **Strict Allowlist:** Prism Word (`/scripture` and all `/api/scripture/*` endpoints) is hidden from search indexing (`robots.ts` + `noindex`) and restricted strictly to **`phidotaxis@gmail.com`** and **`chanhadassah@gmail.com`** (via Supabase JWT on Vercel or signed `HttpOnly` local cookie when running offline/local without Supabase env vars).
   - **Private Non Shareable Local Vault:** Notes, Obedience Commitments, Sunday Reflections, and Ask DJ Insights save privately into dedicated subfolders under `D:\downloads\Google Antigravity\DJ's Notes\` (`Passage Notes/`, `Obedience Commitments/`, `Sunday Reflections/`, `Ask DJ Insights/`). No public share or export buttons exist inside Prism Word.
@@ -20,9 +22,9 @@
   2. YouVersion Platform API (`YVP_APP_KEY` — live verified for NIV and Amplified + 35 extra versions)
   3. API.Bible (`API_BIBLE_KEY` — live verified for NLT, The Message, and KJV)
   4. Guaranteed Public Domain KJV fallback (`bible-api.com` + embedded offline KJV reserve)
-- **AI Execution Cascade (`src/features/scripture/studyEngine.ts`):**
-  - **Study and Song Studio:** Mistral Pool (`mistral-small-latest`, `mistral-large-latest`, `ministral-14b-2512`) → Gemini Interactions (`gemini-3.5-flash-lite`) → OpenRouter Free Pool → Groq → Built in Offline Study Library.
-  - **Ask DJ:** Defaults to **Gemini Interactions SDK** (`previousInteractionId` stateful memory) before cascading Mistral → OpenRouter → Groq → Local guide.
+- **Unified Best-First AI Execution Cascade (`src/lib/server/prism-ai-cascade.ts`, `src/features/scripture/studyEngine.ts`, `src/features/forge/forgeEngine.ts`):**
+  - **Refractions, Study, Song Studio, and Forge LEGOs:** Task-Ranked **Mistral Pool** (`mistral-small-latest`, `mistral-large-latest`, `ministral-14b-2512`, `ministral-8b-2512`) → **Gemini Interactions** (`gemini-3.5-flash-lite`) → Task-Ranked **OpenRouter Free Pool** (`nvidia/nemotron-3-ultra-550b-a55b:free`, `baidu/ernie-5.5-flash-preview:free`, `nvidia/nemotron-3.5-super-vl:free`, `google/gemma-4-31b-it:free`, `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3.5-lightning:free`) → **Groq Pool** (`openai/gpt-oss-120b`, `openai/gpt-oss-20b`) → **Local Structural Refraction / Offline Library**.
+  - **Ask DJ (All Workspaces):** Defaults to **Gemini Interactions SDK** (`@google/genai` `client.interactions.create` with `previousInteractionId` stateful server-side memory to save tokens) before cascading Mistral Pool → OpenRouter Free Pool → Groq Pool → Local guide.
 - **Error Recovery and Upkeep (`src/app/api/scripture/health/route.ts`, `PrismWordErrorBoundary.tsx`, `SystemHealthModal.tsx`):**
   - Live `GET /api/scripture/health?probe=1` checks Bible providers, active AI cascade models, and surfaces waiting or upkeep notices with plain next steps.
   - React Error Boundary catches unexpected runtime failures and provides safe reload or cache reset options.

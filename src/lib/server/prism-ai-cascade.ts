@@ -20,14 +20,15 @@ import {
 export type ProviderResult = { text: string; usage: AiUsage; interactionId?: string };
 export type ImageInput = { data: string; mimeType: string };
 export type ChatTurn = { role: string; text: string };
+export type PrismTaskProfile = 'default' | 'coding_or_deep' | 'fast' | 'vision';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
 
 export const MISTRAL_FALLBACK_MODELS = [
   'mistral-small-latest',
-  'ministral-14b-2512',
   'mistral-large-latest',
+  'ministral-14b-2512',
   'ministral-8b-2512',
 ] as const;
 
@@ -42,30 +43,70 @@ export const OPENROUTER_FREE_FALLBACK_MODELS = [
   'nvidia/nemotron-3.5-super-vl:free',
   'google/gemma-4-31b-it:free',
   'nvidia/nemotron-3-super-120b-a12b:free',
+  'nvidia/nemotron-3.5-lightning:free',
 ] as const;
 
-export function getMistralModelList(): string[] {
+export function inferTaskProfile(prompt: string, hasImage?: boolean): PrismTaskProfile {
+  if (hasImage) return 'vision';
+  if (
+    prompt.length >= 3500
+    || /\b(?:stack trace|TypeError|RuntimeError|Traceback|legoBlocks|Prism Forge|exegesis|Deep Neural Refraction)\b/i.test(prompt)
+  ) {
+    return 'coding_or_deep';
+  }
+  if (prompt.length < 700) return 'fast';
+  return 'default';
+}
+
+export function getMistralModelList(taskProfile: PrismTaskProfile = 'default'): string[] {
   const configured = process.env.MISTRAL_MODEL?.trim();
-  return Array.from(new Set([
-    ...(configured ? [configured] : []),
-    ...MISTRAL_FALLBACK_MODELS,
-  ]));
+  const ranked =
+    taskProfile === 'coding_or_deep'
+      ? ['mistral-large-latest', 'mistral-small-latest', 'ministral-14b-2512', 'ministral-8b-2512']
+      : taskProfile === 'fast'
+        ? ['mistral-small-latest', 'ministral-14b-2512', 'ministral-8b-2512', 'mistral-large-latest']
+        : [...MISTRAL_FALLBACK_MODELS];
+  return Array.from(new Set([...(configured ? [configured] : []), ...ranked]));
 }
 
-export function getGroqModelList(): string[] {
+export function getGroqModelList(taskProfile: PrismTaskProfile = 'default'): string[] {
   const configured = process.env.GROQ_MODEL?.trim();
+  const ranked =
+    taskProfile === 'coding_or_deep'
+      ? ['openai/gpt-oss-120b', 'openai/gpt-oss-20b']
+      : [...GROQ_FALLBACK_MODELS];
   return Array.from(new Set([
     ...(configured ? [configured] : []),
-    ...GROQ_FALLBACK_MODELS,
+    ...ranked,
   ]));
 }
 
-export function getOpenRouterModelList(explicitModel?: string): string[] {
+export function getOpenRouterModelList(
+  explicitModel?: string,
+  taskProfile: PrismTaskProfile = 'default',
+): string[] {
   const configured = process.env.OPENROUTER_MODEL?.trim();
+  const ranked =
+    taskProfile === 'vision'
+      ? [
+          'nvidia/nemotron-3.5-super-vl:free',
+          'google/gemma-4-31b-it:free',
+          ...OPENROUTER_FREE_FALLBACK_MODELS,
+        ]
+      : taskProfile === 'coding_or_deep'
+        ? [
+            'nvidia/nemotron-3-ultra-550b-a55b:free',
+            'google/gemma-4-31b-it:free',
+            'nvidia/nemotron-3-super-120b-a12b:free',
+            'baidu/ernie-5.5-flash-preview:free',
+            'nvidia/nemotron-3.5-super-vl:free',
+            'nvidia/nemotron-3.5-lightning:free',
+          ]
+        : [...OPENROUTER_FREE_FALLBACK_MODELS];
   return Array.from(new Set([
     ...(explicitModel ? [explicitModel] : []),
     ...(configured ? [configured] : []),
-    ...OPENROUTER_FREE_FALLBACK_MODELS,
+    ...ranked,
   ]));
 }
 
@@ -83,16 +124,17 @@ async function runMistralChat(
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
   temperature: number,
   jsonMode = false,
+  taskProfile: PrismTaskProfile = 'default',
 ): Promise<ProviderResult> {
   const mistralKey = process.env.MISTRAL_API_KEY?.trim();
   if (!mistralKey) throw new Error('mistral_key_missing');
 
   let lastError: unknown = new Error('mistral_unavailable');
-  for (const model of getMistralModelList()) {
+  for (const model of getMistralModelList(taskProfile)) {
     try {
       const response = await fetch(MISTRAL_API_URL, {
         method: 'POST',
-        signal: AbortSignal.timeout(20_000),
+        signal: AbortSignal.timeout(22000),
         headers: {
           Authorization: `Bearer ${mistralKey}`,
           'Content-Type': 'application/json',
@@ -105,16 +147,22 @@ async function runMistralChat(
           ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
         }),
       });
-      if (!response.ok) throw new Error(`Mistral returned ${response.status} for ${model}`);
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(`Mistral auth error ${response.status}`);
+        }
+        throw new Error(`Mistral returned ${response.status} for ${model}`);
+      }
       const data = await response.json();
       const text = String(data?.choices?.[0]?.message?.content || '').trim();
       if (!text) throw new Error(`Mistral returned empty text for ${model}`);
       const usage = usageFromMistral(data?.usage, data?.model || model);
       tokenLogger(usage.model, usage.totalTokens);
       return { text, usage };
-    } catch (error) {
-      lastError = error;
-      console.warn('[PrismEngine] mistral_model_failed', { model, reason: providerErrorCategory(error) });
+    } catch (err) {
+      lastError = err;
+      console.warn('[PrismEngine] mistral_model_failed', { model, reason: providerErrorCategory(err) });
+      if (providerErrorCategory(err) === 'key_or_permission') break;
     }
   }
   throw lastError;
@@ -124,12 +172,13 @@ async function runGroqChat(
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
   temperature: number,
   jsonMode = false,
+  taskProfile: PrismTaskProfile = 'default',
 ): Promise<ProviderResult> {
   const groqKey = process.env.GROQ_API_KEY?.trim();
   if (!groqKey) throw new Error('groq_key_missing');
 
   let lastError: unknown = new Error('groq_unavailable');
-  for (const model of getGroqModelList()) {
+  for (const model of getGroqModelList(taskProfile)) {
     try {
       const response = await fetch(GROQ_API_URL, {
         method: 'POST',
@@ -164,12 +213,13 @@ async function runOpenRouterChat(
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: unknown }>,
   temperature: number,
   explicitModel?: string,
+  taskProfile: PrismTaskProfile = 'default',
 ): Promise<ProviderResult> {
   const openrouterKey = (process.env.OPENROUTER_API_KEY || process.env.ROUTER_API_KEY)?.trim();
   if (!openrouterKey) throw new Error('openrouter_key_missing');
 
   let lastError: unknown = new Error('openrouter_unavailable');
-  for (const model of getOpenRouterModelList(explicitModel)) {
+  for (const model of getOpenRouterModelList(explicitModel, taskProfile)) {
     try {
       const response = await fetch(getOpenRouterChatCompletionsUrl(), {
         method: 'POST',
@@ -326,8 +376,12 @@ function explicitOpenRouterModel(provider: ProviderPreference): string | undefin
 }
 
 /**
- * Automatic text cascade: Mistral -> Gemini -> OpenRouter free pool -> Groq -> local structural fallback.
- * Vision cascade: Gemini -> approved OpenRouter vision fallback -> local structural fallback.
+ * Unified Best-First Infinite Cascade for single-prompt refractions (Prism Focus, Play, Word, Forge):
+ * 1. Mistral AI Pool (task-ranked: mistral-small-latest / mistral-large-latest / ministral-14b-2512 / ministral-8b-2512)
+ * 2. Google Gemini 3.5 Flash-Lite (@google/genai Interactions SDK)
+ * 3. OpenRouter Free Multi-Model Pool (task-ranked from 1st best to last)
+ * 4. Groq LPU Pool (openai/gpt-oss-120b / openai/gpt-oss-20b)
+ * 5. Local Structural Refraction (bounded 0-token fallback when remote providers are unavailable)
  */
 export async function callPrismCompletion(
   prompt: string,
@@ -335,24 +389,32 @@ export async function callPrismCompletion(
   image?: ImageInput,
   jsonMode = false,
 ): Promise<ProviderResult> {
-  const tryGroq = () => runGroqChat([{ role: 'user', content: prompt }], 0.2, jsonMode);
-  const tryMistral = () => runMistralChat([{ role: 'user', content: prompt }], 0.2, jsonMode);
+  const taskProfile = inferTaskProfile(prompt, Boolean(image));
+  const tryMistral = () => runMistralChat([{ role: 'user', content: prompt }], 0.2, jsonMode, taskProfile);
+  const tryGemini = () => runGeminiSingle(prompt, image);
   const tryOpenRouter = (explicitModel?: string) => {
     const content = image
       ? [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: `data:${image.mimeType};base64,${image.data}` } }]
       : prompt;
-    return runOpenRouterChat([{ role: 'user', content }], 0.2, explicitModel);
+    return runOpenRouterChat([{ role: 'user', content }], 0.2, explicitModel, taskProfile);
   };
-  const tryGemini = () => runGeminiSingle(prompt, image);
+  const tryGroq = () => runGroqChat([{ role: 'user', content: prompt }], 0.2, jsonMode, taskProfile);
 
   const namedOpenRouter = explicitOpenRouterModel(preferredProvider);
   let providers: Array<{ name: string; run: () => Promise<ProviderResult> }>;
 
   if (image) {
-    // Text-only Mistral/Groq models never receive image payloads.
+    // Vision is always Gemini-first; approved OpenRouter vision models are the fallback.
     providers = [
       { name: 'gemini', run: tryGemini },
       { name: 'openrouter', run: () => tryOpenRouter(namedOpenRouter) },
+    ];
+  } else if (preferredProvider === 'mistral') {
+    providers = [
+      { name: 'mistral', run: tryMistral },
+      { name: 'gemini', run: tryGemini },
+      { name: 'openrouter', run: () => tryOpenRouter() },
+      { name: 'groq', run: tryGroq },
     ];
   } else if (preferredProvider === 'gemini') {
     providers = [
@@ -376,7 +438,7 @@ export async function callPrismCompletion(
       { name: 'openrouter', run: () => tryOpenRouter() },
     ];
   } else {
-    // Automatic text order: Mistral -> Gemini -> OpenRouter -> Groq.
+    // Default 'auto': Mistral Pool -> Gemini -> OpenRouter Free Pool -> Groq
     providers = [
       { name: 'mistral', run: tryMistral },
       { name: 'gemini', run: tryGemini },
@@ -400,7 +462,7 @@ export async function callPrismCompletion(
 }
 
 /**
- * Clean 4-tier orchestrator entrypoint for M2 routes (/api/simplify, /api/chat, /api/orchestrator).
+ * Orchestrator entrypoint for M2 routes (/api/simplify, /api/chat, /api/orchestrator).
  */
 export async function callPrismFourTierLane(
   request: FourTierRequest,
@@ -416,7 +478,12 @@ export async function callPrismFourTierLane(
 export { isFourTierEnabled, routeFourTier };
 
 /**
- * Unified 4-Tier Prism Engine Cascade for Ask DJ conversational chat.
+ * Unified Prism Engine Cascade for Ask DJ conversational chat:
+ * Primary: Google Gemini Interactions SDK (@google/genai with previous_interaction_id stateful memory to save tokens)
+ * Fallback 1: Mistral AI Ranked Pool
+ * Fallback 2: OpenRouter Free Model Pool
+ * Fallback 3: Groq LPU Pool
+ * Fallback 4: Local Offline Guide
  */
 export async function callPrismChat(
   message: string,
@@ -425,7 +492,11 @@ export async function callPrismChat(
   preferredProvider: ProviderPreference = 'auto',
   previousInteractionId?: string,
 ): Promise<ProviderResult> {
-  if (preferredProvider === 'gemini' && process.env.GEMINI_API_KEY?.trim()) {
+  const taskProfile = inferTaskProfile(message, false);
+
+  // 1. Always attempt Gemini Interactions SDK FIRST on 'auto' or 'gemini' when GEMINI_API_KEY is configured,
+  // because client.interactions.create uses previous_interaction_id to maintain server-side conversation state and save tokens.
+  if ((preferredProvider === 'auto' || preferredProvider === 'gemini') && process.env.GEMINI_API_KEY?.trim()) {
     try {
       const geminiResult = await runGeminiChat(message, history, systemInstruction, previousInteractionId);
       if (geminiResult.text) return geminiResult;
@@ -434,27 +505,6 @@ export async function callPrismChat(
         reason: providerErrorCategory(error),
       });
     }
-  }
-
-  if (isFourTierEnabled()) {
-    const result = await routeFourTier({
-      lane: 'chat',
-      text: message,
-      question: message,
-      history,
-      systemInstruction,
-      preferredProvider,
-    });
-    if (result.isLocalFallback) {
-      return { text: '', usage: result.usage };
-    }
-    const chatText = typeof (result.data as { text?: unknown }).text === 'string'
-      ? (result.data as { text: string }).text
-      : '';
-    if (chatText && result.usage.totalTokens > 0) {
-      tokenLogger(result.usage.model, result.usage.totalTokens);
-    }
-    return { text: chatText, usage: result.usage };
   }
 
   const openAiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
@@ -466,26 +516,26 @@ export async function callPrismChat(
     { role: 'user', content: message },
   ];
 
-  const tryGroq = () => runGroqChat(openAiMessages, 0.4);
-  const tryMistral = () => runMistralChat(openAiMessages, 0.4);
-  const tryOpenRouter = (explicitModel?: string) => runOpenRouterChat(openAiMessages, 0.4, explicitModel);
+  const tryMistral = () => runMistralChat(openAiMessages, 0.4, false, taskProfile);
   const tryGemini = () => runGeminiChat(message, history, systemInstruction, previousInteractionId);
+  const tryOpenRouter = (explicitModel?: string) => runOpenRouterChat(openAiMessages, 0.4, explicitModel, taskProfile);
+  const tryGroq = () => runGroqChat(openAiMessages, 0.4, false, taskProfile);
 
   const namedOpenRouter = explicitOpenRouterModel(preferredProvider);
   let providers: Array<{ name: string; run: () => Promise<ProviderResult> }>;
 
-  if (preferredProvider === 'gemini') {
-    providers = [
-      { name: 'gemini', run: tryGemini },
-      { name: 'mistral', run: tryMistral },
-      { name: 'openrouter', run: () => tryOpenRouter() },
-      { name: 'groq', run: tryGroq },
-    ];
-  } else if (preferredProvider === 'openrouter' || namedOpenRouter) {
+  if (preferredProvider === 'openrouter' || namedOpenRouter) {
     providers = [
       { name: 'openrouter', run: () => tryOpenRouter(namedOpenRouter) },
       { name: 'mistral', run: tryMistral },
       { name: 'gemini', run: tryGemini },
+      { name: 'groq', run: tryGroq },
+    ];
+  } else if (preferredProvider === 'mistral') {
+    providers = [
+      { name: 'mistral', run: tryMistral },
+      { name: 'gemini', run: tryGemini },
+      { name: 'openrouter', run: () => tryOpenRouter() },
       { name: 'groq', run: tryGroq },
     ];
   } else if (preferredProvider === 'groq') {
@@ -496,10 +546,9 @@ export async function callPrismChat(
       { name: 'openrouter', run: () => tryOpenRouter() },
     ];
   } else {
-    // Automatic text order: Mistral -> Gemini -> OpenRouter -> Groq.
+    // Default 'auto' / 'gemini': Mistral -> OpenRouter Free Pool -> Groq (Gemini Interactions already tried above)
     providers = [
       { name: 'mistral', run: tryMistral },
-      { name: 'gemini', run: tryGemini },
       { name: 'openrouter', run: () => tryOpenRouter() },
       { name: 'groq', run: tryGroq },
     ];
@@ -520,9 +569,9 @@ export async function callPrismChat(
 }
 
 /**
- * Tier 4 Guaranteed Offline/Zero-Key Ask DJ Fallback:
+ * Bounded offline Ask DJ fallback:
  * Extracts the most relevant lines from the current reading/refraction context
- * so Ask DJ always answers helpfully even when every external API is offline.
+ * so Ask DJ can still provide a structural response when every external API is offline.
  */
 export function createLocalChatReply(question: string, rawContext: unknown): string {
   const contextText = typeof rawContext === 'string'

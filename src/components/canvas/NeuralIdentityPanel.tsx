@@ -13,6 +13,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { useEngageShortcut } from '@/components/prism/useEngageShortcut';
 import {
   NEURAL_PRESETS,
   POLARIZING_SUPERPOWERS,
@@ -82,11 +83,11 @@ export function QuickBrainCheckIn({ darkMode, onComplete, onSkip }: CheckInProps
 
   const panelBg = darkMode
     ? 'border-white/15 bg-[#0b1224]/95 text-slate-100'
-    : 'border-[#d6ccb9] bg-[#faf7f0]/98 text-[#1e293b]';
-  const muted = darkMode ? 'text-slate-400' : 'text-[#526071]';
+    : 'border-[#c9bda8] bg-[#f3ede0]/98 text-[#1c1711]';
+  const muted = darkMode ? 'text-slate-400' : 'text-[#574c3f]';
   const optionIdle = darkMode
     ? 'border-white/10 bg-white/5 text-slate-200 hover:border-blue-400/50'
-    : 'border-[#d6ccb9] bg-[#f1ece1] text-[#1e293b] hover:border-blue-500/50';
+    : 'border-[#cfc3ae] bg-[#ebe3d3] text-[#1c1711] hover:border-blue-500/50';
   const optionActive = 'border-blue-500 bg-blue-600 text-white shadow-md';
 
   const toolById = useMemo(
@@ -335,13 +336,15 @@ export function NeuralIdentityDrawer({
   onOpenCheckIn,
   onClose,
 }: DrawerProps) {
+  useEngageShortcut(true, onClose);
+
   const modalBg = darkMode
     ? 'border-white/15 bg-[#0b1224]/95 text-slate-100'
-    : 'border-[#d6ccb9] bg-[#f8f4eb]/98 text-[#1e293b]';
-  const muted = darkMode ? 'text-slate-400' : 'text-[#526071]';
+    : 'border-[#c9bda8] bg-[#f3ede0]/98 text-[#1c1711]';
+  const muted = darkMode ? 'text-slate-400' : 'text-[#574c3f]';
   const cardIdle = darkMode
     ? 'border-white/10 bg-white/[0.04]'
-    : 'border-[#dcd3c2] bg-[#f1ebe0]';
+    : 'border-[#cfc3ae] bg-[#ebe3d3]';
 
   const toggleKey = (key: BooleanProfileKey) => {
     const nextVal = !profile[key];
@@ -508,6 +511,19 @@ export function NeuralIdentityDrawer({
               </div>
             </section>
           ))}
+        </div>
+
+        <div className="flex flex-col items-center gap-2 pt-4 border-t border-black/10 dark:border-white/10">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-emerald-600 hover:bg-emerald-500 px-10 py-3 text-[10px] font-black uppercase tracking-[0.35em] text-white shadow-lg transition-all hover:scale-105"
+          >
+            Engage
+          </button>
+          <span className={`text-[10px] font-semibold ${muted}`}>
+            Tip: Click Engage, press Esc, or type &ldquo;engage&rdquo; anywhere to jump right back in.
+          </span>
         </div>
       </motion.div>
     </div>
