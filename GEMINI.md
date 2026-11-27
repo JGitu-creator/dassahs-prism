@@ -32,17 +32,19 @@ For every multi-step request or complex modification, the agent MUST:
   - Keep the `Dastastic` brand naming convention.
   - Always use the authentic `LivingIchthysFooter` (`JG <Ichthys Fish> | Rooted in Christ | Dedicated to Dchan.`) and `Founded by JGitu · Powered by Grace <Ichthys Fish>` wording. Never write "Built with Christian founder purpose" in UI footers, and never use `"sovereign"` or `"divine"` as software/UI feature labels.
 
-## 3. Architecture & Ecosystem Mandates (The Prism Engine ∞)
+## 3. Architecture & Ecosystem Mandates (Dassah's Prism Engine)
 - **Pillar I: Best-First Infinite Intelligence Cascade (`src/lib/server/prism-ai-cascade.ts` & `src/lib/server/prism-router.ts`):**
   - **Refractions & Structured Generation (Prism Focus, Prism Play, Prism Word, Prism Forge):**
     1. **Mistral AI Open/Free Pool** (task-ranked from 1st best to last: `mistral-small-latest`, `mistral-large-latest`, `ministral-14b-2512`, `ministral-8b-2512` — picks 1st best for the task, falls back to 2nd, 3rd, etc.).
     2. **Google Gemini** (`gemini-3.5-flash-lite` via `@google/genai` Interactions SDK).
     3. **OpenRouter Open Free Model Pool** (task-ranked from 1st best to last across verified `:free` models: `nvidia/nemotron-3-ultra-550b-a55b:free`, `baidu/ernie-5.5-flash-preview:free`, `nvidia/nemotron-3.5-super-vl:free`, `google/gemma-4-31b-it:free`, `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3.5-lightning:free` + live runtime `:free` catalog discovery).
     4. **Groq LPU Pool** (`openai/gpt-oss-120b` / `openai/gpt-oss-20b`).
-    5. **Local Structural Refraction** (guaranteed 0-token offline fallback with automatic credit refund).
+    5. **Local Structural Refraction** (bounded 0-token offline fallback when remote providers are unavailable, with the existing credit-refund behavior).
   - **Ask DJ Conversational Helper (`/api/chat`, `/api/scripture/ask-dj`, `/api/forge`):**
     1. **Primary:** **Google Gemini Interactions SDK** (`client.interactions.create` via `@google/genai` with `previous_interaction_id` stateful memory to remember conversation turns server-side and save tokens).
     2. **Fallbacks:** Mistral AI Ranked Pool → OpenRouter Free Model Pool → Groq Pool → Local Offline Guide.
 - **Pillar II: Cognitive Gamification:** Ascension Ranks (`Novice Observer` to `Focus Architect`), Guided Quests, and browser-private Vault of Artifacts.
 - **Pillar III: Reactive Visual Artistry:** 'Living' UI elements, Refractive Neural Core, Snake Lights, morphing Ichthys iconography, and dynamic Liquid Glassmorphism.
 - **Integrity:** Zero Secret Leaks (all keys in `.env.local` / Vercel env vars). Pre-flight (`evaluateSafetyBoundary`) and post-flight (`evaluateOutputSafety`) guards active on all endpoints.
+
+- **Public reliability wording:** “A resilient provider cascade with local structural fallback when remote providers are unavailable.”

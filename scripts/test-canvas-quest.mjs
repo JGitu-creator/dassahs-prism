@@ -222,5 +222,3 @@ test('Prism Engine Launchpad (/engine), Prism Play (/canvas), Prism Forge (/forg
   assert.match(mainPage, /Powered by The Prism Engine/);
   assert.doesNotMatch(mainPage, /<a href="\/canvas"/);
 });
-
-

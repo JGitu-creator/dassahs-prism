@@ -109,4 +109,3 @@ test('Prism Forge UI (/forge), API (/api/forge), and Launchpad (/engine) meet br
   assert.match(enginePage, /href="\/forge"/);
   assert.match(enginePage, /Launch Prism Forge/);
 });
-

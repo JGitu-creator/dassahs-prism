@@ -128,7 +128,7 @@ test('7. shadow mode remains disabled', async () => {
 
 test('8. successful Tier 1 candidate is accepted only with schema and usage', async () => {
   const res = await routeFourTier(
-    { lane: 'focus', text: 'Back up configs and check /api/health after release.' },
+    { lane: 'focus', text: 'Back up configs and check /api/health after release.', preferredProvider: 'groq' },
     {
       env: MOCK_ENV,
       fetchImpl: async () => groqResponse(VALID_FOCUS, VALID_USAGE),
@@ -419,7 +419,38 @@ test('20. focus_plus auto runs Best-First Infinite Cascade (Mistral FIRST, bypas
   assert.ok(seenUrls.every((u) => u.includes('api.mistral.ai')), 'Mistral must run first without touching Groq');
 });
 
-test('21. /api/simplify preserves rawLane === focus_plus instead of silently downgrading to focus', async () => {
+test('21. automatic text fallback order is Mistral -> Gemini -> OpenRouter -> Groq', async () => {
+  const seenUrls = [];
+  const res = await routeFourTier(
+    { lane: 'focus_plus', text: 'Verify the release checklist.', preferredProvider: 'auto' },
+    {
+      env: {
+        ...MOCK_ENV,
+        MISTRAL_API_KEY: 'mistral_test_synthetic',
+        OPENROUTER_API_KEY: 'sk-or-test-synthetic',
+        OPENROUTER_DYNAMIC_DISCOVERY: 'false',
+      },
+      fetchImpl: async (url) => {
+        const target = String(url);
+        seenUrls.push(target);
+        if (target.includes('api.mistral.ai') || target.includes('generativelanguage.googleapis.com') || target.includes('openrouter.ai')) {
+          return new Response('provider unavailable', { status: 503 });
+        }
+        return groqResponse(VALID_FOCUS_PLUS, VALID_USAGE);
+      },
+      sleepImpl: async () => {},
+    },
+  );
+  assert.equal(res.provider, 'groq');
+  const firstMistral = seenUrls.findIndex((url) => url.includes('api.mistral.ai'));
+  const firstGemini = seenUrls.findIndex((url) => url.includes('generativelanguage.googleapis.com'));
+  const firstOpenRouter = seenUrls.findIndex((url) => url.includes('openrouter.ai'));
+  const firstGroq = seenUrls.findIndex((url) => url.includes('api.groq.com'));
+  assert.ok(firstMistral >= 0 && firstMistral < firstGemini);
+  assert.ok(firstGemini < firstOpenRouter && firstOpenRouter < firstGroq);
+});
+
+test('22. /api/simplify preserves rawLane === focus_plus instead of silently downgrading to focus', async () => {
   const { readFile } = await import('node:fs/promises');
   const routeSrc = await readFile(new URL('../src/app/api/simplify/route.ts', import.meta.url), 'utf8');
   assert.match(routeSrc, /rawLane\s*===\s*'focus_plus'/, '/api/simplify must preserve rawLane === focus_plus');

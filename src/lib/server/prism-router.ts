@@ -172,7 +172,8 @@ function sanitizeApprovedModel(candidate: string | undefined, fallback: string):
 
 /**
  * Infinite-Tier Orchestrator activation check.
- * Enabled ON by default (Groq Tier 1 -> Groq Tier 2 -> Gemini 2.0 Flash -> OpenRouter Free Pool -> Local Refraction).
+ * Enabled ON by default. Automatic text uses Mistral -> Gemini -> OpenRouter Free Pool -> Groq -> Local Refraction;
+ * vision remains Gemini-first with the approved OpenRouter vision fallback.
  * Operators can explicitly disable via PRISM_FOUR_TIER_ENABLED=false as an emergency kill-switch.
  */
 export function isFourTierEnabled(env: Record<string, string | undefined> = process.env): boolean {
@@ -1685,24 +1686,22 @@ export async function routeFourTier(
   };
 
   // Best-First Infinite Cascade:
-  // 1) Explicit primary override (openrouter or mistral)
-  // 2) Live Prism Focus workspace (focus_plus, auto): Mistral Pool -> OpenRouter Top-6 Free Pool -> Gemini 3.5 -> Groq -> Local
-  if (effectivePreferredProvider === 'openrouter') {
+  // Automatic text: Mistral Pool -> Gemini -> OpenRouter Free Pool -> Groq -> Local.
+  // Vision: Gemini -> approved OpenRouter vision fallback -> Local.
+  if (effectivePreferredProvider === 'openrouter' && !hasImage) {
     const poolFirst = await tryOpenRouterPool();
     if (poolFirst) return poolFirst;
-  } else if (effectivePreferredProvider === 'mistral') {
+  } else if (effectivePreferredProvider === 'mistral' && !hasImage) {
     const mistralFirst = await tryMistralPool();
     if (mistralFirst) return mistralFirst;
-  } else if (request.lane === 'focus_plus' && effectivePreferredProvider === 'auto') {
+  } else if (effectivePreferredProvider === 'auto' && !hasImage) {
     const mistralFirst = await tryMistralPool();
     if (mistralFirst) return mistralFirst;
-    const poolSecond = await tryOpenRouterPool();
-    if (poolSecond) return poolSecond;
   }
 
-  // On focus_plus (auto), put Gemini 3.5 Flash-Lite ahead of Groq's 8K TPM free tier
+  // For automatic text lanes, put Gemini ahead of Groq's fixed tiers.
   const activeTierSequence: RemotePrismTier[] =
-    request.lane === 'focus_plus' && effectivePreferredProvider === 'auto' && !hasImage
+    effectivePreferredProvider === 'auto' && !hasImage
       ? ['tier3', 'tier1', 'tier2']
       : tierSequence;
 
@@ -1935,18 +1934,27 @@ export async function routeFourTier(
       break;
     }
 
+    // Automatic focus text checks Gemini before entering the OpenRouter pool.
+    // Images always follow Gemini-first vision handling and then use the
+    // approved OpenRouter vision pool; text-only providers never receive them.
+    if (tier === 'tier3' && (effectivePreferredProvider === 'auto' || hasImage)) {
+      const poolAfterGemini = await tryOpenRouterPool();
+      if (poolAfterGemini) return poolAfterGemini;
+    }
+
     if (shouldStopAllRemote) {
       break;
     }
   }
 
   // -------------------------------------------------------------------------
-  // Tier 4..N: OpenRouter Infinite Free Pool + Mistral Experiment Cascade
+  // Final remote pools for lanes that did not already use the automatic
+  // Mistral/Gemini/OpenRouter ordering.
   // -------------------------------------------------------------------------
   const poolResult = await tryOpenRouterPool();
   if (poolResult) return poolResult;
 
-  const mistralResult = await tryMistralPool();
+  const mistralResult = hasImage ? null : await tryMistralPool();
   if (mistralResult) return mistralResult;
 
   return buildTier4Result({

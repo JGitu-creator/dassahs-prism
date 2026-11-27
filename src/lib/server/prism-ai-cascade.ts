@@ -143,6 +143,7 @@ async function runMistralChat(
           model,
           messages,
           temperature,
+          max_tokens: 4096,
           ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
         }),
       });
@@ -380,7 +381,7 @@ function explicitOpenRouterModel(provider: ProviderPreference): string | undefin
  * 2. Google Gemini 3.5 Flash-Lite (@google/genai Interactions SDK)
  * 3. OpenRouter Free Multi-Model Pool (task-ranked from 1st best to last)
  * 4. Groq LPU Pool (openai/gpt-oss-120b / openai/gpt-oss-20b)
- * 5. Local Structural Refraction (0 tokens, 100% offline guarantee)
+ * 5. Local Structural Refraction (bounded 0-token fallback when remote providers are unavailable)
  */
 export async function callPrismCompletion(
   prompt: string,
@@ -403,10 +404,11 @@ export async function callPrismCompletion(
   let providers: Array<{ name: string; run: () => Promise<ProviderResult> }>;
 
   if (image) {
-    // Vision requests use Gemini & OpenRouter Vision Pool
-    providers = preferredProvider === 'openrouter' || namedOpenRouter
-      ? [{ name: 'openrouter', run: () => tryOpenRouter(namedOpenRouter) }, { name: 'gemini', run: tryGemini }]
-      : [{ name: 'gemini', run: tryGemini }, { name: 'openrouter', run: () => tryOpenRouter() }];
+    // Vision is always Gemini-first; approved OpenRouter vision models are the fallback.
+    providers = [
+      { name: 'gemini', run: tryGemini },
+      { name: 'openrouter', run: () => tryOpenRouter(namedOpenRouter) },
+    ];
   } else if (preferredProvider === 'mistral') {
     providers = [
       { name: 'mistral', run: tryMistral },
@@ -567,9 +569,9 @@ export async function callPrismChat(
 }
 
 /**
- * Tier 4 Guaranteed Offline/Zero-Key Ask DJ Fallback:
+ * Bounded offline Ask DJ fallback:
  * Extracts the most relevant lines from the current reading/refraction context
- * so Ask DJ always answers helpfully even when every external API is offline.
+ * so Ask DJ can still provide a structural response when every external API is offline.
  */
 export function createLocalChatReply(question: string, rawContext: unknown): string {
   const contextText = typeof rawContext === 'string'

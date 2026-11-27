@@ -159,8 +159,8 @@ export const usageFromGroq = (usage: Record<string, unknown> | undefined, model:
 };
 
 export const usageFromMistral = (usage: Record<string, unknown> | undefined, model: string): AiUsage => {
-  const promptTokens = Number(usage?.prompt_tokens || 0);
-  const completionTokens = Number(usage?.completion_tokens || 0);
+  const promptTokens = Number(usage?.prompt_tokens || usage?.input_tokens || 0);
+  const completionTokens = Number(usage?.completion_tokens || usage?.output_tokens || 0);
   return {
     provider: 'mistral',
     model,
@@ -171,4 +171,3 @@ export const usageFromMistral = (usage: Record<string, unknown> | undefined, mod
     label: `Mistral · ${model}`,
   };
 };
-

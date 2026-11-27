@@ -1262,10 +1262,10 @@ export default function PrismEnginePortalPage() {
           </div>
         </section>
 
-        {/* Under-the-Hood 3-Stage Engine Ignition Chamber: The Prism Engine ∞ */}
+        {/* Under-the-Hood 3-Stage Engine Ignition Chamber: Dassah's Prism Engine */}
         <motion.section
-          aria-label="The Prism Engine Infinite-Loop Autonomous Orchestrator"
-          data-engine-telemetry="Tier 1 · Tier 2 · Groq · Local Structural Refraction"
+          aria-label="Dassah's Prism Engine provider cascade"
+          data-engine-telemetry="Mistral · Gemini · OpenRouter · Groq · Local Structural Refraction"
           onViewportEnter={() => {
             if (!engineIgnited) igniteEngineSequence();
           }}
@@ -1389,7 +1389,7 @@ export default function PrismEnginePortalPage() {
                     : 'bg-gradient-to-r from-blue-800 via-purple-800 to-emerald-800'
                 }`}
               >
-                The Prism Engine ∞ · Autonomous Self-Healing Intelligence
+                Dassah&apos;s Prism Engine · Resilient Provider Cascade
               </motion.p>
 
               <motion.p
@@ -1403,7 +1403,7 @@ export default function PrismEnginePortalPage() {
                 transition={{ duration: 0.65, delay: 1.85 }}
                 className={`text-xs sm:text-sm leading-relaxed ${muted}`}
               >
-                Proprietary Infinite-Loop Orchestration with guaranteed <strong>Local Structural Refraction</strong> continuity. Adapts in real time so your flow never breaks.
+                A resilient provider cascade with <strong>local structural fallback</strong> when remote providers are unavailable.
               </motion.p>
             </div>
           </div>
